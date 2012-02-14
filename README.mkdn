@@ -1,7 +1,7 @@
 TPTP theory development just got a whole lot less suckier.
 ==========
 
-The TPTP language for writing formal logical theories is an important
+The [TPTP language] [tptp-home] for writing formal logical theories is an important
 step forward for the automated theorem proving (ATP) community.  It
 gives us a common language for expressing theorem proving problems.
 Since the formal logic community tends to be fragmented, efforts like
@@ -12,3 +12,5 @@ develop a substantial *theory*, though, goes beyond what TPTP
 provides.  Sure, the TPTP language has an `include` directive that
 allows one to import other stuff.  But there is so much more to
 real-world theory development than that.
+
+[tptp-home]: http://www.tptp.org/ "TPTP"
