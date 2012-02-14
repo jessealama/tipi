@@ -1,4 +1,4 @@
-TPTP theory development just got a whole lot less suckier
+TPTP theory development just got a whole lot less suckier.
 ==========
 
 The TPTP language for writing formal logical theories is an important
