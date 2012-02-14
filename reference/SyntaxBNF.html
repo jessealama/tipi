@@ -1,0 +1,668 @@
+<HTML><HEAD><TITLE>TPTP Syntax</TITLE></HEAD><BODY><A NAME="TOPOFPAGE"></A><TT>
+%----v5.3.0.0&nbsp;(TPTP&nbsp;version.internal&nbsp;development&nbsp;number)<BR>
+%------------------------------------------------------------------------------<BR>
+%----README&nbsp;...&nbsp;this&nbsp;header&nbsp;provides&nbsp;important&nbsp;meta-&nbsp;and&nbsp;usage&nbsp;information<BR>
+%----<BR>
+%----Intended&nbsp;uses&nbsp;of&nbsp;the&nbsp;various&nbsp;parts&nbsp;of&nbsp;the&nbsp;TPTP&nbsp;syntax&nbsp;are&nbsp;explained<BR>
+%----in&nbsp;the&nbsp;TPTP&nbsp;technical&nbsp;manual,&nbsp;linked&nbsp;from&nbsp;www.tptp.org.<BR>
+%----<BR>
+%----Four&nbsp;kinds&nbsp;of&nbsp;separators&nbsp;are&nbsp;used,&nbsp;to&nbsp;indicate&nbsp;different&nbsp;types&nbsp;of&nbsp;rules:<BR>
+%----&nbsp;&nbsp;::=&nbsp;is&nbsp;used&nbsp;for&nbsp;regular&nbsp;grammar&nbsp;rules,&nbsp;for&nbsp;syntactic&nbsp;parsing.<BR>
+%----&nbsp;&nbsp;:==&nbsp;is&nbsp;used&nbsp;for&nbsp;semantic&nbsp;grammar&nbsp;rules.&nbsp;These&nbsp;define&nbsp;specific&nbsp;values<BR>
+%----&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;that&nbsp;make&nbsp;semantic&nbsp;sense&nbsp;when&nbsp;more&nbsp;general&nbsp;syntactic&nbsp;rules&nbsp;apply.<BR>
+%----&nbsp;&nbsp;::-&nbsp;is&nbsp;used&nbsp;for&nbsp;rules&nbsp;that&nbsp;produce&nbsp;tokens.<BR>
+%----&nbsp;&nbsp;:::&nbsp;is&nbsp;used&nbsp;for&nbsp;rules&nbsp;that&nbsp;define&nbsp;character&nbsp;classes&nbsp;used&nbsp;in&nbsp;the<BR>
+%----&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;construction&nbsp;of&nbsp;tokens.<BR>
+%----<BR>
+%----White&nbsp;space&nbsp;may&nbsp;occur&nbsp;between&nbsp;any&nbsp;two&nbsp;tokens.&nbsp;White&nbsp;space&nbsp;is&nbsp;not&nbsp;specified<BR>
+%----in&nbsp;the&nbsp;grammar,&nbsp;but&nbsp;there&nbsp;are&nbsp;some&nbsp;restrictions&nbsp;to&nbsp;ensure&nbsp;that&nbsp;the&nbsp;grammar<BR>
+%----is&nbsp;compatible&nbsp;with&nbsp;standard&nbsp;Prolog:&nbsp;a&nbsp;&lt;TPTP_file&gt;&nbsp;should&nbsp;be&nbsp;readable&nbsp;with<BR>
+%----read/1.<BR>
+%----<BR>
+%----The&nbsp;syntax&nbsp;of&nbsp;comments&nbsp;is&nbsp;defined&nbsp;by&nbsp;the&nbsp;&lt;comment&gt;&nbsp;rule.&nbsp;Comments&nbsp;may<BR>
+%----occur&nbsp;between&nbsp;any&nbsp;two&nbsp;tokens,&nbsp;but&nbsp;do&nbsp;not&nbsp;act&nbsp;as&nbsp;white&nbsp;space.&nbsp;Comments<BR>
+%----will&nbsp;normally&nbsp;be&nbsp;discarded&nbsp;at&nbsp;the&nbsp;lexical&nbsp;level,&nbsp;but&nbsp;may&nbsp;be&nbsp;processed<BR>
+%----by&nbsp;systems&nbsp;that&nbsp;understand&nbsp;them&nbsp;(e.g.,&nbsp;if&nbsp;the&nbsp;system&nbsp;comment&nbsp;convention<BR>
+%----is&nbsp;followed).<BR>
+%----<BR>
+%----Four&nbsp;languages&nbsp;are&nbsp;defined&nbsp;first&nbsp;-&nbsp;THF,&nbsp;TFF,&nbsp;FOF,&nbsp;and&nbsp;CNF.&nbsp;Depending&nbsp;on<BR>
+%----your&nbsp;need,&nbsp;you&nbsp;can&nbsp;implement&nbsp;just&nbsp;the&nbsp;one(s)&nbsp;you&nbsp;need.&nbsp;The&nbsp;common&nbsp;rules<BR>
+%----for&nbsp;atoms,&nbsp;terms,&nbsp;etc,&nbsp;come&nbsp;after&nbsp;the&nbsp;definitions&nbsp;of&nbsp;the&nbsp;languages,&nbsp;and<BR>
+%----they&nbsp;are&nbsp;all&nbsp;needed&nbsp;for&nbsp;all&nbsp;four&nbsp;languages&nbsp;(except&nbsp;for&nbsp;the&nbsp;core&nbsp;THF0,<BR>
+%----which&nbsp;is&nbsp;a&nbsp;defined&nbsp;subset&nbsp;of&nbsp;THF).<BR>
+%----<A HREF="#TOPOFPAGE">Top of Page</A>---------------------------------------------------------------<BR>
+%----Files.&nbsp;Empty&nbsp;file&nbsp;is&nbsp;OK.<BR>
+&lt;<A NAME="TPTP_file">TPTP_file</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#TPTP_input">TPTP_input</A>&gt;*<BR>
+&lt;<A NAME="TPTP_input">TPTP_input</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#annotated_formula">annotated_formula</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#include">include</A>&gt;<BR>
+<BR>
+%----Formula&nbsp;records<BR>
+&lt;<A NAME="annotated_formula">annotated_formula</A>&gt;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#thf_annotated">thf_annotated</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#tff_annotated">tff_annotated</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#fof_annotated">fof_annotated</A>&gt;&nbsp;|<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;<A HREF="#cnf_annotated">cnf_annotated</A>&gt;<BR>
+%----Future&nbsp;languages&nbsp;may&nbsp;include&nbsp;...&nbsp;&nbsp;english&nbsp;|&nbsp;efof&nbsp;|&nbsp;tfof&nbsp;|&nbsp;mathml&nbsp;|&nbsp;...<BR>
+&lt;<A NAME="thf_annotated">thf_annotated</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;thf(&lt;<A HREF="#name">name</A>&gt;,&lt;<A HREF="#formula_role">formula_role</A>&gt;,&lt;<A HREF="#thf_formula">thf_formula</A>&gt;&lt;<A HREF="#annotations">annotations</A>&gt;).<BR>
+&lt;<A NAME="tff_annotated">tff_annotated</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;tff(&lt;<A HREF="#name">name</A>&gt;,&lt;<A HREF="#formula_role">formula_role</A>&gt;,&lt;<A HREF="#tff_formula">tff_formula</A>&gt;&lt;<A HREF="#annotations">annotations</A>&gt;).<BR>
+&lt;<A NAME="fof_annotated">fof_annotated</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;fof(&lt;<A HREF="#name">name</A>&gt;,&lt;<A HREF="#formula_role">formula_role</A>&gt;,&lt;<A HREF="#fof_formula">fof_formula</A>&gt;&lt;<A HREF="#annotations">annotations</A>&gt;).<BR>
+&lt;<A NAME="cnf_annotated">cnf_annotated</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;cnf(&lt;<A HREF="#name">name</A>&gt;,&lt;<A HREF="#formula_role">formula_role</A>&gt;,&lt;<A HREF="#cnf_formula">cnf_formula</A>&gt;&lt;<A HREF="#annotations">annotations</A>&gt;).<BR>
+&lt;<A NAME="annotations">annotations</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;,&lt;<A HREF="#source">source</A>&gt;&lt;<A HREF="#optional_info">optional_info</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#null">null</A>&gt;<BR>
+%----In&nbsp;derivations&nbsp;the&nbsp;annotated&nbsp;formulae&nbsp;names&nbsp;must&nbsp;be&nbsp;unique,&nbsp;so&nbsp;that<BR>
+%----parent&nbsp;references&nbsp;(see&nbsp;&lt;inference_record&gt;)&nbsp;are&nbsp;unambiguous.<BR>
+<BR>
+%----Types&nbsp;for&nbsp;problems.<BR>
+%----Note:&nbsp;The&nbsp;previous&nbsp;&lt;source_type&gt;&nbsp;from&nbsp;...<BR>
+%----&nbsp;&nbsp;&nbsp;&lt;formula_role&gt;&nbsp;::=&nbsp;&lt;user_role&gt;-&lt;source&gt;<BR>
+%----...&nbsp;is&nbsp;now&nbsp;gone.&nbsp;Parsers&nbsp;may&nbsp;choose&nbsp;to&nbsp;be&nbsp;tolerant&nbsp;of&nbsp;it&nbsp;for&nbsp;backwards<BR>
+%----compatibility.<BR>
+&lt;<A NAME="formula_role">formula_role</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#lower_word">lower_word</A>&gt;<BR>
+&lt;<A NAME="formula_role">formula_role</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:==&nbsp;axiom&nbsp;|&nbsp;hypothesis&nbsp;|&nbsp;definition&nbsp;|&nbsp;assumption&nbsp;|<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;lemma&nbsp;|&nbsp;theorem&nbsp;|&nbsp;conjecture&nbsp;|&nbsp;negated_conjecture&nbsp;|<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;plain&nbsp;|&nbsp;fi_domain&nbsp;|&nbsp;fi_functors&nbsp;|&nbsp;fi_predicates&nbsp;|<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type&nbsp;|&nbsp;unknown<BR>
+%----"axiom"s&nbsp;are&nbsp;accepted,&nbsp;without&nbsp;proof.&nbsp;There&nbsp;is&nbsp;no&nbsp;guarantee&nbsp;that&nbsp;the<BR>
+%----axioms&nbsp;of&nbsp;a&nbsp;problem&nbsp;are&nbsp;consistent.<BR>
+%----"hypothesis"s&nbsp;are&nbsp;assumed&nbsp;to&nbsp;be&nbsp;true&nbsp;for&nbsp;a&nbsp;particular&nbsp;problem,&nbsp;and&nbsp;are<BR>
+%----used&nbsp;like&nbsp;"axiom"s.<BR>
+%----"definition"s&nbsp;are&nbsp;intended&nbsp;to&nbsp;define&nbsp;symbols.&nbsp;They&nbsp;are&nbsp;either&nbsp;universally<BR>
+%----quantified&nbsp;equations,&nbsp;or&nbsp;universally&nbsp;quantified&nbsp;equivalences&nbsp;with&nbsp;an<BR>
+%----atomic&nbsp;lefthand&nbsp;side.&nbsp;They&nbsp;can&nbsp;be&nbsp;treated&nbsp;like&nbsp;"axiom"s.<BR>
+%----"assumption"s&nbsp;can&nbsp;be&nbsp;used&nbsp;like&nbsp;axioms,&nbsp;but&nbsp;must&nbsp;be&nbsp;discharged&nbsp;before&nbsp;a<BR>
+%----derivation&nbsp;is&nbsp;complete.<BR>
+%----"lemma"s&nbsp;and&nbsp;"theorem"s&nbsp;have&nbsp;been&nbsp;proven&nbsp;from&nbsp;the&nbsp;"axiom"s.&nbsp;They&nbsp;can&nbsp;be<BR>
+%----used&nbsp;like&nbsp;"axiom"s&nbsp;in&nbsp;problems,&nbsp;and&nbsp;a&nbsp;problem&nbsp;containing&nbsp;a&nbsp;non-redundant<BR>
+%----"lemma"&nbsp;or&nbsp;theorem"&nbsp;is&nbsp;ill-formed.&nbsp;They&nbsp;can&nbsp;also&nbsp;appear&nbsp;in&nbsp;derivations.<BR>
+%----"theorem"s&nbsp;are&nbsp;more&nbsp;important&nbsp;than&nbsp;"lemma"s&nbsp;from&nbsp;the&nbsp;user&nbsp;perspective.<BR>
+%----"conjecture"s&nbsp;are&nbsp;to&nbsp;be&nbsp;proven&nbsp;from&nbsp;the&nbsp;"axiom"(-like)&nbsp;formulae.&nbsp;A&nbsp;problem<BR>
+%----is&nbsp;solved&nbsp;only&nbsp;when&nbsp;all&nbsp;"conjecture"s&nbsp;are&nbsp;proven.<BR>
+%----"negated_conjecture"s&nbsp;are&nbsp;formed&nbsp;from&nbsp;negation&nbsp;of&nbsp;a&nbsp;"conjecture"&nbsp;(usually<BR>
+%----in&nbsp;a&nbsp;FOF&nbsp;to&nbsp;CNF&nbsp;conversion).<BR>
+%----"plain"s&nbsp;have&nbsp;no&nbsp;specified&nbsp;user&nbsp;semantics.<BR>
+%----"fi_domain",&nbsp;"fi_functors",&nbsp;and&nbsp;"fi_predicates"&nbsp;are&nbsp;used&nbsp;to&nbsp;record&nbsp;the<BR>
+%----domain,&nbsp;interpretation&nbsp;of&nbsp;functors,&nbsp;and&nbsp;interpretation&nbsp;of&nbsp;predicates,&nbsp;for<BR>
+%----a&nbsp;finite&nbsp;interpretation.<BR>
+%----"type"&nbsp;defines&nbsp;the&nbsp;type&nbsp;globally&nbsp;for&nbsp;one&nbsp;symbol;&nbsp;treat&nbsp;as&nbsp;$true.<BR>
+%----"unknown"s&nbsp;have&nbsp;unknown&nbsp;role,&nbsp;and&nbsp;this&nbsp;is&nbsp;an&nbsp;error&nbsp;situation.<BR>
+%----<A HREF="#TOPOFPAGE">Top of Page</A>---------------------------------------------------------------<BR>
+%----THF&nbsp;formulae.<BR>
+&lt;<A NAME="thf_formula">thf_formula</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#thf_logic_formula">thf_logic_formula</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#thf_sequent">thf_sequent</A>&gt;<BR>
+&lt;<A NAME="thf_logic_formula">thf_logic_formula</A>&gt;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#thf_binary_formula">thf_binary_formula</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#thf_unitary_formula">thf_unitary_formula</A>&gt;&nbsp;|<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;<A HREF="#thf_type_formula">thf_type_formula</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#thf_subtype">thf_subtype</A>&gt;<BR>
+&lt;<A NAME="thf_binary_formula">thf_binary_formula</A>&gt;&nbsp;::=&nbsp;&lt;<A HREF="#thf_binary_pair">thf_binary_pair</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#thf_binary_tuple">thf_binary_tuple</A>&gt;&nbsp;|<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;<A HREF="#thf_binary_type">thf_binary_type</A>&gt;<BR>
+%----Only&nbsp;some&nbsp;binary&nbsp;connectives&nbsp;can&nbsp;be&nbsp;written&nbsp;without&nbsp;()s.<BR>
+%----There's&nbsp;no&nbsp;precedence&nbsp;among&nbsp;binary&nbsp;connectives<BR>
+&lt;<A NAME="thf_binary_pair">thf_binary_pair</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#thf_unitary_formula">thf_unitary_formula</A>&gt;&nbsp;&lt;<A HREF="#thf_pair_connective">thf_pair_connective</A>&gt;<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;<A HREF="#thf_unitary_formula">thf_unitary_formula</A>&gt;<BR>
+&lt;<A NAME="thf_binary_tuple">thf_binary_tuple</A>&gt;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#thf_or_formula">thf_or_formula</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#thf_and_formula">thf_and_formula</A>&gt;&nbsp;|<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;<A HREF="#thf_apply_formula">thf_apply_formula</A>&gt;<BR>
+&lt;<A NAME="thf_or_formula">thf_or_formula</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#thf_unitary_formula">thf_unitary_formula</A>&gt;&nbsp;&lt;<A HREF="#vline">vline</A>&gt;&nbsp;&lt;<A HREF="#thf_unitary_formula">thf_unitary_formula</A>&gt;&nbsp;|<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;<A HREF="#thf_or_formula">thf_or_formula</A>&gt;&nbsp;&lt;<A HREF="#vline">vline</A>&gt;&nbsp;&lt;<A HREF="#thf_unitary_formula">thf_unitary_formula</A>&gt;<BR>
+&lt;<A NAME="thf_and_formula">thf_and_formula</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#thf_unitary_formula">thf_unitary_formula</A>&gt;&nbsp;&&nbsp;&lt;<A HREF="#thf_unitary_formula">thf_unitary_formula</A>&gt;&nbsp;|<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;<A HREF="#thf_and_formula">thf_and_formula</A>&gt;&nbsp;&&nbsp;&lt;<A HREF="#thf_unitary_formula">thf_unitary_formula</A>&gt;<BR>
+&lt;<A NAME="thf_apply_formula">thf_apply_formula</A>&gt;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#thf_unitary_formula">thf_unitary_formula</A>&gt;&nbsp;@&nbsp;&lt;<A HREF="#thf_unitary_formula">thf_unitary_formula</A>&gt;&nbsp;|<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;<A HREF="#thf_apply_formula">thf_apply_formula</A>&gt;&nbsp;@&nbsp;&lt;<A HREF="#thf_unitary_formula">thf_unitary_formula</A>&gt;<BR>
+%----&lt;thf_unitary_formula&gt;&nbsp;are&nbsp;in&nbsp;()s&nbsp;or&nbsp;do&nbsp;not&nbsp;have&nbsp;a&nbsp;&lt;binary_connective&gt;&nbsp;at<BR>
+%----the&nbsp;top&nbsp;level.&nbsp;Essentially,&nbsp;any&nbsp;lambda&nbsp;expression&nbsp;that&nbsp;"has&nbsp;enough&nbsp;()s"&nbsp;to<BR>
+%----be&nbsp;used&nbsp;inside&nbsp;a&nbsp;larger&nbsp;lambda&nbsp;expression.&nbsp;However,&nbsp;lambda&nbsp;notation&nbsp;might<BR>
+%----not&nbsp;be&nbsp;used.<BR>
+&lt;<A NAME="thf_unitary_formula">thf_unitary_formula</A>&gt;&nbsp;::=&nbsp;&lt;<A HREF="#thf_quantified_formula">thf_quantified_formula</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#thf_unary_formula">thf_unary_formula</A>&gt;&nbsp;|<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;<A HREF="#thf_atom">thf_atom</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#thf_conditional">thf_conditional</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#thf_let">thf_let</A>&gt;&nbsp;|<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(&lt;<A HREF="#thf_logic_formula">thf_logic_formula</A>&gt;)<BR>
+&lt;<A NAME="thf_quantified_formula">thf_quantified_formula</A>&gt;&nbsp;::=&nbsp;&lt;<A HREF="#thf_quantifier">thf_quantifier</A>&gt;&nbsp;[&lt;<A HREF="#thf_variable_list">thf_variable_list</A>&gt;]&nbsp;:<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;<A HREF="#thf_unitary_formula">thf_unitary_formula</A>&gt;<BR>
+%----@&nbsp;(denoting&nbsp;apply)&nbsp;is&nbsp;left-associative&nbsp;and&nbsp;lambda&nbsp;is&nbsp;right-associative.<BR>
+%----^&nbsp;[X]&nbsp;:&nbsp;^&nbsp;[Y]&nbsp;:&nbsp;f&nbsp;@&nbsp;g&nbsp;(where&nbsp;f&nbsp;is&nbsp;a&nbsp;&lt;thf_apply_formula&gt;&nbsp;and&nbsp;g&nbsp;is&nbsp;a<BR>
+%----&lt;thf_unitary_formula&gt;)&nbsp;should&nbsp;be&nbsp;parsed&nbsp;as:&nbsp;(^&nbsp;[X]&nbsp;:&nbsp;(^&nbsp;[Y]&nbsp;:&nbsp;f))&nbsp;@&nbsp;g.<BR>
+%----That&nbsp;is,&nbsp;g&nbsp;is&nbsp;not&nbsp;in&nbsp;the&nbsp;scope&nbsp;of&nbsp;either&nbsp;lambda.<BR>
+&lt;<A NAME="thf_variable_list">thf_variable_list</A>&gt;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#thf_variable">thf_variable</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#thf_variable">thf_variable</A>&gt;,&lt;<A HREF="#thf_variable_list">thf_variable_list</A>&gt;<BR>
+&lt;<A NAME="thf_variable">thf_variable</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#thf_typed_variable">thf_typed_variable</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#variable">variable</A>&gt;<BR>
+&lt;<A NAME="thf_typed_variable">thf_typed_variable</A>&gt;&nbsp;::=&nbsp;&lt;<A HREF="#variable">variable</A>&gt;&nbsp;:&nbsp;&lt;<A HREF="#thf_top_level_type">thf_top_level_type</A>&gt;<BR>
+%----Unary&nbsp;connectives&nbsp;bind&nbsp;more&nbsp;tightly&nbsp;than&nbsp;binary.&nbsp;The&nbsp;negated&nbsp;formula<BR>
+%----must&nbsp;be&nbsp;()ed&nbsp;because&nbsp;a&nbsp;~&nbsp;is&nbsp;also&nbsp;a&nbsp;term.<BR>
+&lt;<A NAME="thf_unary_formula">thf_unary_formula</A>&gt;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#thf_unary_connective">thf_unary_connective</A>&gt;&nbsp;(&lt;<A HREF="#thf_logic_formula">thf_logic_formula</A>&gt;)<BR>
+%----&lt;thf_atom&gt;&nbsp;can&nbsp;also&nbsp;be&nbsp;&lt;defined_type&gt;&nbsp;|&nbsp;&lt;defined_plain_formula&gt;&nbsp;|<BR>
+%----&lt;system_type&gt;&nbsp;|&nbsp;&lt;system_atomic_formula&gt;,&nbsp;but&nbsp;they&nbsp;are&nbsp;syntactically<BR>
+%----captured&nbsp;by&nbsp;&lt;term&gt;.<BR>
+&lt;<A NAME="thf_atom">thf_atom</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#term">term</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#thf_conn_term">thf_conn_term</A>&gt;<BR>
+&lt;<A NAME="thf_conditional">thf_conditional</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;$ite_f(&lt;<A HREF="#thf_logic_formula">thf_logic_formula</A>&gt;,&lt;<A HREF="#thf_logic_formula">thf_logic_formula</A>&gt;,<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;<A HREF="#thf_logic_formula">thf_logic_formula</A>&gt;)<BR>
+&lt;<A NAME="thf_let">thf_let</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;$let_tf(&lt;<A HREF="#thf_let_term_defn">thf_let_term_defn</A>&gt;,&lt;<A HREF="#thf_formula">thf_formula</A>&gt;)&nbsp;|<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;$let_ff(&lt;<A HREF="#thf_let_formula_defn">thf_let_formula_defn</A>&gt;,&lt;<A HREF="#thf_formula">thf_formula</A>&gt;)<BR>
+&lt;<A NAME="thf_let_term_defn">thf_let_term_defn</A>&gt;&nbsp;&nbsp;::=&nbsp;!&nbsp;[&lt;<A HREF="#thf_variable_list">thf_variable_list</A>&gt;]&nbsp;:&nbsp;&lt;<A HREF="#thf_let_term_binding">thf_let_term_binding</A>&gt;&nbsp;|<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;<A HREF="#thf_let_term_binding">thf_let_term_binding</A>&gt;<BR>
+&lt;<A NAME="thf_let_term_binding">thf_let_term_binding</A>&gt;&nbsp;::=&nbsp;&lt;<A HREF="#thf_let_lhs">thf_let_lhs</A>&gt;&nbsp;=&nbsp;&lt;<A HREF="#thf_unitary_formula">thf_unitary_formula</A>&gt;<BR>
+&lt;<A NAME="thf_let_formula_defn">thf_let_formula_defn</A>&gt;&nbsp;::=&nbsp;!&nbsp;[&lt;<A HREF="#thf_variable_list">thf_variable_list</A>&gt;]&nbsp;:&nbsp;&lt;<A HREF="#thf_let_formula_binding">thf_let_formula_binding</A>&gt;&nbsp;|<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;<A HREF="#thf_let_formula_binding">thf_let_formula_binding</A>&gt;<BR>
+&lt;<A NAME="thf_let_formula_binding">thf_let_formula_binding</A>&gt;&nbsp;::=&nbsp;&lt;<A HREF="#thf_let_lhs">thf_let_lhs</A>&gt;&nbsp;&lt;<A HREF="#"></A>=&gt;&nbsp;&lt;<A HREF="#thf_unitary_formula">thf_unitary_formula</A>&gt;<BR>
+%----A&nbsp;&lt;thf_let_lhs&gt;&nbsp;must&nbsp;be&nbsp;a&nbsp;&lt;constant&gt;,&nbsp;or&nbsp;an&nbsp;application&nbsp;of&nbsp;a&nbsp;&lt;constant&gt;&nbsp;to&nbsp;<BR>
+%----pairwise&nbsp;distinct&nbsp;variables&nbsp;that&nbsp;appear&nbsp;in&nbsp;the&nbsp;&lt;thf_variable_list&gt;.<BR>
+&lt;<A NAME="thf_let_lhs">thf_let_lhs</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:==&nbsp;&lt;<A HREF="#term">term</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#thf_apply_formula">thf_apply_formula</A>&gt;<BR>
+<BR>
+%----A&nbsp;&lt;thf_type_formula&gt;&nbsp;is&nbsp;an&nbsp;assertion&nbsp;that&nbsp;the&nbsp;formula&nbsp;is&nbsp;in&nbsp;this&nbsp;type.<BR>
+&lt;<A NAME="thf_type_formula">thf_type_formula</A>&gt;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#thf_typeable_formula">thf_typeable_formula</A>&gt;&nbsp;:&nbsp;&lt;<A HREF="#thf_top_level_type">thf_top_level_type</A>&gt;<BR>
+&lt;<A NAME="thf_typeable_formula">thf_typeable_formula</A>&gt;&nbsp;::=&nbsp;&lt;<A HREF="#thf_atom">thf_atom</A>&gt;&nbsp;|&nbsp;(&lt;<A HREF="#thf_logic_formula">thf_logic_formula</A>&gt;)<BR>
+&lt;<A NAME="thf_subtype">thf_subtype</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#constant">constant</A>&gt;&nbsp;&lt;<A HREF="#subtype_sign">subtype_sign</A>&gt;&nbsp;&lt;<A HREF="#constant">constant</A>&gt;<BR>
+%----In&nbsp;a&nbsp;formula&nbsp;with&nbsp;role&nbsp;'type',&nbsp;&lt;thf_type_formula&gt;&nbsp;is&nbsp;a&nbsp;global&nbsp;declaration<BR>
+%----that&nbsp;&lt;constant&gt;&nbsp;is&nbsp;in&nbsp;this&nbsp;thf_top_level_type&gt;,&nbsp;i.e.,&nbsp;the&nbsp;rule&nbsp;is&nbsp;...<BR>
+&lt;<A NAME="thf_type_formula">thf_type_formula</A>&gt;&nbsp;&nbsp;&nbsp;:==&nbsp;&lt;<A HREF="#constant">constant</A>&gt;&nbsp;:&nbsp;&lt;<A HREF="#thf_top_level_type">thf_top_level_type</A>&gt;<BR>
+%----All&nbsp;symbols&nbsp;must&nbsp;be&nbsp;typed&nbsp;exactly&nbsp;one&nbsp;before&nbsp;use,&nbsp;and&nbsp;all&nbsp;atomic&nbsp;types<BR>
+%----must&nbsp;be&nbsp;declared&nbsp;(of&nbsp;type&nbsp;$tType)&nbsp;before&nbsp;use.<BR>
+<BR>
+%----&lt;thf_top_level_type&gt;&nbsp;appears&nbsp;after&nbsp;":",&nbsp;where&nbsp;a&nbsp;type&nbsp;is&nbsp;being&nbsp;specified<BR>
+%----for&nbsp;a&nbsp;term&nbsp;or&nbsp;variable.&nbsp;&lt;thf_unitary_type&gt;&nbsp;includes&nbsp;&lt;thf_unitary_formula&gt;,<BR>
+%----so&nbsp;the&nbsp;syntax&nbsp;allows&nbsp;just&nbsp;about&nbsp;any&nbsp;lambda&nbsp;expression&nbsp;with&nbsp;"enough"<BR>
+%----parentheses&nbsp;to&nbsp;serve&nbsp;as&nbsp;a&nbsp;type.&nbsp;The&nbsp;expected&nbsp;use&nbsp;of&nbsp;this&nbsp;flexibility&nbsp;is<BR>
+%----parametric&nbsp;polymorphism&nbsp;in&nbsp;types,&nbsp;expressed&nbsp;with&nbsp;lambda&nbsp;abstraction.<BR>
+%----Mapping&nbsp;is&nbsp;right-associative:&nbsp;o&nbsp;&gt;&nbsp;o&nbsp;&gt;&nbsp;o&nbsp;means&nbsp;o&nbsp;&gt;&nbsp;(o&nbsp;&gt;&nbsp;o).<BR>
+%----Xproduct&nbsp;is&nbsp;left-associative:&nbsp;o&nbsp;*&nbsp;o&nbsp;*&nbsp;o&nbsp;means&nbsp;(o&nbsp;*&nbsp;o)&nbsp;*&nbsp;o.<BR>
+%----Union&nbsp;is&nbsp;left-associative:&nbsp;o&nbsp;+&nbsp;o&nbsp;+&nbsp;o&nbsp;means&nbsp;(o&nbsp;+&nbsp;o)&nbsp;+&nbsp;o.<BR>
+&lt;<A NAME="thf_top_level_type">thf_top_level_type</A>&gt;&nbsp;::=&nbsp;&lt;<A HREF="#thf_logic_formula">thf_logic_formula</A>&gt;<BR>
+&lt;<A NAME="thf_unitary_type">thf_unitary_type</A>&gt;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#thf_unitary_formula">thf_unitary_formula</A>&gt;<BR>
+&lt;<A NAME="thf_binary_type">thf_binary_type</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#thf_mapping_type">thf_mapping_type</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#thf_xprod_type">thf_xprod_type</A>&gt;&nbsp;|<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;<A HREF="#thf_union_type">thf_union_type</A>&gt;<BR>
+&lt;<A NAME="thf_mapping_type">thf_mapping_type</A>&gt;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#thf_unitary_type">thf_unitary_type</A>&gt;&nbsp;&lt;<A HREF="#arrow">arrow</A>&gt;&nbsp;&lt;<A HREF="#thf_unitary_type">thf_unitary_type</A>&gt;&nbsp;|<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;<A HREF="#thf_unitary_type">thf_unitary_type</A>&gt;&nbsp;&lt;<A HREF="#arrow">arrow</A>&gt;&nbsp;&lt;<A HREF="#thf_mapping_type">thf_mapping_type</A>&gt;<BR>
+&lt;<A NAME="thf_xprod_type">thf_xprod_type</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#thf_unitary_type">thf_unitary_type</A>&gt;&nbsp;&lt;<A HREF="#star">star</A>&gt;&nbsp;&lt;<A HREF="#thf_unitary_type">thf_unitary_type</A>&gt;&nbsp;|<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;<A HREF="#thf_xprod_type">thf_xprod_type</A>&gt;&nbsp;&lt;<A HREF="#star">star</A>&gt;&nbsp;&lt;<A HREF="#thf_unitary_type">thf_unitary_type</A>&gt;<BR>
+&lt;<A NAME="thf_union_type">thf_union_type</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#thf_unitary_type">thf_unitary_type</A>&gt;&nbsp;&lt;<A HREF="#plus">plus</A>&gt;&nbsp;&lt;<A HREF="#thf_unitary_type">thf_unitary_type</A>&gt;&nbsp;|<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;<A HREF="#thf_union_type">thf_union_type</A>&gt;&nbsp;&lt;<A HREF="#plus">plus</A>&gt;&nbsp;&lt;<A HREF="#thf_unitary_type">thf_unitary_type</A>&gt;<BR>
+<BR>
+%----Sequents&nbsp;using&nbsp;the&nbsp;Gentzen&nbsp;arrow<BR>
+&lt;<A NAME="thf_sequent">thf_sequent</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#thf_tuple">thf_tuple</A>&gt;&nbsp;&lt;<A HREF="#gentzen_arrow">gentzen_arrow</A>&gt;&nbsp;&lt;<A HREF="#thf_tuple">thf_tuple</A>&gt;&nbsp;|<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(&lt;<A HREF="#thf_sequent">thf_sequent</A>&gt;)<BR>
+<BR>
+%----&lt;thf_tuple&gt;s&nbsp;are&nbsp;syntactic&nbsp;sugar&nbsp;for&nbsp;lists,&nbsp;either&nbsp;the&nbsp;empty&nbsp;list,&nbsp;or&nbsp;a<BR>
+%----term&nbsp;as&nbsp;the&nbsp;head&nbsp;and&nbsp;a&nbsp;list&nbsp;as&nbsp;a&nbsp;tail.&nbsp;The&nbsp;internal&nbsp;representation&nbsp;is&nbsp;not<BR>
+%----specified,&nbsp;but&nbsp;see&nbsp;the&nbsp;Wikipedia&nbsp;page&nbsp;...<BR>
+%----&nbsp;&nbsp;&nbsp;&nbsp;http://en.wikipedia.org/wiki/Church_encoding#List_encodings<BR>
+%----for&nbsp;some&nbsp;possibilities.<BR>
+&lt;<A NAME="thf_tuple">thf_tuple</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;[]&nbsp;|&nbsp;[&lt;<A HREF="#thf_tuple_list">thf_tuple_list</A>&gt;]<BR>
+&lt;<A NAME="thf_tuple_list">thf_tuple_list</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#thf_logic_formula">thf_logic_formula</A>&gt;&nbsp;|<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;<A HREF="#thf_logic_formula">thf_logic_formula</A>&gt;,&lt;<A HREF="#thf_tuple_list">thf_tuple_list</A>&gt;<BR>
+<BR>
+%----<A HREF="#TOPOFPAGE">Top of Page</A>---------------------------------------------------------------<BR>
+%----TFF&nbsp;formulae.<BR>
+%----TFF&nbsp;is&nbsp;like&nbsp;FOF&nbsp;except&nbsp;that&nbsp;predicate&nbsp;and&nbsp;function&nbsp;symbols&nbsp;must&nbsp;be&nbsp;typed<BR>
+%----exactly&nbsp;once&nbsp;at&nbsp;top&nbsp;level&nbsp;(with&nbsp;formula&nbsp;role&nbsp;"type"),&nbsp;and&nbsp;variables&nbsp;must<BR>
+%----be&nbsp;typed&nbsp;when&nbsp;they&nbsp;are&nbsp;bound&nbsp;in&nbsp;quantifier&nbsp;lists.&nbsp;&lt;atomic_formula&gt;s&nbsp;are<BR>
+%----just&nbsp;like&nbsp;FOF.&nbsp;See&nbsp;the&nbsp;proposal&nbsp;linked&nbsp;from&nbsp;the&nbsp;TPTP&nbsp;web&nbsp;page&nbsp;for&nbsp;details<BR>
+%----of&nbsp;the&nbsp;semantics.<BR>
+&lt;<A NAME="tff_formula">tff_formula</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#tff_logic_formula">tff_logic_formula</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#tff_typed_atom">tff_typed_atom</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#tff_sequent">tff_sequent</A>&gt;<BR>
+%----This&nbsp;is&nbsp;where&nbsp;&lt;tff_subtype&gt;&nbsp;used&nbsp;to&nbsp;be<BR>
+&lt;<A NAME="tff_logic_formula">tff_logic_formula</A>&gt;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#tff_binary_formula">tff_binary_formula</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#tff_unitary_formula">tff_unitary_formula</A>&gt;<BR>
+&lt;<A NAME="tff_binary_formula">tff_binary_formula</A>&gt;&nbsp;::=&nbsp;&lt;<A HREF="#tff_binary_nonassoc">tff_binary_nonassoc</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#tff_binary_assoc">tff_binary_assoc</A>&gt;<BR>
+&lt;<A NAME="tff_binary_nonassoc">tff_binary_nonassoc</A>&gt;&nbsp;::=&nbsp;&lt;<A HREF="#tff_unitary_formula">tff_unitary_formula</A>&gt;&nbsp;&lt;<A HREF="#binary_connective">binary_connective</A>&gt;<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;<A HREF="#tff_unitary_formula">tff_unitary_formula</A>&gt;<BR>
+&lt;<A NAME="tff_binary_assoc">tff_binary_assoc</A>&gt;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#tff_or_formula">tff_or_formula</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#tff_and_formula">tff_and_formula</A>&gt;<BR>
+&lt;<A NAME="tff_or_formula">tff_or_formula</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#tff_unitary_formula">tff_unitary_formula</A>&gt;&nbsp;&lt;<A HREF="#vline">vline</A>&gt;&nbsp;&lt;<A HREF="#tff_unitary_formula">tff_unitary_formula</A>&gt;&nbsp;|<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;<A HREF="#tff_or_formula">tff_or_formula</A>&gt;&nbsp;&lt;<A HREF="#vline">vline</A>&gt;&nbsp;&lt;<A HREF="#tff_unitary_formula">tff_unitary_formula</A>&gt;<BR>
+&lt;<A NAME="tff_and_formula">tff_and_formula</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#tff_unitary_formula">tff_unitary_formula</A>&gt;&nbsp;&&nbsp;&lt;<A HREF="#tff_unitary_formula">tff_unitary_formula</A>&gt;&nbsp;|<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;<A HREF="#tff_and_formula">tff_and_formula</A>&gt;&nbsp;&&nbsp;&lt;<A HREF="#tff_unitary_formula">tff_unitary_formula</A>&gt;<BR>
+&lt;<A NAME="tff_unitary_formula">tff_unitary_formula</A>&gt;&nbsp;::=&nbsp;&lt;<A HREF="#tff_quantified_formula">tff_quantified_formula</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#tff_unary_formula">tff_unary_formula</A>&gt;&nbsp;|<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;<A HREF="#atomic_formula">atomic_formula</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#tff_conditional">tff_conditional</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#tff_let">tff_let</A>&gt;&nbsp;|<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(&lt;<A HREF="#tff_logic_formula">tff_logic_formula</A>&gt;)<BR>
+&lt;<A NAME="tff_quantified_formula">tff_quantified_formula</A>&gt;&nbsp;::=&nbsp;&lt;<A HREF="#fol_quantifier">fol_quantifier</A>&gt;&nbsp;[&lt;<A HREF="#tff_variable_list">tff_variable_list</A>&gt;]&nbsp;:<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;<A HREF="#tff_unitary_formula">tff_unitary_formula</A>&gt;<BR>
+&lt;<A NAME="tff_variable_list">tff_variable_list</A>&gt;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#tff_variable">tff_variable</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#tff_variable">tff_variable</A>&gt;,&lt;<A HREF="#tff_variable_list">tff_variable_list</A>&gt;<BR>
+&lt;<A NAME="tff_variable">tff_variable</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#tff_typed_variable">tff_typed_variable</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#variable">variable</A>&gt;<BR>
+&lt;<A NAME="tff_typed_variable">tff_typed_variable</A>&gt;&nbsp;::=&nbsp;&lt;<A HREF="#variable">variable</A>&gt;&nbsp;:&nbsp;&lt;<A HREF="#tff_atomic_type">tff_atomic_type</A>&gt;<BR>
+&lt;<A NAME="tff_unary_formula">tff_unary_formula</A>&gt;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#unary_connective">unary_connective</A>&gt;&nbsp;&lt;<A HREF="#tff_unitary_formula">tff_unitary_formula</A>&gt;&nbsp;|<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;<A HREF="#fol_infix_unary">fol_infix_unary</A>&gt;<BR>
+&lt;<A NAME="tff_conditional">tff_conditional</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;$ite_f(&lt;<A HREF="#tff_logic_formula">tff_logic_formula</A>&gt;,&lt;<A HREF="#tff_logic_formula">tff_logic_formula</A>&gt;,<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;<A HREF="#tff_logic_formula">tff_logic_formula</A>&gt;)<BR>
+&lt;<A NAME="tff_let">tff_let</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;$let_tf(&lt;<A HREF="#tff_let_term_defn">tff_let_term_defn</A>&gt;,&lt;<A HREF="#tff_formula">tff_formula</A>&gt;)&nbsp;|<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;$let_ff(&lt;<A HREF="#tff_let_formula_defn">tff_let_formula_defn</A>&gt;,&lt;<A HREF="#tff_formula">tff_formula</A>&gt;)<BR>
+%----The&nbsp;LHS&nbsp;of&nbsp;a&nbsp;&lt;tff_let_term_biding&gt;&nbsp;or&nbsp;a&nbsp;&lt;tff_let_formula_binding&gt;&nbsp;must&nbsp;be<BR>
+%----flat&nbsp;with&nbsp;pairwise&nbsp;distinct&nbsp;variable&nbsp;arguments,&nbsp;and&nbsp;the&nbsp;variables&nbsp;on&nbsp;the<BR>
+%----LHS&nbsp;must&nbsp;be&nbsp;those&nbsp;bound&nbsp;in&nbsp;the&nbsp;&lt;tff_variable_list&gt;.<BR>
+&lt;<A NAME="tff_let_term_defn">tff_let_term_defn</A>&gt;&nbsp;&nbsp;::=&nbsp;!&nbsp;[&lt;<A HREF="#tff_variable_list">tff_variable_list</A>&gt;]&nbsp;:&nbsp;&lt;<A HREF="#tff_let_term_binding">tff_let_term_binding</A>&gt;&nbsp;|<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;<A HREF="#tff_let_term_binding">tff_let_term_binding</A>&gt;<BR>
+&lt;<A NAME="tff_let_term_binding">tff_let_term_binding</A>&gt;&nbsp;::=&nbsp;&lt;<A HREF="#term">term</A>&gt;&nbsp;=&nbsp;&lt;<A HREF="#term">term</A>&gt;<BR>
+&lt;<A NAME="tff_let_formula_defn">tff_let_formula_defn</A>&gt;&nbsp;::=&nbsp;!&nbsp;[&lt;<A HREF="#tff_variable_list">tff_variable_list</A>&gt;]&nbsp;:&nbsp;&lt;<A HREF="#tff_let_formula_binding">tff_let_formula_binding</A>&gt;&nbsp;|<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;<A HREF="#tff_let_formula_binding">tff_let_formula_binding</A>&gt;<BR>
+&lt;<A NAME="tff_let_formula_binding">tff_let_formula_binding</A>&gt;&nbsp;::=&nbsp;&lt;<A HREF="#atomic_formula">atomic_formula</A>&gt;&nbsp;&lt;<A HREF="#"></A>=&gt;&nbsp;&lt;<A HREF="#tff_unitary_formula">tff_unitary_formula</A>&gt;<BR>
+<BR>
+&lt;<A NAME="tff_sequent">tff_sequent</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#tff_tuple">tff_tuple</A>&gt;&nbsp;&lt;<A HREF="#gentzen_arrow">gentzen_arrow</A>&gt;&nbsp;&lt;<A HREF="#tff_tuple">tff_tuple</A>&gt;&nbsp;|<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(&lt;<A HREF="#tff_sequent">tff_sequent</A>&gt;)<BR>
+&lt;<A NAME="tff_tuple">tff_tuple</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;[]&nbsp;|&nbsp;[&lt;<A HREF="#tff_tuple_list">tff_tuple_list</A>&gt;]<BR>
+&lt;<A NAME="tff_tuple_list">tff_tuple_list</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#tff_logic_formula">tff_logic_formula</A>&gt;&nbsp;|<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;<A HREF="#tff_logic_formula">tff_logic_formula</A>&gt;,&lt;<A HREF="#tff_tuple_list">tff_tuple_list</A>&gt;<BR>
+<BR>
+%----&lt;tff_typed_atom&gt;&nbsp;can&nbsp;appear&nbsp;only&nbsp;at&nbsp;top&nbsp;level<BR>
+&lt;<A NAME="tff_typed_atom">tff_typed_atom</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#tff_untyped_atom">tff_untyped_atom</A>&gt;&nbsp;:&nbsp;&lt;<A HREF="#tff_top_level_type">tff_top_level_type</A>&gt;&nbsp;|<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(&lt;<A HREF="#tff_typed_atom">tff_typed_atom</A>&gt;)<BR>
+&lt;<A NAME="tff_untyped_atom">tff_untyped_atom</A>&gt;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#functor">functor</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#system_functor">system_functor</A>&gt;<BR>
+%----Subtypes&nbsp;have&nbsp;been&nbsp;removed<BR>
+%&lt;tff_subtype&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;tff_untyped_atom&gt;&nbsp;&lt;subtype_sign&gt;&nbsp;&lt;tff_untyped_atom&gt;&nbsp;|<BR>
+%&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(&lt;tff_subtype&gt;)<BR>
+<BR>
+%----See&nbsp;&lt;thf_top_level_type&gt;&nbsp;for&nbsp;commentary.&nbsp;&lt;tff_quantified_type&gt;&nbsp;is&nbsp;TFF1.<BR>
+&lt;<A NAME="tff_top_level_type">tff_top_level_type</A>&gt;&nbsp;::=&nbsp;&lt;<A HREF="#tff_atomic_type">tff_atomic_type</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#tff_mapping_type">tff_mapping_type</A>&gt;&nbsp;|<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;<A HREF="#tff_quantified_type">tff_quantified_type</A>&gt;<BR>
+&lt;<A NAME="tff_quantified_type">tff_quantified_type</A>&gt;&nbsp;::=&nbsp;!&gt;&nbsp;[&lt;<A HREF="#tff_variable_list">tff_variable_list</A>&gt;]&nbsp;:&nbsp;&lt;<A HREF="#tff_monotype">tff_monotype</A>&gt;&nbsp;|<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(&lt;<A HREF="#tff_quantified_type">tff_quantified_type</A>&gt;)<BR>
+&lt;<A NAME="tff_monotype">tff_monotype</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#tff_atomic_type">tff_atomic_type</A>&gt;&nbsp;|&nbsp;(&lt;<A HREF="#tff_mapping_type">tff_mapping_type</A>&gt;)<BR>
+&lt;<A NAME="tff_unitary_type">tff_unitary_type</A>&gt;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#tff_atomic_type">tff_atomic_type</A>&gt;&nbsp;|&nbsp;(&lt;<A HREF="#tff_xprod_type">tff_xprod_type</A>&gt;)<BR>
+&lt;<A NAME="tff_atomic_type">tff_atomic_type</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#atomic_word">atomic_word</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#defined_type">defined_type</A>&gt;&nbsp;|&nbsp;<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;<A HREF="#atomic_word">atomic_word</A>&gt;(&lt;<A HREF="#tff_type_arguments">tff_type_arguments</A>&gt;)&nbsp;|&nbsp;&lt;<A HREF="#variable">variable</A>&gt;<BR>
+&lt;<A NAME="tff_type_arguments">tff_type_arguments</A>&gt;&nbsp;::=&nbsp;&lt;<A HREF="#tff_atomic_type">tff_atomic_type</A>&gt;&nbsp;|<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;<A HREF="#tff_atomic_type">tff_atomic_type</A>&gt;,&lt;<A HREF="#tff_type_arguments">tff_type_arguments</A>&gt;<BR>
+%----For&nbsp;consistency&nbsp;with&nbsp;&lt;thf_unitary_type&gt;&nbsp;(the&nbsp;analogue&nbsp;in&nbsp;thf),<BR>
+%----&lt;tff_atomic_type&gt;&nbsp;should&nbsp;also&nbsp;allow&nbsp;(&lt;tff_atomic_type&gt;),&nbsp;but&nbsp;that&nbsp;causes<BR>
+%----ambiguity.<BR>
+%----For&nbsp;Josef&nbsp;Urban,&nbsp;change&nbsp;&lt;atomic_word&gt;&nbsp;to&nbsp;&lt;tff_unitary_formula&gt;,&nbsp;and&nbsp;leave<BR>
+%----out&nbsp;&lt;defined_type&gt;&nbsp;(to&nbsp;avoid&nbsp;conflict&nbsp;on&nbsp;&lt;atomic_defined_word&gt;.<BR>
+&lt;<A NAME="tff_mapping_type">tff_mapping_type</A>&gt;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#tff_unitary_type">tff_unitary_type</A>&gt;&nbsp;&lt;<A HREF="#arrow">arrow</A>&gt;&nbsp;&lt;<A HREF="#tff_atomic_type">tff_atomic_type</A>&gt;&nbsp;|<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(&lt;<A HREF="#tff_mapping_type">tff_mapping_type</A>&gt;)<BR>
+&lt;<A NAME="tff_xprod_type">tff_xprod_type</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#tff_atomic_type">tff_atomic_type</A>&gt;&nbsp;&lt;<A HREF="#star">star</A>&gt;&nbsp;&lt;<A HREF="#tff_atomic_type">tff_atomic_type</A>&gt;&nbsp;|<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;<A HREF="#tff_xprod_type">tff_xprod_type</A>&gt;&nbsp;&lt;<A HREF="#star">star</A>&gt;&nbsp;&lt;<A HREF="#tff_atomic_type">tff_atomic_type</A>&gt;&nbsp;|<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(&lt;<A HREF="#tff_xprod_type">tff_xprod_type</A>&gt;)<BR>
+<BR>
+%----The&nbsp;types&nbsp;of&nbsp;the&nbsp;&lt;defined_atom&gt;s&nbsp;and&nbsp;&lt;defined_prop&gt;s&nbsp;are:<BR>
+%----&nbsp;&nbsp;&nbsp;&nbsp;&lt;real&gt;&nbsp;:&nbsp;$real<BR>
+%----&nbsp;&nbsp;&nbsp;&nbsp;&lt;rational&gt;&nbsp;:&nbsp;$rat<BR>
+%----&nbsp;&nbsp;&nbsp;&nbsp;&lt;signed_integer&gt;&nbsp;:&nbsp;$int<BR>
+%----&nbsp;&nbsp;&nbsp;&nbsp;&lt;unsigned_integer&gt;&nbsp;:&nbsp;$int<BR>
+%----&nbsp;&nbsp;&nbsp;&nbsp;&lt;distinct_object&gt;&nbsp;:&nbsp;$i<BR>
+%----&nbsp;&nbsp;&nbsp;&nbsp;$true&nbsp;:&nbsp;$o<BR>
+%----&nbsp;&nbsp;&nbsp;&nbsp;$false&nbsp;:&nbsp;$o<BR>
+<BR>
+%----<A HREF="#TOPOFPAGE">Top of Page</A>---------------------------------------------------------------<BR>
+%----FOF&nbsp;formulae.<BR>
+&lt;<A NAME="fof_formula">fof_formula</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#fof_logic_formula">fof_logic_formula</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#fof_sequent">fof_sequent</A>&gt;<BR>
+&lt;<A NAME="fof_logic_formula">fof_logic_formula</A>&gt;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#fof_binary_formula">fof_binary_formula</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#fof_unitary_formula">fof_unitary_formula</A>&gt;<BR>
+%----Future&nbsp;answer&nbsp;variable&nbsp;ideas&nbsp;|&nbsp;&lt;answer_formula&gt;<BR>
+&lt;<A NAME="fof_binary_formula">fof_binary_formula</A>&gt;&nbsp;::=&nbsp;&lt;<A HREF="#fof_binary_nonassoc">fof_binary_nonassoc</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#fof_binary_assoc">fof_binary_assoc</A>&gt;<BR>
+%----Only&nbsp;some&nbsp;binary&nbsp;connectives&nbsp;are&nbsp;associative<BR>
+%----There's&nbsp;no&nbsp;precedence&nbsp;among&nbsp;binary&nbsp;connectives<BR>
+&lt;<A NAME="fof_binary_nonassoc">fof_binary_nonassoc</A>&gt;&nbsp;::=&nbsp;&lt;<A HREF="#fof_unitary_formula">fof_unitary_formula</A>&gt;&nbsp;&lt;<A HREF="#binary_connective">binary_connective</A>&gt;<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;<A HREF="#fof_unitary_formula">fof_unitary_formula</A>&gt;<BR>
+%----Associative&nbsp;connectives&nbsp;&&nbsp;and&nbsp;|&nbsp;are&nbsp;in&nbsp;&lt;binary_assoc&gt;<BR>
+&lt;<A NAME="fof_binary_assoc">fof_binary_assoc</A>&gt;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#fof_or_formula">fof_or_formula</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#fof_and_formula">fof_and_formula</A>&gt;<BR>
+&lt;<A NAME="fof_or_formula">fof_or_formula</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#fof_unitary_formula">fof_unitary_formula</A>&gt;&nbsp;&lt;<A HREF="#vline">vline</A>&gt;&nbsp;&lt;<A HREF="#fof_unitary_formula">fof_unitary_formula</A>&gt;&nbsp;|<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;<A HREF="#fof_or_formula">fof_or_formula</A>&gt;&nbsp;&lt;<A HREF="#vline">vline</A>&gt;&nbsp;&lt;<A HREF="#fof_unitary_formula">fof_unitary_formula</A>&gt;<BR>
+&lt;<A NAME="fof_and_formula">fof_and_formula</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#fof_unitary_formula">fof_unitary_formula</A>&gt;&nbsp;&&nbsp;&lt;<A HREF="#fof_unitary_formula">fof_unitary_formula</A>&gt;&nbsp;|<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;<A HREF="#fof_and_formula">fof_and_formula</A>&gt;&nbsp;&&nbsp;&lt;<A HREF="#fof_unitary_formula">fof_unitary_formula</A>&gt;<BR>
+%----&lt;fof_unitary_formula&gt;&nbsp;are&nbsp;in&nbsp;()s&nbsp;or&nbsp;do&nbsp;not&nbsp;have&nbsp;a&nbsp;&lt;binary_connective&gt;&nbsp;at<BR>
+%----the&nbsp;top&nbsp;level.<BR>
+&lt;<A NAME="fof_unitary_formula">fof_unitary_formula</A>&gt;&nbsp;::=&nbsp;&lt;<A HREF="#fof_quantified_formula">fof_quantified_formula</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#fof_unary_formula">fof_unary_formula</A>&gt;&nbsp;|<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;<A HREF="#atomic_formula">atomic_formula</A>&gt;&nbsp;|&nbsp;(&lt;<A HREF="#fof_logic_formula">fof_logic_formula</A>&gt;)<BR>
+&lt;<A NAME="fof_quantified_formula">fof_quantified_formula</A>&gt;&nbsp;::=&nbsp;&lt;<A HREF="#fol_quantifier">fol_quantifier</A>&gt;&nbsp;[&lt;<A HREF="#fof_variable_list">fof_variable_list</A>&gt;]&nbsp;:<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;<A HREF="#fof_unitary_formula">fof_unitary_formula</A>&gt;<BR>
+&lt;<A NAME="fof_variable_list">fof_variable_list</A>&gt;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#variable">variable</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#variable">variable</A>&gt;,&lt;<A HREF="#fof_variable_list">fof_variable_list</A>&gt;<BR>
+&lt;<A NAME="fof_unary_formula">fof_unary_formula</A>&gt;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#unary_connective">unary_connective</A>&gt;&nbsp;&lt;<A HREF="#fof_unitary_formula">fof_unitary_formula</A>&gt;&nbsp;|<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;<A HREF="#fol_infix_unary">fol_infix_unary</A>&gt;<BR>
+<BR>
+%----<A HREF="#TOPOFPAGE">Top of Page</A>---------------------------------------------------------------<BR>
+%----This&nbsp;section&nbsp;is&nbsp;the&nbsp;FOFX&nbsp;syntax.&nbsp;Not&nbsp;yet&nbsp;in&nbsp;use.<BR>
+%&nbsp;&lt;fof_let&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;:=&nbsp;[&lt;fof_let_list&gt;]&nbsp;:&nbsp;&lt;fof_unitary_formula&gt;<BR>
+%&nbsp;&lt;fof_let_list&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;fof_defined_var&gt;&nbsp;|<BR>
+%&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;fof_defined_var&gt;,&lt;fof_let_list&gt;<BR>
+%&nbsp;&lt;fof_defined_var&gt;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;variable&gt;&nbsp;:=&nbsp;&lt;fof_logic_formula&gt;&nbsp;|<BR>
+%&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;variable&gt;&nbsp;:-&nbsp;&lt;term&gt;&nbsp;|&nbsp;(&lt;fof_defined_var&gt;)<BR>
+%<BR>
+%&nbsp;&lt;fof_conditional&gt;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;$ite_f(&lt;fof_logic_formula&gt;,&lt;fof_logic_formula&gt;,<BR>
+%&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;fof_logic_formula&gt;)<BR>
+%<BR>
+%&nbsp;&lt;fof_conditional_term&gt;&nbsp;::=&nbsp;$ite_t(&lt;fof_logic_formula&gt;,&lt;term&gt;,&lt;term&gt;)<BR>
+<BR>
+&lt;<A NAME="fof_sequent">fof_sequent</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#fof_tuple">fof_tuple</A>&gt;&nbsp;&lt;<A HREF="#gentzen_arrow">gentzen_arrow</A>&gt;&nbsp;&lt;<A HREF="#fof_tuple">fof_tuple</A>&gt;&nbsp;|<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(&lt;<A HREF="#fof_sequent">fof_sequent</A>&gt;)<BR>
+<BR>
+&lt;<A NAME="fof_tuple">fof_tuple</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;[]&nbsp;|&nbsp;[&lt;<A HREF="#fof_tuple_list">fof_tuple_list</A>&gt;]<BR>
+&lt;<A NAME="fof_tuple_list">fof_tuple_list</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#fof_logic_formula">fof_logic_formula</A>&gt;&nbsp;|<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;<A HREF="#fof_logic_formula">fof_logic_formula</A>&gt;,&lt;<A HREF="#fof_tuple_list">fof_tuple_list</A>&gt;<BR>
+<BR>
+%----<A HREF="#TOPOFPAGE">Top of Page</A>---------------------------------------------------------------<BR>
+%----CNF&nbsp;formulae&nbsp;(variables&nbsp;implicitly&nbsp;universally&nbsp;quantified)<BR>
+&lt;<A NAME="cnf_formula">cnf_formula</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;(&lt;<A HREF="#disjunction">disjunction</A>&gt;)&nbsp;|&nbsp;&lt;<A HREF="#disjunction">disjunction</A>&gt;<BR>
+&lt;<A NAME="disjunction">disjunction</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#literal">literal</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#disjunction">disjunction</A>&gt;&nbsp;&lt;<A HREF="#vline">vline</A>&gt;&nbsp;&lt;<A HREF="#literal">literal</A>&gt;<BR>
+&lt;<A NAME="literal">literal</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#atomic_formula">atomic_formula</A>&gt;&nbsp;|&nbsp;~&nbsp;&lt;<A HREF="#atomic_formula">atomic_formula</A>&gt;&nbsp;|<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;<A HREF="#fol_infix_unary">fol_infix_unary</A>&gt;<BR>
+%----<A HREF="#TOPOFPAGE">Top of Page</A>---------------------------------------------------------------<BR>
+%----Special&nbsp;formulae<BR>
+&lt;<A NAME="thf_conn_term">thf_conn_term</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#thf_pair_connective">thf_pair_connective</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#assoc_connective">assoc_connective</A>&gt;&nbsp;|<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;<A HREF="#thf_unary_connective">thf_unary_connective</A>&gt;<BR>
+&lt;<A NAME="fol_infix_unary">fol_infix_unary</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#term">term</A>&gt;&nbsp;&lt;<A HREF="#infix_inequality">infix_inequality</A>&gt;&nbsp;&lt;<A HREF="#term">term</A>&gt;<BR>
+<BR>
+%----Connectives&nbsp;-&nbsp;THF<BR>
+&lt;<A NAME="thf_quantifier">thf_quantifier</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#fol_quantifier">fol_quantifier</A>&gt;&nbsp;|&nbsp;^&nbsp;|&nbsp;!&gt;&nbsp;|&nbsp;?*&nbsp;|&nbsp;@+&nbsp;|&nbsp;@-<BR>
+&lt;<A NAME="thf_pair_connective">thf_pair_connective</A>&gt;&nbsp;::=&nbsp;&lt;<A HREF="#infix_equality">infix_equality</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#infix_inequality">infix_inequality</A>&gt;&nbsp;|<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;<A HREF="#binary_connective">binary_connective</A>&gt;<BR>
+&lt;<A NAME="thf_unary_connective">thf_unary_connective</A>&gt;&nbsp;::=&nbsp;&lt;<A HREF="#unary_connective">unary_connective</A>&gt;&nbsp;|&nbsp;!!&nbsp;|&nbsp;??<BR>
+%----Connectives&nbsp;-&nbsp;THF&nbsp;and&nbsp;TFF<BR>
+&lt;<A NAME="subtype_sign">subtype_sign</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#less_sign">less_sign</A>&gt;&lt;<A HREF="#less_sign">less_sign</A>&gt;<BR>
+%----Connectives&nbsp;-&nbsp;FOF<BR>
+&lt;<A NAME="fol_quantifier">fol_quantifier</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;!&nbsp;|&nbsp;?<BR>
+&lt;<A NAME="binary_connective">binary_connective</A>&gt;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#"></A>=&gt;&nbsp;|&nbsp;=&gt;&nbsp;|&nbsp;&lt;<A HREF="#"></A>=&nbsp;|&nbsp;&lt;<A HREF="#"></A>~&gt;&nbsp;|&nbsp;~&lt;<A HREF="#vline">vline</A>&gt;&nbsp;|&nbsp;~&<BR>
+&lt;<A NAME="assoc_connective">assoc_connective</A>&gt;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#vline">vline</A>&gt;&nbsp;|&nbsp;&<BR>
+&lt;<A NAME="unary_connective">unary_connective</A>&gt;&nbsp;&nbsp;&nbsp;::=&nbsp;~<BR>
+%----The&nbsp;seqent&nbsp;arrow<BR>
+&lt;<A NAME="gentzen_arrow">gentzen_arrow</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;--&gt;<BR>
+<BR>
+%----Types&nbsp;for&nbsp;THF&nbsp;and&nbsp;TFF<BR>
+&lt;<A NAME="defined_type">defined_type</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#atomic_defined_word">atomic_defined_word</A>&gt;<BR>
+&lt;<A NAME="defined_type">defined_type</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:==&nbsp;$oType&nbsp;|&nbsp;$o&nbsp;|&nbsp;$iType&nbsp;|&nbsp;$i&nbsp;|&nbsp;$tType&nbsp;|<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;$real&nbsp;|&nbsp;$rat&nbsp;|&nbsp;$int<BR>
+%----$oType/$o&nbsp;is&nbsp;the&nbsp;Boolean&nbsp;type,&nbsp;i.e.,&nbsp;the&nbsp;type&nbsp;of&nbsp;$true&nbsp;and&nbsp;$false.<BR>
+%----$iType/$i&nbsp;is&nbsp;non-empty&nbsp;type&nbsp;of&nbsp;individuals,&nbsp;which&nbsp;may&nbsp;be&nbsp;finite&nbsp;or<BR>
+%----infinite.&nbsp;$tType&nbsp;is&nbsp;the&nbsp;type&nbsp;of&nbsp;all&nbsp;types.&nbsp;$real&nbsp;is&nbsp;the&nbsp;type&nbsp;of&nbsp;&lt;real&gt;s.<BR>
+%----$rat&nbsp;is&nbsp;the&nbsp;type&nbsp;of&nbsp;&lt;rational&gt;s.&nbsp;$int&nbsp;is&nbsp;the&nbsp;type&nbsp;of&nbsp;&lt;signed_integer&gt;s<BR>
+%----and&nbsp;&lt;unsigned_integer&gt;s.<BR>
+&lt;<A NAME="system_type">system_type</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:==&nbsp;&lt;<A HREF="#atomic_system_word">atomic_system_word</A>&gt;<BR>
+<BR>
+%----First&nbsp;order&nbsp;atoms<BR>
+&lt;<A NAME="atomic_formula">atomic_formula</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#plain_atomic_formula">plain_atomic_formula</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#defined_atomic_formula">defined_atomic_formula</A>&gt;&nbsp;|<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;<A HREF="#system_atomic_formula">system_atomic_formula</A>&gt;<BR>
+&lt;<A NAME="plain_atomic_formula">plain_atomic_formula</A>&gt;&nbsp;::=&nbsp;&lt;<A HREF="#plain_term">plain_term</A>&gt;<BR>
+&lt;<A NAME="plain_atomic_formula">plain_atomic_formula</A>&gt;&nbsp;:==&nbsp;&lt;<A HREF="#proposition">proposition</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#predicate">predicate</A>&gt;(&lt;<A HREF="#arguments">arguments</A>&gt;)<BR>
+&lt;<A NAME="proposition">proposition</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:==&nbsp;&lt;<A HREF="#predicate">predicate</A>&gt;<BR>
+&lt;<A NAME="predicate">predicate</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:==&nbsp;&lt;<A HREF="#atomic_word">atomic_word</A>&gt;<BR>
+%----Using&nbsp;&lt;plain_term&gt;&nbsp;removes&nbsp;a&nbsp;reduce/reduce&nbsp;ambiguity&nbsp;in&nbsp;lex/yacc.<BR>
+%----Note:&nbsp;"defined"&nbsp;means&nbsp;a&nbsp;word&nbsp;starting&nbsp;with&nbsp;one&nbsp;$&nbsp;and&nbsp;"system"&nbsp;means&nbsp;$$.<BR>
+&lt;<A NAME="defined_atomic_formula">defined_atomic_formula</A>&gt;&nbsp;::=&nbsp;&lt;<A HREF="#defined_plain_formula">defined_plain_formula</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#defined_infix_formula">defined_infix_formula</A>&gt;<BR>
+&lt;<A NAME="defined_plain_formula">defined_plain_formula</A>&gt;&nbsp;::=&nbsp;&lt;<A HREF="#defined_plain_term">defined_plain_term</A>&gt;<BR>
+&lt;<A NAME="defined_plain_formula">defined_plain_formula</A>&gt;&nbsp;:==&nbsp;&lt;<A HREF="#defined_prop">defined_prop</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#defined_pred">defined_pred</A>&gt;(&lt;<A HREF="#arguments">arguments</A>&gt;)<BR>
+&lt;<A NAME="defined_prop">defined_prop</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:==&nbsp;&lt;<A HREF="#atomic_defined_word">atomic_defined_word</A>&gt;<BR>
+&lt;<A NAME="defined_prop">defined_prop</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:==&nbsp;$true&nbsp;|&nbsp;$false<BR>
+%----Pure&nbsp;CNF&nbsp;should&nbsp;not&nbsp;use&nbsp;$true&nbsp;or&nbsp;$false&nbsp;in&nbsp;problems,&nbsp;and&nbsp;use&nbsp;$false&nbsp;only<BR>
+%----at&nbsp;the&nbsp;roots&nbsp;of&nbsp;a&nbsp;refutation.<BR>
+&lt;<A NAME="defined_pred">defined_pred</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:==&nbsp;&lt;<A HREF="#atomic_defined_word">atomic_defined_word</A>&gt;<BR>
+&lt;<A NAME="defined_pred">defined_pred</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:==&nbsp;$distinct&nbsp;|<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;$less&nbsp;|&nbsp;$lesseq&nbsp;|&nbsp;$greater&nbsp;|&nbsp;$greatereq&nbsp;|<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;$is_int&nbsp;|&nbsp;$is_rat<BR>
+%----$distinct&nbsp;means&nbsp;that&nbsp;each&nbsp;of&nbsp;it's&nbsp;arguments&nbsp;are&nbsp;pairwise&nbsp;!=.&nbsp;It&nbsp;is&nbsp;part<BR>
+%----of&nbsp;the&nbsp;TFF&nbsp;syntax.<BR>
+&lt;<A NAME="defined_infix_formula">defined_infix_formula</A>&gt;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#term">term</A>&gt;&nbsp;&lt;<A HREF="#defined_infix_pred">defined_infix_pred</A>&gt;&nbsp;&lt;<A HREF="#term">term</A>&gt;<BR>
+&lt;<A NAME="defined_infix_pred">defined_infix_pred</A>&gt;&nbsp;::=&nbsp;&lt;<A HREF="#infix_equality">infix_equality</A>&gt;<BR>
+&lt;<A NAME="infix_equality">infix_equality</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;=<BR>
+&lt;<A NAME="infix_inequality">infix_inequality</A>&gt;&nbsp;&nbsp;&nbsp;::=&nbsp;!=<BR>
+%----Some&nbsp;systems&nbsp;still&nbsp;interpret&nbsp;equal/2&nbsp;as&nbsp;equality.&nbsp;The&nbsp;use&nbsp;of&nbsp;equal/2<BR>
+%----for&nbsp;other&nbsp;purposes&nbsp;is&nbsp;therefore&nbsp;discouraged.&nbsp;Please&nbsp;refrain&nbsp;from&nbsp;either<BR>
+%----use.&nbsp;Use&nbsp;infix&nbsp;'='&nbsp;for&nbsp;equality.&nbsp;Note:&nbsp;&lt;term&gt;&nbsp;!=&nbsp;&lt;term&gt;&nbsp;is&nbsp;equivalent<BR>
+%----to&nbsp;~&nbsp;&lt;term&gt;&nbsp;=&nbsp;&lt;term&gt;<BR>
+%----System&nbsp;terms&nbsp;have&nbsp;system&nbsp;specific&nbsp;interpretations<BR>
+&lt;<A NAME="system_atomic_formula">system_atomic_formula</A>&gt;&nbsp;::=&nbsp;&lt;<A HREF="#system_term">system_term</A>&gt;<BR>
+%----&lt;system_atomic_formula&gt;s&nbsp;are&nbsp;used&nbsp;for&nbsp;evaluable&nbsp;predicates&nbsp;that&nbsp;are<BR>
+%----available&nbsp;in&nbsp;particular&nbsp;tools.&nbsp;The&nbsp;predicate&nbsp;names&nbsp;are&nbsp;not&nbsp;controlled<BR>
+%----by&nbsp;the&nbsp;TPTP&nbsp;syntax,&nbsp;so&nbsp;use&nbsp;with&nbsp;due&nbsp;care.&nbsp;The&nbsp;same&nbsp;is&nbsp;true&nbsp;for<BR>
+%----&lt;system_term&gt;s.<BR>
+<BR>
+%----First&nbsp;order&nbsp;terms<BR>
+&lt;<A NAME="term">term</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#function_term">function_term</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#variable">variable</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#conditional_term">conditional_term</A>&gt;&nbsp;|<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;<A HREF="#let_term">let_term</A>&gt;<BR>
+&lt;<A NAME="function_term">function_term</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#plain_term">plain_term</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#defined_term">defined_term</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#system_term">system_term</A>&gt;<BR>
+&lt;<A NAME="plain_term">plain_term</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#constant">constant</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#functor">functor</A>&gt;(&lt;<A HREF="#arguments">arguments</A>&gt;)<BR>
+&lt;<A NAME="constant">constant</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#functor">functor</A>&gt;<BR>
+&lt;<A NAME="functor">functor</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#atomic_word">atomic_word</A>&gt;<BR>
+%----Defined&nbsp;terms&nbsp;have&nbsp;TPTP&nbsp;specific&nbsp;interpretations<BR>
+&lt;<A NAME="defined_term">defined_term</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#defined_atom">defined_atom</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#defined_atomic_term">defined_atomic_term</A>&gt;<BR>
+&lt;<A NAME="defined_atom">defined_atom</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#number">number</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#distinct_object">distinct_object</A>&gt;<BR>
+&lt;<A NAME="defined_atomic_term">defined_atomic_term</A>&gt;&nbsp;::=&nbsp;&lt;<A HREF="#defined_plain_term">defined_plain_term</A>&gt;<BR>
+%----None&nbsp;yet&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&lt;defined_infix_term&gt;<BR>
+%----None&nbsp;yet&nbsp;&lt;defined_infix_term&gt;&nbsp;::=&nbsp;&lt;term&gt;&nbsp;&lt;defined_infix_func&gt;&nbsp;&lt;term&gt;<BR>
+%----None&nbsp;yet&nbsp;&lt;defined_infix_func&gt;&nbsp;::=<BR>
+&lt;<A NAME="defined_plain_term">defined_plain_term</A>&gt;&nbsp;::=&nbsp;&lt;<A HREF="#defined_constant">defined_constant</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#defined_functor">defined_functor</A>&gt;(&lt;<A HREF="#arguments">arguments</A>&gt;)<BR>
+&lt;<A NAME="defined_constant">defined_constant</A>&gt;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#defined_functor">defined_functor</A>&gt;<BR>
+&lt;<A NAME="defined_constant">defined_constant</A>&gt;&nbsp;&nbsp;&nbsp;:==&nbsp;&lt;<A HREF="#defined_type">defined_type</A>&gt;<BR>
+&lt;<A NAME="defined_functor">defined_functor</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#atomic_defined_word">atomic_defined_word</A>&gt;<BR>
+&lt;<A NAME="defined_functor">defined_functor</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;:==&nbsp;$uminus&nbsp;|&nbsp;$sum&nbsp;|&nbsp;$difference&nbsp;|&nbsp;$product&nbsp;|<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;$quotient&nbsp;|&nbsp;$quotient_e&nbsp;|&nbsp;$quotient_t&nbsp;|&nbsp;$quotient_f&nbsp;|<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;$remainder_e&nbsp;|&nbsp;$remainder_t&nbsp;|&nbsp;$remainder_f&nbsp;|<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;$floor&nbsp;|&nbsp;$ceiling&nbsp;|&nbsp;$truncate&nbsp;|&nbsp;$round&nbsp;|<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;$to_int&nbsp;|&nbsp;$to_rat&nbsp;|&nbsp;$to_real<BR>
+%----System&nbsp;terms&nbsp;have&nbsp;system&nbsp;specific&nbsp;interpretations<BR>
+&lt;<A NAME="system_term">system_term</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#system_constant">system_constant</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#system_functor">system_functor</A>&gt;(&lt;<A HREF="#arguments">arguments</A>&gt;)<BR>
+&lt;<A NAME="system_constant">system_constant</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#system_functor">system_functor</A>&gt;<BR>
+&lt;<A NAME="system_functor">system_functor</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#atomic_system_word">atomic_system_word</A>&gt;<BR>
+%----Variables,&nbsp;and&nbsp;only&nbsp;variables,&nbsp;start&nbsp;with&nbsp;uppercase<BR>
+&lt;<A NAME="variable">variable</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#upper_word">upper_word</A>&gt;<BR>
+%----Arguments&nbsp;recurse&nbsp;back&nbsp;up&nbsp;to&nbsp;terms&nbsp;(this&nbsp;is&nbsp;the&nbsp;FOF&nbsp;world&nbsp;here)<BR>
+&lt;<A NAME="arguments">arguments</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#term">term</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#term">term</A>&gt;,&lt;<A HREF="#arguments">arguments</A>&gt;<BR>
+%----Principal&nbsp;symbols&nbsp;are&nbsp;predicates,&nbsp;functions,&nbsp;variables<BR>
+&lt;<A NAME="principal_symbol">principal_symbol</A>&gt;&nbsp;&nbsp;&nbsp;:==&nbsp;&lt;<A HREF="#functor">functor</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#variable">variable</A>&gt;<BR>
+%----Conditional&nbsp;terms&nbsp;should&nbsp;be&nbsp;used&nbsp;by&nbsp;only&nbsp;TFF.<BR>
+&lt;<A NAME="conditional_term">conditional_term</A>&gt;&nbsp;&nbsp;&nbsp;::=&nbsp;$ite_t(&lt;<A HREF="#tff_logic_formula">tff_logic_formula</A>&gt;,&lt;<A HREF="#term">term</A>&gt;,&lt;<A HREF="#term">term</A>&gt;)<BR>
+%----Let&nbsp;terms&nbsp;should&nbsp;be&nbsp;used&nbsp;by&nbsp;only&nbsp;TFF.&nbsp;$let_ft&nbsp;is&nbsp;for&nbsp;use&nbsp;when&nbsp;there&nbsp;is<BR>
+%----a&nbsp;$ite_t&nbsp;in&nbsp;the&nbsp;&lt;term&gt;<BR>
+&lt;<A NAME="let_term">let_term</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;$let_ft(&lt;<A HREF="#tff_let_formula_defn">tff_let_formula_defn</A>&gt;,&lt;<A HREF="#term">term</A>&gt;)&nbsp;|<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;$let_tt(&lt;<A HREF="#tff_let_term_defn">tff_let_term_defn</A>&gt;,&lt;<A HREF="#term">term</A>&gt;)<BR>
+<BR>
+%----<A HREF="#TOPOFPAGE">Top of Page</A>---------------------------------------------------------------<BR>
+%----Formula&nbsp;sources<BR>
+&lt;<A NAME="source">source</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#general_term">general_term</A>&gt;<BR>
+&lt;<A NAME="source">source</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:==&nbsp;&lt;<A HREF="#dag_source">dag_source</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#internal_source">internal_source</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#external_source">external_source</A>&gt;&nbsp;|<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;unknown&nbsp;|&nbsp;[&lt;<A HREF="#sources">sources</A>&gt;]<BR>
+%----Alternative&nbsp;sources&nbsp;are&nbsp;recorded&nbsp;like&nbsp;this,&nbsp;thus&nbsp;allowing&nbsp;representation<BR>
+%----of&nbsp;alternative&nbsp;derivations&nbsp;with&nbsp;shared&nbsp;parts.<BR>
+&lt;<A NAME="sources">sources</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:==&nbsp;&lt;<A HREF="#source">source</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#source">source</A>&gt;,&lt;<A HREF="#sources">sources</A>&gt;<BR>
+%----Only&nbsp;a&nbsp;&lt;dag_source&gt;&nbsp;can&nbsp;be&nbsp;a&nbsp;&lt;name&gt;,&nbsp;i.e.,&nbsp;derived&nbsp;formulae&nbsp;can&nbsp;be<BR>
+%----identified&nbsp;by&nbsp;a&nbsp;&lt;name&gt;&nbsp;or&nbsp;an&nbsp;&lt;inference_record&gt;<BR>
+&lt;<A NAME="dag_source">dag_source</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:==&nbsp;&lt;<A HREF="#name">name</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#inference_record">inference_record</A>&gt;<BR>
+&lt;<A NAME="inference_record">inference_record</A>&gt;&nbsp;&nbsp;&nbsp;:==&nbsp;inference(&lt;<A HREF="#inference_rule">inference_rule</A>&gt;,&lt;<A HREF="#useful_info">useful_info</A>&gt;,<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[&lt;<A HREF="#parent_list">parent_list</A>&gt;])<BR>
+&lt;<A NAME="inference_rule">inference_rule</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:==&nbsp;&lt;<A HREF="#atomic_word">atomic_word</A>&gt;<BR>
+%----Examples&nbsp;are&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;deduction&nbsp;|&nbsp;modus_tollens&nbsp;|&nbsp;modus_ponens&nbsp;|&nbsp;rewrite&nbsp;|<BR>
+%&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;resolution&nbsp;|&nbsp;paramodulation&nbsp;|&nbsp;factorization&nbsp;|<BR>
+%&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cnf_conversion&nbsp;|&nbsp;cnf_refutation&nbsp;|&nbsp;...<BR>
+%----&lt;parent_list&gt;&nbsp;cannot&nbsp;be&nbsp;empty.&nbsp;Formulae&nbsp;introduced&nbsp;without&nbsp;parents&nbsp;must<BR>
+%----use&nbsp;an&nbsp;&lt;internal_source&gt;<BR>
+&lt;<A NAME="parent_list">parent_list</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:==&nbsp;&lt;<A HREF="#parent_info">parent_info</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#parent_info">parent_info</A>&gt;,&lt;<A HREF="#parent_list">parent_list</A>&gt;<BR>
+&lt;<A NAME="parent_info">parent_info</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:==&nbsp;&lt;<A HREF="#source">source</A>&gt;&lt;<A HREF="#parent_details">parent_details</A>&gt;<BR>
+&lt;<A NAME="parent_details">parent_details</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:==&nbsp;:&lt;<A HREF="#general_list">general_list</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#null">null</A>&gt;<BR>
+&lt;<A NAME="internal_source">internal_source</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;:==&nbsp;introduced(&lt;<A HREF="#intro_type">intro_type</A>&gt;&lt;<A HREF="#optional_info">optional_info</A>&gt;)<BR>
+&lt;<A NAME="intro_type">intro_type</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:==&nbsp;definition&nbsp;|&nbsp;axiom_of_choice&nbsp;|&nbsp;tautology&nbsp;|&nbsp;assumption<BR>
+%----This&nbsp;should&nbsp;be&nbsp;used&nbsp;to&nbsp;record&nbsp;the&nbsp;symbol&nbsp;being&nbsp;defined,&nbsp;or&nbsp;the&nbsp;function<BR>
+%----for&nbsp;the&nbsp;axiom&nbsp;of&nbsp;choice<BR>
+&lt;<A NAME="external_source">external_source</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;:==&nbsp;&lt;<A HREF="#file_source">file_source</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#theory">theory</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#creator_source">creator_source</A>&gt;<BR>
+&lt;<A NAME="file_source">file_source</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:==&nbsp;file(&lt;<A HREF="#file_name">file_name</A>&gt;&lt;<A HREF="#file_info">file_info</A>&gt;)<BR>
+&lt;<A NAME="file_info">file_info</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:==&nbsp;,&lt;<A HREF="#name">name</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#null">null</A>&gt;<BR>
+&lt;<A NAME="theory">theory</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:==&nbsp;theory(&lt;<A HREF="#theory_name">theory_name</A>&gt;&lt;<A HREF="#optional_info">optional_info</A>&gt;)<BR>
+&lt;<A NAME="theory_name">theory_name</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:==&nbsp;equality&nbsp;|&nbsp;ac<BR>
+%----More&nbsp;theory&nbsp;names&nbsp;may&nbsp;be&nbsp;added&nbsp;in&nbsp;the&nbsp;future.&nbsp;The&nbsp;&lt;optional_info&gt;&nbsp;is<BR>
+%----used&nbsp;to&nbsp;store,&nbsp;e.g.,&nbsp;which&nbsp;axioms&nbsp;of&nbsp;equality&nbsp;have&nbsp;been&nbsp;implicitly&nbsp;used,<BR>
+%----e.g.,&nbsp;theory(equality,[rst]).&nbsp;Standard&nbsp;format&nbsp;still&nbsp;to&nbsp;be&nbsp;decided.<BR>
+&lt;<A NAME="creator_source">creator_source</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:==&nbsp;creator(&lt;<A HREF="#creator_name">creator_name</A>&gt;&lt;<A HREF="#optional_info">optional_info</A>&gt;)<BR>
+&lt;<A NAME="creator_name">creator_name</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:==&nbsp;&lt;<A HREF="#atomic_word">atomic_word</A>&gt;<BR>
+<BR>
+%----Useful&nbsp;info&nbsp;fields<BR>
+&lt;<A NAME="optional_info">optional_info</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;,&lt;<A HREF="#useful_info">useful_info</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#null">null</A>&gt;<BR>
+&lt;<A NAME="useful_info">useful_info</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#general_list">general_list</A>&gt;<BR>
+&lt;<A NAME="useful_info">useful_info</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:==&nbsp;[]&nbsp;|&nbsp;[&lt;<A HREF="#info_items">info_items</A>&gt;]<BR>
+&lt;<A NAME="info_items">info_items</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:==&nbsp;&lt;<A HREF="#info_item">info_item</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#info_item">info_item</A>&gt;,&lt;<A HREF="#info_items">info_items</A>&gt;<BR>
+&lt;<A NAME="info_item">info_item</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:==&nbsp;&lt;<A HREF="#formula_item">formula_item</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#inference_item">inference_item</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#general_function">general_function</A>&gt;<BR>
+%----Useful&nbsp;info&nbsp;for&nbsp;formula&nbsp;records<BR>
+&lt;<A NAME="formula_item">formula_item</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:==&nbsp;&lt;<A HREF="#description_item">description_item</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#iquote_item">iquote_item</A>&gt;<BR>
+&lt;<A NAME="description_item">description_item</A>&gt;&nbsp;&nbsp;&nbsp;:==&nbsp;description(&lt;<A HREF="#atomic_word">atomic_word</A>&gt;)<BR>
+&lt;<A NAME="iquote_item">iquote_item</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:==&nbsp;iquote(&lt;<A HREF="#atomic_word">atomic_word</A>&gt;)<BR>
+%----&lt;iquote_item&gt;s&nbsp;are&nbsp;used&nbsp;for&nbsp;recording&nbsp;exactly&nbsp;what&nbsp;the&nbsp;system&nbsp;output&nbsp;about<BR>
+%----the&nbsp;inference&nbsp;step.&nbsp;In&nbsp;the&nbsp;future&nbsp;it&nbsp;is&nbsp;planned&nbsp;to&nbsp;encode&nbsp;this&nbsp;information<BR>
+%----in&nbsp;standardized&nbsp;forms&nbsp;as&nbsp;&lt;parent_details&gt;&nbsp;in&nbsp;each&nbsp;&lt;inference_record&gt;.<BR>
+%----Useful&nbsp;info&nbsp;for&nbsp;inference&nbsp;records<BR>
+&lt;<A NAME="inference_item">inference_item</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:==&nbsp;&lt;<A HREF="#inference_status">inference_status</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#assumptions_record">assumptions_record</A>&gt;&nbsp;|<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;<A HREF="#new_symbol_record">new_symbol_record</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#refutation">refutation</A>&gt;<BR>
+&lt;<A NAME="inference_status">inference_status</A>&gt;&nbsp;&nbsp;&nbsp;:==&nbsp;status(&lt;<A HREF="#status_value">status_value</A>&gt;)&nbsp;|&nbsp;&lt;<A HREF="#inference_info">inference_info</A>&gt;<BR>
+%----These&nbsp;are&nbsp;the&nbsp;success&nbsp;status&nbsp;values&nbsp;from&nbsp;the&nbsp;<A HREF="http://www.cs.miami.edu/~tptp/cgi-bin/DVTPTP2WWW/view_file.pl?Category=Documents&File=SZSOntology">SZS&nbsp;ontology</A>.&nbsp;The&nbsp;most<BR>
+%----commonly&nbsp;used&nbsp;values&nbsp;are:<BR>
+%----&nbsp;&nbsp;thm&nbsp;-&nbsp;Every&nbsp;model&nbsp;of&nbsp;the&nbsp;parent&nbsp;formulae&nbsp;is&nbsp;a&nbsp;model&nbsp;of&nbsp;the&nbsp;inferred<BR>
+%----&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;formula.&nbsp;Regular&nbsp;logical&nbsp;consequences.<BR>
+%----&nbsp;&nbsp;cth&nbsp;-&nbsp;Every&nbsp;model&nbsp;of&nbsp;the&nbsp;parent&nbsp;formulae&nbsp;is&nbsp;a&nbsp;model&nbsp;of&nbsp;the&nbsp;negation&nbsp;of<BR>
+%----&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;inferred&nbsp;formula.&nbsp;Used&nbsp;for&nbsp;negation&nbsp;of&nbsp;conjectures&nbsp;in&nbsp;FOF&nbsp;to<BR>
+%----&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CNF&nbsp;conversion.<BR>
+%----&nbsp;&nbsp;esa&nbsp;-&nbsp;There&nbsp;exists&nbsp;a&nbsp;model&nbsp;of&nbsp;the&nbsp;parent&nbsp;formulae&nbsp;iff&nbsp;there&nbsp;exists&nbsp;a<BR>
+%----&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;model&nbsp;of&nbsp;the&nbsp;inferred&nbsp;formula.&nbsp;Used&nbsp;for&nbsp;Skolemization&nbsp;steps.<BR>
+%----For&nbsp;the&nbsp;full&nbsp;hierarchy&nbsp;see&nbsp;the&nbsp;SZSOntology&nbsp;file&nbsp;distributed&nbsp;with&nbsp;the&nbsp;TPTP.<BR>
+&lt;<A NAME="status_value">status_value</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:==&nbsp;suc&nbsp;|&nbsp;unp&nbsp;|&nbsp;sap&nbsp;|&nbsp;esa&nbsp;|&nbsp;sat&nbsp;|&nbsp;fsa&nbsp;|&nbsp;thm&nbsp;|&nbsp;eqv&nbsp;|&nbsp;tac&nbsp;|<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;wec&nbsp;|&nbsp;eth&nbsp;|&nbsp;tau&nbsp;|&nbsp;wtc&nbsp;|&nbsp;wth&nbsp;|&nbsp;cax&nbsp;|&nbsp;sca&nbsp;|&nbsp;tca&nbsp;|&nbsp;wca&nbsp;|<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cup&nbsp;|&nbsp;csp&nbsp;|&nbsp;ecs&nbsp;|&nbsp;csa&nbsp;|&nbsp;cth&nbsp;|&nbsp;ceq&nbsp;|&nbsp;unc&nbsp;|&nbsp;wcc&nbsp;|&nbsp;ect&nbsp;|<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fun&nbsp;|&nbsp;uns&nbsp;|&nbsp;wuc&nbsp;|&nbsp;wct&nbsp;|&nbsp;scc&nbsp;|&nbsp;uca&nbsp;|&nbsp;noc<BR>
+%----&lt;inference_info&gt;&nbsp;is&nbsp;used&nbsp;to&nbsp;record&nbsp;standard&nbsp;information&nbsp;associated&nbsp;with&nbsp;an<BR>
+%----arbitrary&nbsp;inference&nbsp;rule.&nbsp;The&nbsp;&lt;inference_rule&gt;&nbsp;is&nbsp;the&nbsp;same&nbsp;as&nbsp;the<BR>
+%----&lt;inference_rule&gt;&nbsp;of&nbsp;the&nbsp;&lt;inference_record&gt;.&nbsp;The&nbsp;&lt;atomic_word&gt;&nbsp;indicates<BR>
+%----the&nbsp;information&nbsp;being&nbsp;recorded&nbsp;in&nbsp;the&nbsp;&lt;general_list&gt;.&nbsp;The&nbsp;&lt;atomic_word&gt;<BR>
+%----are&nbsp;(loosely)&nbsp;set&nbsp;by&nbsp;TPTP&nbsp;conventions,&nbsp;and&nbsp;include&nbsp;esplit,&nbsp;sr_split,&nbsp;and<BR>
+%----discharge.<BR>
+&lt;<A NAME="inference_info">inference_info</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:==&nbsp;&lt;<A HREF="#inference_rule">inference_rule</A>&gt;(&lt;<A HREF="#atomic_word">atomic_word</A>&gt;,&lt;<A HREF="#general_list">general_list</A>&gt;)<BR>
+%----An&nbsp;&lt;assumptions_record&gt;&nbsp;lists&nbsp;the&nbsp;names&nbsp;of&nbsp;assumptions&nbsp;upon&nbsp;which&nbsp;this<BR>
+%----inferred&nbsp;formula&nbsp;depends.&nbsp;These&nbsp;must&nbsp;be&nbsp;discharged&nbsp;in&nbsp;a&nbsp;completed&nbsp;proof.<BR>
+&lt;<A NAME="assumptions_record">assumptions_record</A>&gt;&nbsp;:==&nbsp;assumptions([&lt;<A HREF="#name_list">name_list</A>&gt;])<BR>
+%----A&nbsp;&lt;refutation&gt;&nbsp;record&nbsp;names&nbsp;a&nbsp;file&nbsp;in&nbsp;which&nbsp;the&nbsp;inference&nbsp;recorded&nbsp;here<BR>
+%----is&nbsp;recorded&nbsp;as&nbsp;a&nbsp;proof&nbsp;by&nbsp;refutation.<BR>
+&lt;<A NAME="refutation">refutation</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:==&nbsp;refutation(&lt;<A HREF="#file_source">file_source</A>&gt;)<BR>
+%----A&nbsp;&lt;new_symbol_record&gt;&nbsp;provides&nbsp;information&nbsp;about&nbsp;a&nbsp;newly&nbsp;introduced&nbsp;symbol.<BR>
+&lt;<A NAME="new_symbol_record">new_symbol_record</A>&gt;&nbsp;&nbsp;:==&nbsp;new_symbols(&lt;<A HREF="#atomic_word">atomic_word</A>&gt;,[&lt;<A HREF="#new_symbol_list">new_symbol_list</A>&gt;])<BR>
+&lt;<A NAME="new_symbol_list">new_symbol_list</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;:==&nbsp;&lt;<A HREF="#principal_symbol">principal_symbol</A>&gt;&nbsp;|<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;<A HREF="#principal_symbol">principal_symbol</A>&gt;,&lt;<A HREF="#new_symbol_list">new_symbol_list</A>&gt;<BR>
+<BR>
+%----Include&nbsp;directives<BR>
+&lt;<A NAME="include">include</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;include(&lt;<A HREF="#file_name">file_name</A>&gt;&lt;<A HREF="#formula_selection">formula_selection</A>&gt;).<BR>
+&lt;<A NAME="formula_selection">formula_selection</A>&gt;&nbsp;&nbsp;::=&nbsp;,[&lt;<A HREF="#name_list">name_list</A>&gt;]&nbsp;|&nbsp;&lt;<A HREF="#null">null</A>&gt;<BR>
+&lt;<A NAME="name_list">name_list</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#name">name</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#name">name</A>&gt;,&lt;<A HREF="#name_list">name_list</A>&gt;<BR>
+<BR>
+%----Non-logical&nbsp;data<BR>
+&lt;<A NAME="general_term">general_term</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#general_data">general_data</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#general_data">general_data</A>&gt;:&lt;<A HREF="#general_term">general_term</A>&gt;&nbsp;|<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;<A HREF="#general_list">general_list</A>&gt;<BR>
+&lt;<A NAME="general_data">general_data</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#atomic_word">atomic_word</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#general_function">general_function</A>&gt;&nbsp;|<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;<A HREF="#variable">variable</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#number">number</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#distinct_object">distinct_object</A>&gt;&nbsp;|<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;<A HREF="#formula_data">formula_data</A>&gt;<BR>
+&lt;<A NAME="general_function">general_function</A>&gt;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#atomic_word">atomic_word</A>&gt;(&lt;<A HREF="#general_terms">general_terms</A>&gt;)<BR>
+%----A&nbsp;&lt;general_data&gt;&nbsp;bind()&nbsp;term&nbsp;is&nbsp;used&nbsp;to&nbsp;record&nbsp;a&nbsp;variable&nbsp;binding&nbsp;in&nbsp;an<BR>
+%----inference,&nbsp;as&nbsp;an&nbsp;element&nbsp;of&nbsp;the&nbsp;&lt;parent_details&gt;&nbsp;list.<BR>
+&lt;<A NAME="general_data">general_data</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:==&nbsp;bind(&lt;<A HREF="#variable">variable</A>&gt;,&lt;<A HREF="#formula_data">formula_data</A>&gt;)<BR>
+&lt;<A NAME="formula_data">formula_data</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;$thf(&lt;<A HREF="#thf_formula">thf_formula</A>&gt;)&nbsp;|&nbsp;$tff(&lt;<A HREF="#tff_formula">tff_formula</A>&gt;)&nbsp;|<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;$fof(&lt;<A HREF="#fof_formula">fof_formula</A>&gt;)&nbsp;|&nbsp;$cnf(&lt;<A HREF="#cnf_formula">cnf_formula</A>&gt;)&nbsp;|<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;$fot(&lt;<A HREF="#term">term</A>&gt;)<BR>
+&lt;<A NAME="general_list">general_list</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;[]&nbsp;|&nbsp;[&lt;<A HREF="#general_terms">general_terms</A>&gt;]<BR>
+&lt;<A NAME="general_terms">general_terms</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#general_term">general_term</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#general_term">general_term</A>&gt;,&lt;<A HREF="#general_terms">general_terms</A>&gt;<BR>
+<BR>
+%----General&nbsp;purpose<BR>
+&lt;<A NAME="name">name</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#atomic_word">atomic_word</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#integer">integer</A>&gt;<BR>
+%----Integer&nbsp;names&nbsp;are&nbsp;expected&nbsp;to&nbsp;be&nbsp;unsigned<BR>
+&lt;<A NAME="atomic_word">atomic_word</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#lower_word">lower_word</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#single_quoted">single_quoted</A>&gt;<BR>
+%----&lt;single_quoted&gt;&nbsp;tokens&nbsp;do&nbsp;not&nbsp;include&nbsp;their&nbsp;outer&nbsp;quotes,&nbsp;therefore&nbsp;the<BR>
+%----&lt;lower_word&gt;&nbsp;&lt;atomic_word&gt;&nbsp;cat&nbsp;and&nbsp;the&nbsp;&lt;single_quoted&gt;&nbsp;&lt;atomic_word&gt;&nbsp;'cat'<BR>
+%----are&nbsp;the&nbsp;same.&nbsp;Quotes&nbsp;must&nbsp;be&nbsp;removed&nbsp;from&nbsp;a&nbsp;&lt;single_quoted&gt;&nbsp;&lt;atomic_word&gt;<BR>
+%----if&nbsp;doing&nbsp;so&nbsp;produces&nbsp;a&nbsp;&lt;lower_word&gt;&nbsp;&lt;atomic_word&gt;.&nbsp;Note&nbsp;that&nbsp;&lt;numbers&gt;s<BR>
+%----and&nbsp;&lt;variable&gt;s&nbsp;are&nbsp;not&nbsp;&lt;lower_word&gt;s,&nbsp;so&nbsp;'123'&nbsp;and&nbsp;123,&nbsp;and&nbsp;'X'&nbsp;and&nbsp;X,<BR>
+%----are&nbsp;different.<BR>
+&lt;<A NAME="atomic_defined_word">atomic_defined_word</A>&gt;&nbsp;::=&nbsp;&lt;<A HREF="#dollar_word">dollar_word</A>&gt;<BR>
+&lt;<A NAME="atomic_system_word">atomic_system_word</A>&gt;&nbsp;::=&nbsp;&lt;<A HREF="#dollar_dollar_word">dollar_dollar_word</A>&gt;<BR>
+&lt;<A NAME="number">number</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#integer">integer</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#rational">rational</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#real">real</A>&gt;<BR>
+%----Numbers&nbsp;are&nbsp;always&nbsp;interpreted&nbsp;as&nbsp;themselves,&nbsp;and&nbsp;are&nbsp;thus&nbsp;implicitly<BR>
+%----distinct&nbsp;if&nbsp;they&nbsp;have&nbsp;different&nbsp;values,&nbsp;e.g.,&nbsp;1&nbsp;!=&nbsp;2&nbsp;is&nbsp;an&nbsp;implicit&nbsp;axiom.<BR>
+%----All&nbsp;numbers&nbsp;are&nbsp;base&nbsp;10&nbsp;at&nbsp;the&nbsp;moment.<BR>
+&lt;<A NAME="file_name">file_name</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#single_quoted">single_quoted</A>&gt;<BR>
+&lt;<A NAME="null">null</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=<BR>
+%----<A HREF="#TOPOFPAGE">Top of Page</A>---------------------------------------------------------------<BR>
+%----Rules&nbsp;from&nbsp;here&nbsp;on&nbsp;down&nbsp;are&nbsp;for&nbsp;defining&nbsp;tokens&nbsp;(terminal&nbsp;symbols)&nbsp;of&nbsp;the<BR>
+%----grammar,&nbsp;assuming&nbsp;they&nbsp;will&nbsp;be&nbsp;recognized&nbsp;by&nbsp;a&nbsp;lexical&nbsp;scanner.<BR>
+%----A&nbsp;::-&nbsp;rule&nbsp;defines&nbsp;a&nbsp;token,&nbsp;a&nbsp;:::&nbsp;rule&nbsp;defines&nbsp;a&nbsp;macro&nbsp;that&nbsp;is&nbsp;not&nbsp;a<BR>
+%----token.&nbsp;Usual&nbsp;regexp&nbsp;notation&nbsp;is&nbsp;used.&nbsp;Single&nbsp;characters&nbsp;are&nbsp;always&nbsp;placed<BR>
+%----in&nbsp;[]s&nbsp;to&nbsp;disable&nbsp;any&nbsp;special&nbsp;meanings&nbsp;(for&nbsp;uniformity&nbsp;this&nbsp;is&nbsp;done&nbsp;to<BR>
+%----all&nbsp;characters,&nbsp;not&nbsp;only&nbsp;those&nbsp;with&nbsp;special&nbsp;meanings).<BR>
+<BR>
+%----These&nbsp;are&nbsp;tokens&nbsp;that&nbsp;appear&nbsp;in&nbsp;the&nbsp;syntax&nbsp;rules&nbsp;above.&nbsp;No&nbsp;rules<BR>
+%----defined&nbsp;here&nbsp;because&nbsp;they&nbsp;appear&nbsp;explicitly&nbsp;in&nbsp;the&nbsp;syntax&nbsp;rules,<BR>
+%----except&nbsp;that&nbsp;&lt;vline&gt;,&nbsp;&lt;star&gt;,&nbsp;&lt;plus&gt;&nbsp;denote&nbsp;"|",&nbsp;"*",&nbsp;"+",&nbsp;respectively.<BR>
+%----Keywords:&nbsp;&nbsp;&nbsp;&nbsp;fof&nbsp;cnf&nbsp;thf&nbsp;tff&nbsp;include<BR>
+%----Punctuation:&nbsp;(&nbsp;)&nbsp;,&nbsp;.&nbsp;[&nbsp;]&nbsp;:<BR>
+%----Operators:&nbsp;&nbsp;&nbsp;!&nbsp;?&nbsp;~&nbsp;&&nbsp;|&nbsp;&lt;=&gt;&nbsp;=&gt;&nbsp;&lt;=&nbsp;&lt;~&gt;&nbsp;~|&nbsp;~&&nbsp;*&nbsp;+<BR>
+%----Predicates:&nbsp;&nbsp;=&nbsp;!=&nbsp;$true&nbsp;$false<BR>
+<BR>
+%----For&nbsp;lex/yacc&nbsp;there&nbsp;cannot&nbsp;be&nbsp;spaces&nbsp;on&nbsp;either&nbsp;side&nbsp;of&nbsp;the&nbsp;|&nbsp;here<BR>
+&lt;<A NAME="comment">comment</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::-&nbsp;&lt;<A HREF="#comment_line">comment_line</A>&gt;|&lt;<A HREF="#comment_block">comment_block</A>&gt;<BR>
+&lt;<A NAME="comment_line">comment_line</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::-&nbsp;[%]&lt;<A HREF="#printable_char">printable_char</A>&gt;*<BR>
+&lt;<A NAME="comment_block">comment_block</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:::&nbsp;[/][*]&lt;<A HREF="#not_star_slash">not_star_slash</A>&gt;[*][*]*[/]<BR>
+&lt;<A NAME="not_star_slash">not_star_slash</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:::&nbsp;([^*]*[*][*]*[^/*])*[^*]*<BR>
+%----Defined&nbsp;comments&nbsp;are&nbsp;a&nbsp;convention&nbsp;used&nbsp;for&nbsp;annotations&nbsp;that&nbsp;are&nbsp;used&nbsp;as<BR>
+%----additional&nbsp;input&nbsp;for&nbsp;systems.&nbsp;They&nbsp;look&nbsp;like&nbsp;comments,&nbsp;but&nbsp;start&nbsp;with&nbsp;%$<BR>
+%----or&nbsp;/*$.&nbsp;A&nbsp;wily&nbsp;user&nbsp;of&nbsp;the&nbsp;syntax&nbsp;can&nbsp;notice&nbsp;the&nbsp;$&nbsp;and&nbsp;extract&nbsp;information<BR>
+%----from&nbsp;the&nbsp;"comment"&nbsp;and&nbsp;pass&nbsp;that&nbsp;on&nbsp;as&nbsp;input&nbsp;to&nbsp;the&nbsp;system.&nbsp;They&nbsp;are<BR>
+%----analogous&nbsp;to&nbsp;pragmas&nbsp;in&nbsp;programming&nbsp;languages.&nbsp;To&nbsp;extract&nbsp;these&nbsp;separately<BR>
+%----from&nbsp;regular&nbsp;comments,&nbsp;the&nbsp;rules&nbsp;are:<BR>
+%----&nbsp;&nbsp;&lt;defined_comment&gt;&nbsp;&nbsp;&nbsp;&nbsp;::-&nbsp;&lt;def_comment_line&gt;|&lt;def_comment_block&gt;<BR>
+%----&nbsp;&nbsp;&lt;def_comment_line&gt;&nbsp;&nbsp;&nbsp;:::&nbsp;[%]&lt;dollar&gt;&lt;printable_char&gt;*<BR>
+%----&nbsp;&nbsp;&lt;def_comment_block&gt;&nbsp;&nbsp;:::&nbsp;[/][*]&lt;dollar&gt;&lt;not_star_slash&gt;[*][*]*[/]<BR>
+%----A&nbsp;string&nbsp;that&nbsp;matches&nbsp;both&nbsp;&lt;defined_comment&gt;&nbsp;and&nbsp;&lt;comment&gt;&nbsp;should&nbsp;be<BR>
+%----recognized&nbsp;as&nbsp;&lt;defined_comment&gt;,&nbsp;so&nbsp;put&nbsp;these&nbsp;before&nbsp;&lt;comment&gt;.<BR>
+%----Defined&nbsp;comments&nbsp;that&nbsp;are&nbsp;in&nbsp;use&nbsp;include:<BR>
+%----&nbsp;&nbsp;&nbsp;&nbsp;TO&nbsp;BE&nbsp;ANNOUNCED<BR>
+%----System&nbsp;comments&nbsp;are&nbsp;a&nbsp;convention&nbsp;used&nbsp;for&nbsp;annotations&nbsp;that&nbsp;may&nbsp;used&nbsp;as<BR>
+%----additional&nbsp;input&nbsp;to&nbsp;a&nbsp;specific&nbsp;system.&nbsp;They&nbsp;look&nbsp;like&nbsp;comments,&nbsp;but&nbsp;start<BR>
+%----with&nbsp;%$$&nbsp;or&nbsp;/*$$.&nbsp;A&nbsp;wily&nbsp;user&nbsp;of&nbsp;the&nbsp;syntax&nbsp;can&nbsp;notice&nbsp;the&nbsp;$$&nbsp;and&nbsp;extract<BR>
+%----information&nbsp;from&nbsp;the&nbsp;"comment"&nbsp;and&nbsp;pass&nbsp;that&nbsp;on&nbsp;as&nbsp;input&nbsp;to&nbsp;the&nbsp;system.<BR>
+%----The&nbsp;specific&nbsp;system&nbsp;for&nbsp;which&nbsp;the&nbsp;information&nbsp;is&nbsp;intended&nbsp;should&nbsp;be<BR>
+%----identified&nbsp;after&nbsp;the&nbsp;$$,&nbsp;e.g.,&nbsp;/*$$Otter&nbsp;3.3:&nbsp;Demodulator&nbsp;*/<BR>
+%----To&nbsp;extract&nbsp;these&nbsp;separately&nbsp;from&nbsp;regular&nbsp;comments,&nbsp;the&nbsp;rules&nbsp;are:<BR>
+%----&nbsp;&nbsp;&lt;system_comment&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::-&nbsp;&lt;sys_comment_line&gt;|&lt;sys_comment_block&gt;<BR>
+%----&nbsp;&nbsp;&lt;sys_comment_line&gt;&nbsp;&nbsp;&nbsp;:::&nbsp;[%]&lt;dollar&gt;&lt;dollar&gt;&lt;printable_char&gt;*<BR>
+%----&nbsp;&nbsp;&lt;sys_comment_block&gt;&nbsp;&nbsp;:::&nbsp;[/][*]&lt;dollar&gt;&lt;dollar&gt;&lt;not_star_slash&gt;[*][*]*[/]<BR>
+%----A&nbsp;string&nbsp;that&nbsp;matches&nbsp;both&nbsp;&lt;system_comment&gt;&nbsp;and&nbsp;&lt;defined_comment&gt;&nbsp;should<BR>
+%----be&nbsp;recognized&nbsp;as&nbsp;&lt;system_comment&gt;,&nbsp;so&nbsp;put&nbsp;these&nbsp;before&nbsp;&lt;defined_comment&gt;.<BR>
+<BR>
+&lt;<A NAME="single_quoted">single_quoted</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::-&nbsp;&lt;<A HREF="#single_quote">single_quote</A>&gt;&lt;<A HREF="#sq_char">sq_char</A>&gt;&lt;<A HREF="#sq_char">sq_char</A>&gt;*&lt;<A HREF="#single_quote">single_quote</A>&gt;<BR>
+%----&lt;single_quoted&gt;s&nbsp;contain&nbsp;visible&nbsp;characters.&nbsp;\&nbsp;is&nbsp;the&nbsp;escape&nbsp;character&nbsp;for<BR>
+%----'&nbsp;and&nbsp;\,&nbsp;i.e.,&nbsp;\'&nbsp;is&nbsp;not&nbsp;the&nbsp;end&nbsp;of&nbsp;the&nbsp;&lt;single_quoted&gt;.<BR>
+%----The&nbsp;token&nbsp;does&nbsp;not&nbsp;include&nbsp;the&nbsp;outer&nbsp;quotes,&nbsp;e.g.,&nbsp;'cat'&nbsp;and&nbsp;cat&nbsp;are&nbsp;the<BR>
+%----same.&nbsp;See&nbsp;&lt;atomic_word&gt;&nbsp;for&nbsp;information&nbsp;about&nbsp;stripping&nbsp;the&nbsp;quotes.<BR>
+<BR>
+&lt;<A NAME="distinct_object">distinct_object</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;::-&nbsp;&lt;<A HREF="#double_quote">double_quote</A>&gt;&lt;<A HREF="#do_char">do_char</A>&gt;*&lt;<A HREF="#double_quote">double_quote</A>&gt;<BR>
+%---Space&nbsp;and&nbsp;visible&nbsp;characters&nbsp;upto&nbsp;~,&nbsp;except&nbsp;"&nbsp;and&nbsp;\<BR>
+%----&lt;distinct_object&gt;s&nbsp;contain&nbsp;visible&nbsp;characters.&nbsp;\&nbsp;is&nbsp;the&nbsp;escape&nbsp;character<BR>
+%----for&nbsp;"&nbsp;and&nbsp;\,&nbsp;i.e.,&nbsp;\"&nbsp;is&nbsp;not&nbsp;the&nbsp;end&nbsp;of&nbsp;the&nbsp;&lt;distinct_object&gt;.<BR>
+%----&lt;distinct_object&gt;s&nbsp;are&nbsp;different&nbsp;from&nbsp;(but&nbsp;may&nbsp;be&nbsp;equal&nbsp;to)&nbsp;other&nbsp;tokens,<BR>
+%----e.g.,&nbsp;"cat"&nbsp;is&nbsp;different&nbsp;from&nbsp;'cat'&nbsp;and&nbsp;cat.&nbsp;Distinct&nbsp;objects&nbsp;are&nbsp;always<BR>
+%----interpreted&nbsp;as&nbsp;themselves,&nbsp;so&nbsp;if&nbsp;they&nbsp;are&nbsp;different&nbsp;they&nbsp;are&nbsp;unequal,<BR>
+%----e.g.,&nbsp;"Apple"&nbsp;!=&nbsp;"Microsoft"&nbsp;is&nbsp;implicit.<BR>
+<BR>
+&lt;<A NAME="dollar_word">dollar_word</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::-&nbsp;&lt;<A HREF="#dollar">dollar</A>&gt;&lt;<A HREF="#lower_word">lower_word</A>&gt;<BR>
+&lt;<A NAME="dollar_dollar_word">dollar_dollar_word</A>&gt;&nbsp;::-&nbsp;&lt;<A HREF="#dollar">dollar</A>&gt;&lt;<A HREF="#dollar">dollar</A>&gt;&lt;<A HREF="#lower_word">lower_word</A>&gt;<BR>
+&lt;<A NAME="upper_word">upper_word</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::-&nbsp;&lt;<A HREF="#upper_alpha">upper_alpha</A>&gt;&lt;<A HREF="#alpha_numeric">alpha_numeric</A>&gt;*<BR>
+&lt;<A NAME="lower_word">lower_word</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::-&nbsp;&lt;<A HREF="#lower_alpha">lower_alpha</A>&gt;&lt;<A HREF="#alpha_numeric">alpha_numeric</A>&gt;*<BR>
+<BR>
+%----Tokens&nbsp;used&nbsp;in&nbsp;syntax,&nbsp;and&nbsp;cannot&nbsp;be&nbsp;character&nbsp;classes<BR>
+&lt;<A NAME="vline">vline</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::-&nbsp;[|]<BR>
+&lt;<A NAME="star">star</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::-&nbsp;[*]<BR>
+&lt;<A NAME="plus">plus</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::-&nbsp;[+]<BR>
+&lt;<A NAME="arrow">arrow</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::-&nbsp;[&gt;]<BR>
+&lt;<A NAME="less_sign">less_sign</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::-&nbsp;[&lt;<A HREF="#"></A>]<BR>
+<BR>
+%----Numbers.&nbsp;Signs&nbsp;are&nbsp;made&nbsp;part&nbsp;of&nbsp;the&nbsp;same&nbsp;token&nbsp;here.<BR>
+&lt;<A NAME="real">real</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::-&nbsp;(&lt;<A HREF="#signed_real">signed_real</A>&gt;|&lt;<A HREF="#unsigned_real">unsigned_real</A>&gt;)<BR>
+&lt;<A NAME="signed_real">signed_real</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::-&nbsp;&lt;<A HREF="#sign">sign</A>&gt;&lt;<A HREF="#unsigned_real">unsigned_real</A>&gt;<BR>
+&lt;<A NAME="unsigned_real">unsigned_real</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::-&nbsp;(&lt;<A HREF="#decimal_fraction">decimal_fraction</A>&gt;|&lt;<A HREF="#decimal_exponent">decimal_exponent</A>&gt;)<BR>
+&lt;<A NAME="rational">rational</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::-&nbsp;(&lt;<A HREF="#signed_rational">signed_rational</A>&gt;|&lt;<A HREF="#unsigned_rational">unsigned_rational</A>&gt;)<BR>
+&lt;<A NAME="signed_rational">signed_rational</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;::-&nbsp;&lt;<A HREF="#sign">sign</A>&gt;&lt;<A HREF="#unsigned_rational">unsigned_rational</A>&gt;<BR>
+&lt;<A NAME="unsigned_rational">unsigned_rational</A>&gt;&nbsp;&nbsp;::-&nbsp;&lt;<A HREF="#decimal">decimal</A>&gt;&lt;<A HREF="#slash">slash</A>&gt;&lt;<A HREF="#positive_decimal">positive_decimal</A>&gt;<BR>
+&lt;<A NAME="integer">integer</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::-&nbsp;(&lt;<A HREF="#signed_integer">signed_integer</A>&gt;|&lt;<A HREF="#unsigned_integer">unsigned_integer</A>&gt;)<BR>
+&lt;<A NAME="signed_integer">signed_integer</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::-&nbsp;&lt;<A HREF="#sign">sign</A>&gt;&lt;<A HREF="#unsigned_integer">unsigned_integer</A>&gt;<BR>
+&lt;<A NAME="unsigned_integer">unsigned_integer</A>&gt;&nbsp;&nbsp;&nbsp;::-&nbsp;&lt;<A HREF="#decimal">decimal</A>&gt;<BR>
+&lt;<A NAME="decimal">decimal</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::-&nbsp;(&lt;<A HREF="#zero_numeric">zero_numeric</A>&gt;|&lt;<A HREF="#positive_decimal">positive_decimal</A>&gt;)<BR>
+&lt;<A NAME="positive_decimal">positive_decimal</A>&gt;&nbsp;&nbsp;&nbsp;::-&nbsp;&lt;<A HREF="#non_zero_numeric">non_zero_numeric</A>&gt;&lt;<A HREF="#numeric">numeric</A>&gt;*<BR>
+&lt;<A NAME="decimal_exponent">decimal_exponent</A>&gt;&nbsp;&nbsp;&nbsp;::-&nbsp;(&lt;<A HREF="#decimal">decimal</A>&gt;|&lt;<A HREF="#decimal_fraction">decimal_fraction</A>&gt;)&lt;<A HREF="#exponent">exponent</A>&gt;&lt;<A HREF="#integer">integer</A>&gt;<BR>
+&lt;<A NAME="decimal_fraction">decimal_fraction</A>&gt;&nbsp;&nbsp;&nbsp;::-&nbsp;&lt;<A HREF="#decimal">decimal</A>&gt;&lt;<A HREF="#dot_decimal">dot_decimal</A>&gt;<BR>
+&lt;<A NAME="dot_decimal">dot_decimal</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::-&nbsp;&lt;<A HREF="#dot">dot</A>&gt;&lt;<A HREF="#numeric">numeric</A>&gt;&lt;<A HREF="#numeric">numeric</A>&gt;*<BR>
+<BR>
+%----Character&nbsp;classes<BR>
+&lt;<A NAME="percentage_sign">percentage_sign</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;:::&nbsp;[%]<BR>
+&lt;<A NAME="double_quote">double_quote</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:::&nbsp;["]<BR>
+&lt;<A NAME="do_char">do_char</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:::&nbsp;([\40-\41\43-\133\135-\176]|[\\]["\\])<BR>
+&lt;<A NAME="single_quote">single_quote</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:::&nbsp;[']<BR>
+%---Space&nbsp;and&nbsp;visible&nbsp;characters&nbsp;upto&nbsp;~,&nbsp;except&nbsp;'&nbsp;and&nbsp;\<BR>
+&lt;<A NAME="sq_char">sq_char</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:::&nbsp;([\40-\46\50-\133\135-\176]|[\\]['\\])<BR>
+&lt;<A NAME="sign">sign</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:::&nbsp;[+-]<BR>
+&lt;<A NAME="dot">dot</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:::&nbsp;[.]<BR>
+&lt;<A NAME="exponent">exponent</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:::&nbsp;[Ee]<BR>
+&lt;<A NAME="slash">slash</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:::&nbsp;[/]<BR>
+&lt;<A NAME="zero_numeric">zero_numeric</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:::&nbsp;[0]<BR>
+&lt;<A NAME="non_zero_numeric">non_zero_numeric</A>&gt;&nbsp;&nbsp;&nbsp;:::&nbsp;[1-9]<BR>
+&lt;<A NAME="numeric">numeric</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:::&nbsp;[0-9]<BR>
+&lt;<A NAME="lower_alpha">lower_alpha</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:::&nbsp;[a-z]<BR>
+&lt;<A NAME="upper_alpha">upper_alpha</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:::&nbsp;[A-Z]<BR>
+&lt;<A NAME="alpha_numeric">alpha_numeric</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:::&nbsp;(&lt;<A HREF="#lower_alpha">lower_alpha</A>&gt;|&lt;<A HREF="#upper_alpha">upper_alpha</A>&gt;|&lt;<A HREF="#numeric">numeric</A>&gt;|[_])<BR>
+&lt;<A NAME="dollar">dollar</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:::&nbsp;[$]<BR>
+&lt;<A NAME="printable_char">printable_char</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:::&nbsp;.<BR>
+%----&lt;printable_char&gt;&nbsp;is&nbsp;any&nbsp;printable&nbsp;ASCII&nbsp;character,&nbsp;codes&nbsp;32&nbsp;(space)&nbsp;to&nbsp;126<BR>
+%----(tilde).&nbsp;&lt;printable_char&gt;&nbsp;does&nbsp;not&nbsp;include&nbsp;tabs,&nbsp;newlines,&nbsp;bells,&nbsp;etc.&nbsp;The<BR>
+%----use&nbsp;of&nbsp;.&nbsp;does&nbsp;not&nbsp;not&nbsp;exclude&nbsp;tab,&nbsp;so&nbsp;this&nbsp;is&nbsp;a&nbsp;bit&nbsp;loose.<BR>
+&lt;<A NAME="viewable_char">viewable_char</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:::&nbsp;[.\n]<BR>
+%----<A HREF="#TOPOFPAGE">Top of Page</A>---------------------------------------------------------------<BR>
+&nbsp;<P>&nbsp;<P>&nbsp;<P>&nbsp;<P>&nbsp;<P>&nbsp;<P>&nbsp;<P>&nbsp;<P>&nbsp;<P>&nbsp;<P>&nbsp;<P>&nbsp;<P>&nbsp;<P>&nbsp;<P>&nbsp;<P>&nbsp;<P>&nbsp;<P>&nbsp;<P>&nbsp;<P>&nbsp;<P>&nbsp;<P>&nbsp;<P>&nbsp;<P>&nbsp;<P>&nbsp;<P>&nbsp;<P>&nbsp;<P>&nbsp;<P>&nbsp;<P>&nbsp;<P>&nbsp;<P>&nbsp;<P>&nbsp;<P>&nbsp;<P>&nbsp;<P>&nbsp;<P>&nbsp;<P>&nbsp;<P>&nbsp;<P>&nbsp;<P>&nbsp;<P>&nbsp;<P></TT></BODY></HTML>
