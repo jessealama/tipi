@@ -10,5 +10,5 @@ the TPTP project should be applauded and supported.
 The TPTP language is fine for expressing one-off ATP problems; to
 develop a substantial *theory*, though, goes beyond what TPTP
 provides.  Sure, the TPTP language has an `include` directive that
-allows one to import .  But there is so much more to real-world theory
-development than that.
+allows one to import other stuff.  But there is so much more to
+real-world theory development than that.
