@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-use Getopt::Long qw(:config gnu_compat);
+use Getopt::Long qw(:config gnu_compat pass_through);
 use Pod::Usage;
 use Readonly;
 use charnames qw(:full);
@@ -265,7 +265,14 @@ sub report_used_and_unused_premises {
 ## Prove command
 ######################################################################
 
+my $prove_show_proof = 0;
+
 sub prove_ensure_sensible_arguments {
+
+    GetOptions (
+	'--show-proof' => \$prove_show_proof,
+    )
+	or pod2usage (2);
 
     if (scalar @ARGV == 0) {
 	pod2usage (-msg => error_message ('Please supply a TPTP theory file.'),
@@ -337,6 +344,10 @@ sub cmd_prove {
     }
 
     print colored ('Success!', 'green'), "\N{LF}";
+
+    print 'The prover output:', "\n";
+
+    print $tptp_result->get_output ();
 
     report_used_and_unused_premises ($derivation);
 
