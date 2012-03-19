@@ -11,7 +11,8 @@ our @EXPORT_OK = qw(ensure_readable_file
 		    ensure_executable
 	            write_string_to_file
 	            extension
-		    strip_extension);
+		    strip_extension
+		    slurp);
 
 sub ensure_readable_file {
   my $file = shift;
@@ -80,6 +81,21 @@ sub strip_extension {
 	croak ('Error: the path \'', $path, '\' is too weird.');
     }
 
+}
+
+sub slurp {
+    my $path_or_fh = shift;
+
+    open (my $fh, '<', $path_or_fh)
+	or die 'Error: unable to open the file (or filehandle) ', $path_or_fh, '.';
+
+    my $contents;
+    { local $/; $contents = <$fh>; }
+
+    close $fh
+	or die 'Error: unable to close the file (or filehandle) ', $path_or_fh, '.';
+
+    return $contents;
 }
 
 1;
