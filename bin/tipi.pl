@@ -31,6 +31,8 @@ Readonly my $TWO_SPACES => q{  };
 # Colors
 Readonly my $USED_PREMISE_COLOR => 'blue';
 Readonly my $UNUSED_PREMISE_COLOR => 'bright_black';
+Readonly my $GOOD_COLOR => 'green';
+Readonly my $BAD_COLOR => 'red';
 
 Readonly my @COMMANDS => (
     'prove',
@@ -91,7 +93,7 @@ sub message_with_extra_linefeed {
 sub error_message {
     my @message_parts = @_;
     my $message = join ($EMPTY_STRING, @message_parts);
-    my $message_with_error_padding = colored ('Error', 'red') . ': ' . $message;
+    my $message_with_error_padding = colored ('Error', $BAD_COLOR) . ': ' . $message;
     return $message_with_error_padding;
 }
 
@@ -236,25 +238,33 @@ sub report_used_and_unused_premises {
     my @used_premise_names = map { $_->get_name () } @used_premises;
     my @unused_premise_names = map { $_->get_name () } @unused_premises;
 
-    my @sorted_used_premises = sort @used_premise_names;
-    my @sorted_unused_premises = sort @unused_premise_names;
-
-    print "\N{LF}", 'USED PREMISES', "\N{LF}";
-    if (scalar @sorted_used_premises == 0) {
-	print colored ('(none)', $USED_PREMISE_COLOR), "\N{LF}";
-    } else {
-	my @sorted_used_premises_colored = map { colored ($_, $USED_PREMISE_COLOR) }
-	    @sorted_used_premises;
-	print join ("\N{LF}", @sorted_used_premises_colored), "\N{LF}";
+    my %used_premises_table = ();
+    foreach my $premise (@used_premise_names) {
+	$used_premises_table{$premise} = 0;
     }
 
-    print "\N{LF}", 'UNUSED PREMISES', "\N{LF}";
-    if (scalar @sorted_unused_premises == 0) {
-	print colored ('(none)', $UNUSED_PREMISE_COLOR), "\N{LF}";
+    my $background = $derivation->get_background_theory ();
+    my @axioms = $background->get_axioms ();
+    my @axiom_names = map { $_->get_name () } @axioms;
+    my @sorted_axiom_names = sort @axiom_names;
+
+    print 'PREMISES (', colored ('used', $USED_PREMISE_COLOR), ' / ', colored ('unused', $UNUSED_PREMISE_COLOR), ')', "\N{LF}";
+
+    if (scalar @sorted_axiom_names == 0) {
+
+	print '(none)', "\N{LF}";
+
     } else {
-	my @sorted_unused_premises_colored = map { colored ($_, $UNUSED_PREMISE_COLOR) }
-	    @sorted_unused_premises;
-	print join ("\N{LF}", @sorted_unused_premises_colored), "\N{LF}";
+
+	foreach my $axiom (@sorted_axiom_names) {
+	    if (defined $used_premises_table{$axiom}) {
+		print colored ($axiom, $USED_PREMISE_COLOR);
+	    } else {
+		print colored ($axiom, $UNUSED_PREMISE_COLOR);
+	    }
+	    print "\N{LF}";
+	}
+
     }
 
     return 1;
@@ -265,12 +275,14 @@ sub report_used_and_unused_premises {
 ## Prove command
 ######################################################################
 
-my $prove_show_proof = 0;
+my $prove_opt_show_output = 0;
+my $prove_opt_show_premises = 0;
 
 sub prove_ensure_sensible_arguments {
 
     GetOptions (
-	'--show-proof' => \$prove_show_proof,
+	'show-output' => \$prove_opt_show_output,
+	'show-premises' => \$prove_opt_show_premises,
     )
 	or pod2usage (2);
 
@@ -280,7 +292,7 @@ sub prove_ensure_sensible_arguments {
     }
 
     if (scalar @ARGV > 1) {
-	pod2usage (-msg => error_message ('Unable to make sense of the reprove arguments', "\N{LF}", "\N{LF}", $TWO_SPACES, join ($SPACE, @ARGV)),
+	pod2usage (-msg => error_message ('Unable to make sense of the prove arguments', "\N{LF}", "\N{LF}", $TWO_SPACES, join ($SPACE, @ARGV)),
 		   -exitval => 2);
     }
 
@@ -337,19 +349,49 @@ sub cmd_prove {
 	exit 1;
     }
 
-    my $derivation = $tptp_result->output_as_derivation ();
+    my $szs_status = eval { $tptp_result->get_szs_status () };
 
-    if ($opt_debug) {
-	print {*STDERR} 'The derivation was just obtained:', "\N{LF}", Dumper ($derivation);
+    if (defined $szs_status) {
+
+	if ($szs_status eq 'Theorem') {
+	    my $derivation = $tptp_result->output_as_derivation ();
+
+	    if ($opt_debug) {
+		print {*STDERR} 'The derivation was just obtained:', "\N{LF}", Dumper ($derivation);
+	    }
+
+	    print 'SZS Status: ', colored ($szs_status, $GOOD_COLOR), "\N{LF}";
+
+	    if ($prove_opt_show_output) {
+		print "\N{LF}", 'The prover output:', "\N{LF}";
+		print $tptp_result->get_output ();
+	    }
+
+	    if ($prove_opt_show_premises) {
+		print "\N{LF}";
+		report_used_and_unused_premises ($derivation);
+	    }
+
+	} elsif ($szs_status eq 'CounterSatisfiable'
+	     || $szs_status eq 'CounterTheorem') {
+
+	    print 'SZS Status: ', colored ($szs_status, $BAD_COLOR), "\N{LF}";
+
+	    if ($prove_opt_show_output) {
+		print "\N{LF}", 'The prover output:', "\N{LF}";
+		print $tptp_result->get_output ();
+	    }
+
+	}
+
+    } else {
+
+	print {*STDERR} 'Error: no SZS status for this prover run for ', $theory_path, '.', "\N{LF}";
+	print {*STDERR} 'The prover output was:', "\N{LF}";
+	print {*STDERR} $tptp_result->get_output ();
+	exit 1;
+
     }
-
-    print colored ('Success!', 'green'), "\N{LF}";
-
-    print 'The prover output:', "\n";
-
-    print $tptp_result->get_output ();
-
-    report_used_and_unused_premises ($derivation);
 
     return 1;
 
@@ -430,6 +472,20 @@ sub prove_if_possible {
 	exit 1;
     }
 
+    my $szs_status = eval { $tptp_result->get_szs_status () };
+
+    if (! defined $szs_status) {
+	my $output = $tptp_result->get_output ();
+	print {*STDERR} message (error_message ('We could not find the SZS status of a proof attempt for ', $theory_path, '.'));
+	print {*STDERR} message ('The prover output was:', "\N{LF}", "\N{LF}", $output);
+	exit 1;
+    }
+
+    if ($szs_status ne 'Theorem') {
+	print {*STDERR} message (error_message ('We expected to obtain a theorem, but the SZS status for a proof attempt for ', $theory_path, ' was', "\N{LF}", "\N{LF}", $TWO_SPACES, colored ($szs_status, $BAD_COLOR)));
+	exit 1;
+    }
+
     my $derivation = $tptp_result->output_as_derivation ();
 
     if (! defined $derivation) {
@@ -455,19 +511,26 @@ sub cmd_reprove {
 	print {*STDERR} 'The derivation was just obtained:', "\N{LF}", Dumper ($derivation);
     }
 
+    print 'PREMISES (', colored ('used', $USED_PREMISE_COLOR), ' / ', colored ('unused', $UNUSED_PREMISE_COLOR), ')', "\N{LF}";
+
     my @unused_premises = $derivation->get_unused_premises ();
 
-    if (scalar @unused_premises == 0) {
-	print 'No unused premises in the initial proof attempt.', "\N{LF}";
-    } else {
-	print 'Unused premises:', "\N{LF}";
-	while (scalar @unused_premises > 0) {
-	    print join ("\N{LF}", @unused_premises), "\N{LF}";
-	    $theory = $derivation->theory_from_used_premises ();
-	    $derivation = prove_if_possible ($theory);
-	    @unused_premises = $derivation->get_unused_premises ();
-	}
+    while (scalar @unused_premises > 0) {
+	my @unused_premise_names = map { $_->get_name () } @unused_premises;
+	my @unused_premise_names_colored
+	    = map { colored ($_, $UNUSED_PREMISE_COLOR) } @unused_premise_names;
+	print join ("\N{LF}", @unused_premise_names_colored), "\N{LF}";
+	$theory = $derivation->theory_from_used_premises ();
+	$derivation = prove_if_possible ($theory);
+	@unused_premises = $derivation->get_unused_premises ();
     }
+
+    my @used_premises = $derivation->get_used_premises ();
+    my @used_premise_names = map { $_->get_name () } @used_premises;
+    my @used_premise_names_colored
+	= map { colored ($_, $USED_PREMISE_COLOR) } @used_premise_names;
+
+    print join ("\N{LF}", @used_premise_names_colored), "\N{LF}";
 
     return 1;
 
