@@ -175,5 +175,15 @@ sub get_axioms {
 
 }
 
+sub has_conjecture_formula {
+    my $self = shift;
+    my @formulas = $self->get_formulas (0); # don't expand
+    my $conjecture_formula = undef;
+    my $conjecture_idx = firstidx { $_->get_status () eq 'conjecture' } @formulas;
+
+    return ($conjecture_idx >= 0);
+
+}
+
 1;
 __END__
