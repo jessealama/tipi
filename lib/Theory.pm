@@ -254,5 +254,35 @@ sub promote_conjecture_to_false_axiom {
     return Theory->new (path => $new_path);
 }
 
+sub remove_formula {
+    my $self = shift;
+    my $formula_to_remove = shift;
+
+    my $name_of_formula_to_remove = $formula_to_remove->get_name ();
+
+    my $path = $self->get_path ();
+    my @axioms = $self->get_axioms ();
+
+    (my $new_fh, my $new_path) = tempfile ();
+
+    foreach my $axiom (@axioms) {
+	my $axiom_name = $axiom->get_name ();
+	if ($axiom_name ne $name_of_formula_to_remove) {
+	    print {$new_fh} $axiom->tptpify (), "\N{LF}";
+	}
+    }
+
+    if ($self->has_conjecture_formula ()) {
+	my $conjecture = $self->get_conjecture ();
+	print {$new_fh} $conjecture->tptpify (), "\N{LF}";
+    }
+
+    close $new_fh
+	or croak 'Error: unable to close the output filehandle for the conjecture-free variant of ', $path, '.';
+
+    return Theory->new (path => $new_path);
+
+}
+
 1;
 __END__

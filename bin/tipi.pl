@@ -34,6 +34,7 @@ Readonly my $USED_PREMISE_COLOR => 'blue';
 Readonly my $UNUSED_PREMISE_COLOR => 'bright_black';
 Readonly my $GOOD_COLOR => 'green';
 Readonly my $BAD_COLOR => 'red';
+Readonly my $UNKNOWN_COLOR => 'yellow';
 
 Readonly my @COMMANDS => (
     'prove',
@@ -41,12 +42,14 @@ Readonly my @COMMANDS => (
     'premises',
     'conjecture',
     'model',
+    'reprove-semantically',
     # 'init',
     );
 
 Readonly my %COMMAND_ROUTINES =>
     (
 	'reprove' => \&cmd_reprove,
+	'reprove-semantically' => \&cmd_reprove_semantically,
 	'prove' => \&cmd_prove,
 	'premises' => \&cmd_premises,
 	'conjecture' => \&cmd_conjecture,
@@ -57,6 +60,7 @@ Readonly my %COMMAND_DESCRIPTIONS =>
     (
 	'prove'   => 'Try proving a conjecture.',
 	'reprove' => 'Repeatedly reprove a conjecture using only actually used premises until no further trimming is possible.',
+	'reprove-semantically' => 'Test whether the deletion of a premises leads to countersatisfiability.',
 	'premises' => 'Print the (names of the) premises of a TPTP theory file.',
 	'conjecture' => 'Print the name of the conjecture (if present) in a TPTP theory file.',
 	'model' => 'Find a model for a TPTP theory.',
@@ -97,6 +101,14 @@ sub message_with_extra_linefeed {
     my @message_parts = @_;
     my $msg = join $EMPTY_STRING, @message_parts;
     return message (message ($msg));
+}
+
+sub warning_message {
+    my @message_parts = @_;
+    my $message = join ($EMPTY_STRING, @message_parts);
+    my $message_with_warning_padding
+	= colored ('Warning', $BAD_COLOR) . ': ' . $message;
+    return $message_with_warning_padding;
 }
 
 sub error_message {
@@ -598,12 +610,14 @@ sub cmd_conjecture {
 
 my $model_opt_with_conjecture_as = undef;
 my $model_opt_show_model = 0;
+my $model_opt_timeout = 30; # seconds
 
 sub model_ensure_sensible_arguments {
 
     GetOptions (
 	'with-conjecture-as=s' => \$model_opt_with_conjecture_as,
 	'show-model' => \$model_opt_show_model,
+	'timeout=i' => \$model_opt_timeout,
     )
 	or pod2usage (2);
 
@@ -614,6 +628,11 @@ sub model_ensure_sensible_arguments {
 
     if (scalar @ARGV > 1) {
 	pod2usage (-msg => error_message ('Unable to make sense of the model arguments', "\N{LF}", "\N{LF}", $TWO_SPACES, join ($SPACE, @ARGV)),
+		   -exitval => 2);
+    }
+
+    if ($model_opt_timeout < 0) {
+	pod2usage (-msg => error_message ('Invalid value ', $model_opt_timeout, ' for the timeout option.'),
 		   -exitval => 2);
     }
 
@@ -652,7 +671,8 @@ sub cmd_model {
 	$theory = $theory->strip_conjecture ();
     }
 
-    my $tptp_result = eval { TPTP::find_model ($theory) };
+    my $tptp_result = eval { TPTP::find_model ($theory,
+					       { 'timeout' => $model_opt_timeout }) };
     my $tptp_result_message = $@;
 
     if (! defined $tptp_result) {
@@ -668,7 +688,7 @@ sub cmd_model {
     }
 
     if ($tptp_result->timed_out ()) {
-	print colored ('Timeout', $BAD_COLOR);
+	print colored ('Timeout', $BAD_COLOR), "\N{LF}";
 	exit 1;
     }
 
@@ -718,6 +738,106 @@ sub cmd_model {
     }
 
     return 1;
+
+}
+
+######################################################################
+## Reprove semantically
+######################################################################
+
+my $reprove_semantically_opt_timeout = 5;
+
+sub reprove_semantically_ensure_sensible_arguments {
+
+    GetOptions (
+	'timeout=i' => \$reprove_semantically_opt_timeout,
+    )
+	or pod2usage (2);
+
+    if (scalar @ARGV == 0) {
+	pod2usage (-msg => error_message ('Please supply a TPTP theory file.'),
+		   -exitval => 2);
+    }
+
+    if (scalar @ARGV > 1) {
+	pod2usage (-msg => error_message ('Unable to make sense of the reprove arguments', "\N{LF}", "\N{LF}", $TWO_SPACES, join ($SPACE, @ARGV)),
+		   -exitval => 2);
+    }
+
+    if ($reprove_semantically_opt_timeout < 0) {
+	pod2usage (-msg => error_message ('Invalid value ', $reprove_semantically_opt_timeout, ' for the timeout option.'),
+		   -exitval => 2);
+    }
+
+    my $theory_path = $ARGV[0];
+
+    if (! ensure_tptp4x_available ()) {
+	print {*STDERR} message (error_message ('Cannot run tptp4X'));
+	exit 1;
+    }
+
+    ensure_sensible_tptp_theory ($theory_path);
+
+    return 1;
+
+}
+
+sub cmd_reprove_semantically {
+
+    reprove_semantically_ensure_sensible_arguments ();
+
+    my $theory_path = $ARGV[0];
+
+    my $theory = Theory->new (path => $theory_path);
+
+    my $proof_result = eval { TPTP::prove ($theory) };
+
+    if (! defined $proof_result) {
+	print {*STDERR} message (warning_message ('We could not verify that the conjecture of ', $theory_path, ' really is a consequence of its axioms.'));
+	print {*STDERR} message ('The results that follow may be meaningless.');
+    }
+
+    my $proof_szs_status
+	= $proof_result->has_szs_status ? $proof_result->get_szs_status : 'Unknown';
+
+    my @axioms = $theory->get_axioms ();
+
+    $theory = $theory->promote_conjecture_to_false_axiom ();
+
+    my %needed = ();
+
+    print 'PREMISES (', colored ('needed', $USED_PREMISE_COLOR), ' / ', colored ('not needed', $UNUSED_PREMISE_COLOR), ' / ', colored ('unknown', $UNKNOWN_COLOR), ')', "\N{LF}";
+
+    foreach my $axiom (@axioms) {
+	my $axiom_name = $axiom->get_name ();
+	my $trimmed_theory = $theory->remove_formula ($axiom);
+	my $tptp_result = eval
+	    { TPTP::find_model ($trimmed_theory,
+				{ 'timeout' => $reprove_semantically_opt_timeout }) };
+	my $tptp_find_model_message = $@;
+
+	my $szs_status
+	    = (defined $tptp_result && $tptp_result->has_szs_status ()) ? $tptp_result->get_szs_status () : 'Unknown';
+
+	# DEBUG
+	# warn 'SZS status for ', $axiom_name, ': ', $szs_status;
+
+	if (defined $tptp_result) {
+	    if ($tptp_result->timed_out ()) {
+		print colored ($axiom_name, $UNKNOWN_COLOR);
+	    } elsif ($szs_status eq 'Satisfiable') {
+		print colored ($axiom_name, $USED_PREMISE_COLOR);
+	    } elsif ($szs_status eq 'Unsatisfiable') {
+		print colored ($axiom_name, $UNUSED_PREMISE_COLOR);
+	    } else {
+		print colored ($axiom_name, $UNKNOWN_COLOR);
+	    }
+	} else {
+	    print {*STDERR} message (warning_message ('Something went wrong when testing whether ', $axiom_name, ' can be removed:', "\N{LF}", $tptp_find_model_message));
+	}
+
+	print "\N{LF}";
+    }
 
 }
 

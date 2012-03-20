@@ -4,7 +4,7 @@ use Moose;
 use Carp qw(croak);
 use charnames qw(:full);
 use Regexp::DefaultFlags;
-
+use Carp qw(croak carp);
 use EproverDerivation;
 use ParadoxInterpretation;
 
@@ -26,7 +26,6 @@ sub timed_out {
 }
 
 has 'exit_code' => (
-    isa => 'Int',
     is => 'ro',
     reader => 'get_exit_code',
 );
@@ -68,6 +67,19 @@ sub output_as_derivation {
 
     return EproverDerivation->new (raw_text => $output,
 			           background_theory => $background);
+}
+
+sub has_szs_status {
+    my $self = shift;
+    my $output = $self->get_output ();
+
+    # carp 'Output:', "\N{LF}", $output;
+
+    if ($output =~ / SZS \N{SPACE} status \N{SPACE} ([a-zA-Z]+) /m) {
+	return 1;
+    } else {
+	return 0;
+    }
 }
 
 sub get_szs_status {
