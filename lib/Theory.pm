@@ -132,7 +132,6 @@ sub get_conjecture {
 
 sub get_axioms {
     my $self = shift;
-    my $path = $self->get_path ();
 
     my @formulas = $self->get_formulas ();
 
