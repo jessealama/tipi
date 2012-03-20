@@ -1,0 +1,67 @@
+stylesheet "1.0";
+
+output method="text";
+
+tpl [/] {
+  if [tstp] {
+    apply [tstp];
+  } else {
+    msg terminate="yes" "Error: the required tstp document element is missing.";
+  }
+}
+
+tpl [tstp] {
+  if [formula[@name = "domain"]] {
+    apply [formula[@name = "domain"]];
+  } else {
+    msg terminate="yes" "Error: the required domain formula is missing.";
+  }
+}
+
+tpl [formula[@name = "domain"]] {
+  if [quantifier[@type = "universal"]] {
+    "Domain: ";
+    for-each [quantifier[@type = "universal"]] {
+      for-each [*[position() = last()]] {
+        choose {
+          when [self::disjunction] {
+            for-each [predicate[@name = "="]] {
+              apply [.] mode="emit-rhs";
+              if [position() < last()] {
+                ", ";
+              }
+            }
+            "\n";
+          }
+          when [self::predicate] {
+            apply [.] mode="emit-rhs";
+            "\n";
+          }
+          otherwise {
+            msg terminate="yes" "Error: unable to handle a domain formula whose matrix is neither an atom nor a disjunction.";
+          }
+        }
+      }
+    }
+  } else {
+    msg terminate="yes" "Error: the domain formula does not have the expected shape (universal quantification).";
+  }
+}
+
+tpl [*] mode="emit-rhs" {
+  if [count (*) = 2] {
+    apply [*[2]] mode="print";
+  } else {
+    msg terminate="yes" "Error: we cannot print the right-hand side of an element that does not have exactly two children.";
+  }
+}
+
+tpl [*] mode="print" {
+  $n = `name (.)`;
+  $message = `concat ("Error: we managed to land in the default print template for a(n) ", $n, " element; something has gone awry.")`;
+  msg terminate="yes" $message;
+}
+
+tpl [string[@name]] mode="print" {
+  `@name`;
+}
