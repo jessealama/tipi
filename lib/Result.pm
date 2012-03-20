@@ -2,6 +2,8 @@ package Result;
 
 use Moose;
 use Carp qw(croak);
+use charnames qw(:full);
+use Regexp::DefaultFlags;
 
 use EproverDerivation;
 
@@ -65,6 +67,17 @@ sub output_as_derivation {
 
     return EproverDerivation->new (raw_text => $output,
 			           background_theory => $background);
+}
+
+sub get_szs_status {
+    my $self = shift;
+    my $output = $self->get_output ();
+
+    if ($output =~ / SZS \N{SPACE} status \N{SPACE} ([a-zA-Z]+) /m) {
+	return $1;
+    } else {
+	croak 'Error: no SZS status could be extracted from the output', "\N{LF}", $output,
+    }
 }
 
 1;
