@@ -7,8 +7,12 @@ use IPC::Cmd qw(can_run);
 use IPC::Run qw(run start timer harness);
 use Carp qw(croak);
 use Readonly;
+use charnames qw(:full);
+use English qw(-no_match_vars);
 
-our @EXPORT_OK = qw(ensure_tptp4x_available ensure_valid_tptp_file);
+our @EXPORT_OK = qw(ensure_tptp4x_available
+		    ensure_valid_tptp_file
+		    prove_if_possible);
 
 use Result;
 use Utils qw(ensure_readable_file);
@@ -16,6 +20,11 @@ use Utils qw(ensure_readable_file);
 Readonly my $TPTP4X => 'tptp4X';
 Readonly my $EMPTY_STRING => q{};
 Readonly my $DEFAULT_PROVER_TIMEOUT => 30;
+Readonly my $TWO_SPACES => q{  };
+Readonly my $USED_PREMISE_COLOR => 'blue';
+Readonly my $UNUSED_PREMISE_COLOR => 'bright_black';
+Readonly my $GOOD_COLOR => 'green';
+Readonly my $BAD_COLOR => 'red';
 
 sub ensure_tptp4x_available {
     return can_run ($TPTP4X);
@@ -104,6 +113,64 @@ sub prove {
 			output => $eprover_out,
 			error_output => $eprover_err,
 		        background_theory => $theory);
+
+}
+
+sub prove_if_possible {
+    my $theory = shift;
+
+    my $theory_path = $theory->get_path ();
+    my $tptp_result = eval { prove ($theory) };
+    my $tptp_message = $@;
+
+    if (! defined $tptp_result) {
+	if (defined $tptp_message) {
+	    if ($tptp_message eq $EMPTY_STRING) {
+		print {*STDERR} message (error_message ('Something went wrong proving ', $theory_path, ' (we received no further information).'));
+		exit 1;
+	    } else {
+		print {*STDERR} message_with_extra_linefeed (error_message ('Something went wrong proving ', $theory_path, ':'));
+		print {*STDERR} message ($tptp_message);
+		exit 1;
+	    }
+	} else {
+	    print {*STDERR} message (error_message ('Something went wrong proving ', $theory_path, ' (we received no further information).'));
+	    exit 1;
+	}
+    }
+
+    if ($tptp_result->timed_out ()) {
+	print {*STDERR} message (error_message ('The prover did not terminate within the time limit.'));
+	exit 1;
+    }
+
+    if (! $tptp_result->exited_cleanly ()) {
+	print {*STDERR} message (error_message ('The prover terminated, but it did not exit cleanly when working with ', $theory_path, '.'));
+	exit 1;
+    }
+
+    my $szs_status = eval { $tptp_result->get_szs_status () };
+
+    if (! defined $szs_status) {
+	my $output = $tptp_result->get_output ();
+	print {*STDERR} message (error_message ('We could not find the SZS status of a proof attempt for ', $theory_path, '.'));
+	print {*STDERR} message ('The prover output was:', "\N{LF}", "\N{LF}", $output);
+	exit 1;
+    }
+
+    if ($szs_status ne 'Theorem') {
+	print {*STDERR} message (error_message ('We expected to obtain a theorem, but the SZS status for a proof attempt for ', $theory_path, ' was', "\N{LF}", "\N{LF}", $TWO_SPACES, colored ($szs_status, $BAD_COLOR)));
+	exit 1;
+    }
+
+    my $derivation = $tptp_result->output_as_derivation ();
+
+    if (! defined $derivation) {
+	print {*STDERR} message (error_message ('We failed to get a derivation.'));
+	exit 1;
+    }
+
+    return $derivation;
 
 }
 
