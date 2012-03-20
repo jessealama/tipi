@@ -75,11 +75,16 @@ sub prove {
 	croak 'Cannot run eprove.';
     }
 
-    my @eprover_call = ('eprove');
+    my @eprover_call
+	= ('eprover', '-l4', '-xAuto', '-tAuto', '-R', '--tptp3-in', $theory_path);
+    my @epclextract_call
+	= ('epclextract', '--forward-comments');
+
     my $eprover_out = $EMPTY_STRING;
     my $eprover_err = $EMPTY_STRING;
     my $eprover_harness = harness (\@eprover_call,
 				   '<', $theory_path,
+				   '|', \@epclextract_call,
 				   '>', \$eprover_out,
 				   '2>', \$eprover_err,
 			           );
