@@ -5,10 +5,11 @@ use warnings;
 use base qw(Exporter);
 use IPC::Cmd qw(can_run);
 use IPC::Run qw(run start timer harness);
-use Carp qw(croak);
+use Carp qw(croak carp);
 use Readonly;
 use charnames qw(:full);
 use English qw(-no_match_vars);
+use Data::Dumper;
 
 our @EXPORT_OK = qw(ensure_tptp4x_available
 		    ensure_valid_tptp_file
@@ -174,4 +175,50 @@ sub prove_if_possible {
 
 }
 
+sub find_model {
+
+    my $theory = shift;
+    my $parameters_ref = shift;
+
+    my %parameters = defined $parameters_ref ? %{$parameters_ref} : ();
+
+    ensure_sensible_prover_parameters (\%parameters);
+
+    my $timeout = defined $parameters{'timeout'} ? $parameters{'timeout'} : $DEFAULT_PROVER_TIMEOUT;
+
+    my $theory_path = $theory->get_path ();
+
+    if (! can_run ('paradox')) {
+	croak 'Cannot run paradox.';
+    }
+
+    my @paradox_call
+	= ('paradox', '--model', '--tstp', $theory_path);
+
+    my $paradox_out = $EMPTY_STRING;
+    my $paradox_err = $EMPTY_STRING;
+    my $paradox_harness = harness (\@paradox_call,
+				   '>', \$paradox_out,
+				   '2>', \$paradox_err,
+			           );
+    my $timer = timer ($timeout);
+    $paradox_harness->run ();
+    $timer->start ();
+
+    until (defined eval { $paradox_harness->full_results () } || $timer->is_expired ()) {
+	sleep 1;
+    }
+
+    my @results = $paradox_harness->full_results ();
+
+    my $timed_out = $timer->is_expired () ? 1 : 0;
+    my $exit_code = scalar @results == 0 ? 1 : $results[0];
+
+    return Result->new (timed_out => $timed_out,
+			exit_code => $exit_code,
+			output => $paradox_out,
+			error_output => $paradox_err,
+		        background_theory => $theory);
+
+}
 __END__

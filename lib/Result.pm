@@ -6,6 +6,7 @@ use charnames qw(:full);
 use Regexp::DefaultFlags;
 
 use EproverDerivation;
+use ParadoxInterpretation;
 
 has 'derivation' => (
     isa => 'Derivation',
@@ -78,6 +79,19 @@ sub get_szs_status {
     } else {
 	croak 'Error: no SZS status could be extracted from the output', "\N{LF}", $output,
     }
+}
+
+sub output_as_model {
+    my $self = shift;
+    my $output = $self->get_output ();
+    my $background = $self->get_background_theory ();
+
+    if (! defined $output) {
+	croak 'Error: the output slot of this Result object is undefined.';
+    }
+
+    return ParadoxInterpretation->new (raw_text => $output,
+				       background_theory => $background);
 }
 
 1;

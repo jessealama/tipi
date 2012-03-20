@@ -14,6 +14,7 @@ use Term::ANSIColor;
 use Regexp::DefaultFlags;
 use List::MoreUtils qw(all);
 use Data::Dumper;
+
 use FindBin qw($RealBin);
 use lib "$RealBin/../lib";
 
@@ -39,7 +40,7 @@ Readonly my @COMMANDS => (
     'reprove',
     'premises',
     'conjecture',
-    # 'expand',
+    'model',
     # 'init',
     );
 
@@ -49,6 +50,7 @@ Readonly my %COMMAND_ROUTINES =>
 	'prove' => \&cmd_prove,
 	'premises' => \&cmd_premises,
 	'conjecture' => \&cmd_conjecture,
+	'model' => \&cmd_model,
     );
 
 Readonly my %COMMAND_DESCRIPTIONS =>
@@ -57,6 +59,7 @@ Readonly my %COMMAND_DESCRIPTIONS =>
 	'reprove' => 'Repeatedly reprove a conjecture using only actually used premises until no further trimming is possible.',
 	'premises' => 'Print the (names of the) premises of a TPTP theory file.',
 	'conjecture' => 'Print the name of the conjecture (if present) in a TPTP theory file.',
+	'model' => 'Find a model for a TPTP theory.',
     );
 
 my $opt_man       = 0;
@@ -588,5 +591,135 @@ sub cmd_conjecture {
     return 1;
 
 }
+
+######################################################################
+## Model
+######################################################################
+
+my $model_opt_with_conjecture_as = undef;
+my $model_opt_show_model = 0;
+
+sub model_ensure_sensible_arguments {
+
+    GetOptions (
+	'with-conjecture-as=s' => \$model_opt_with_conjecture_as,
+	'show-model' => \$model_opt_show_model,
+    )
+	or pod2usage (2);
+
+    if (scalar @ARGV == 0) {
+	pod2usage (-msg => error_message ('Please supply a TPTP theory file.'),
+		   -exitval => 2);
+    }
+
+    if (scalar @ARGV > 1) {
+	pod2usage (-msg => error_message ('Unable to make sense of the model arguments', "\N{LF}", "\N{LF}", $TWO_SPACES, join ($SPACE, @ARGV)),
+		   -exitval => 2);
+    }
+
+    if (defined $model_opt_with_conjecture_as) {
+	if ($model_opt_with_conjecture_as ne 'true'
+		&& $model_opt_with_conjecture_as ne 'false') {
+	    pod2usage (-msg => error_message ('The only permitted values of the --with-conjecture-as option are \'true\' and \'false\'.'),
+		       exitval => 2);
+	}
+    }
+
+    my $theory_path = $ARGV[0];
+
+    ensure_sensible_tptp_theory ($theory_path);
+
+    return 1;
+
+}
+
+sub cmd_model {
+
+    model_ensure_sensible_arguments ();
+
+    my $theory_path = $ARGV[0];
+
+    my $theory = Theory->new (path => $theory_path);
+
+    # Transform the theory
+    if (defined $model_opt_with_conjecture_as) {
+	if ($model_opt_with_conjecture_as eq 'true') {
+	    $theory = $theory->promote_conjecture_to_true_axiom ();
+	} else {
+	    $theory = $theory->promote_conjecture_to_false_axiom ();
+	}
+    } else {
+	$theory = $theory->strip_conjecture ();
+    }
+
+    my $tptp_result = eval { TPTP::find_model ($theory) };
+    my $tptp_result_message = $@;
+
+    if (! defined $tptp_result) {
+	print {*STDERR} message (error_message ('Something went wrong searching for a model of ', $theory_path, '.'));
+	if (defined $tptp_result_message && $tptp_result_message ne $EMPTY_STRING) {
+	    	print {*STDERR} message_with_extra_linefeed ('The error was:');
+		print {*STDERR} message ($tptp_result_message);
+	} else {
+	    print {*STDERR} message ('No further information is available.');
+	}
+
+	exit 1;
+    }
+
+    if ($tptp_result->timed_out ()) {
+	print colored ('Timeout', $BAD_COLOR);
+	exit 1;
+    }
+
+    my $exit_code = $tptp_result->get_exit_code ();
+
+    if (! defined $exit_code || $exit_code != 0) {
+	print colored ('Error', $BAD_COLOR);
+	exit 1;
+    }
+
+    my $model = eval { $tptp_result->output_as_model () };
+    my $model_message = $@;
+
+    if (! defined $model) {
+	my $tptp_output = $tptp_result->get_output ();
+	print {*STDERR} message (error_message ('Something went wrong interpreting the output as a model', $theory_path, ': ', $model_message));
+	if (defined $tptp_output && $tptp_output ne $EMPTY_STRING) {
+	    	print {*STDERR} message_with_extra_linefeed ('The output we tried to interpret was:');
+		print {*STDERR} message ($tptp_output);
+	} else {
+	    print {*STDERR} message ('Strangely, there was no output at all.  (So how could we possibly interpret it as a model?)');
+	}
+
+	exit 1;
+    }
+
+    my $szs_status = eval { $tptp_result->get_szs_status () };
+
+    if (! defined $szs_status) {
+	my $tptp_output = $tptp_result->get_output ();
+	print {*STDERR} message (error_message ('Something went wrong extracting the SZS status for the output of a model-finding task for', $theory_path, '.'));
+	if (defined $tptp_output && $tptp_output ne $EMPTY_STRING) {
+	    	print {*STDERR} message_with_extra_linefeed ('The output we tried to interpret was:');
+		print {*STDERR} message ($tptp_output);
+	} else {
+	    print {*STDERR} message ('Strangely, there was no output at all.  (So how could we possibly extract the SZS status?)');
+	}
+
+	exit 1;
+    }
+
+    print colored ($szs_status, $GOOD_COLOR), "\N{LF}"; # ... "It's all good!"
+
+    if ($model_opt_show_model) {
+	my $model_description = $model->describe ();
+	print $model_description;
+    }
+
+    return 1;
+
+}
+
 
 __END__

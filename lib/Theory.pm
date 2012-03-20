@@ -7,6 +7,7 @@ use Carp qw(croak);
 use Readonly;
 use charnames qw(:full);
 use List::MoreUtils qw(firstidx);
+use File::Temp qw(tempfile);
 
 use Formula;
 use Utils qw(ensure_readable_file slurp);
@@ -183,6 +184,74 @@ sub has_conjecture_formula {
 
     return ($conjecture_idx >= 0);
 
+}
+
+sub strip_conjecture {
+    my $self = shift;
+
+    my $path = $self->get_path ();
+    my @axioms = $self->get_axioms ();
+
+    (my $new_fh, my $new_path) = tempfile ();
+
+    foreach my $axiom (@axioms) {
+	print {$new_fh} $axiom->tptpify (), "\N{LF}";
+    }
+
+    close $new_fh
+	or croak 'Error: unable to close the output filehandle for the conjecture-free variant of ', $path, '.';
+
+    return Theory->new (path => $new_path);
+
+}
+
+sub promote_conjecture_to_true_axiom {
+    my $self = shift;
+
+    my $path = $self->get_path ();
+    my @axioms = $self->get_axioms ();
+
+    (my $new_fh, my $new_path) = tempfile ();
+
+    foreach my $axiom (@axioms) {
+	print {$new_fh} $axiom->tptpify (), "\N{LF}";
+    }
+
+    if ($self->has_conjecture_formula ()) {
+	my $conjecture = $self->get_conjecture ();
+	my $conjecture_as_axiom = $conjecture->change_status ('axiom');
+	print {$new_fh} $conjecture_as_axiom->tptpify (), "\N{LF}";
+    }
+
+    close $new_fh
+	or croak 'Error: unable to close the output filehandle for the conjecture-free variant of ', $path, '.';
+
+    return Theory->new (path => $new_path);
+}
+
+sub promote_conjecture_to_false_axiom {
+    my $self = shift;
+
+    my $path = $self->get_path ();
+    my @axioms = $self->get_axioms ();
+
+    (my $new_fh, my $new_path) = tempfile ();
+
+    foreach my $axiom (@axioms) {
+	print {$new_fh} $axiom->tptpify (), "\N{LF}";
+    }
+
+    if ($self->has_conjecture_formula ()) {
+	my $conjecture = $self->get_conjecture ();
+	my $negated_conjecture = $conjecture->negate ();
+	my $conjecture_as_axiom = $negated_conjecture->change_status ('axiom');
+	print {$new_fh} $conjecture_as_axiom->tptpify (), "\N{LF}";
+    }
+
+    close $new_fh
+	or croak 'Error: unable to close the output filehandle for the conjecture-free variant of ', $path, '.';
+
+    return Theory->new (path => $new_path);
 }
 
 1;

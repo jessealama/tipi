@@ -7,6 +7,7 @@ use Carp qw(croak);
 use Readonly;
 
 Readonly my $TWO_SPACES => q{  };
+Readonly my $EMPTY_STRING => q{};
 
 has 'name' => (
     isa => 'Str',
@@ -47,6 +48,51 @@ sub tptpify {
     my $status = $self->get_status ();
     my $content = $self->get_formula ();
     return "fof(${name},${status},${content}).";
+}
+
+sub change_status {
+    my $self = shift;
+    my $new_status = shift;
+
+    if (! defined $new_status) {
+	croak 'To change the status of a formula, one must supply a new status.';
+    }
+
+    if ($new_status eq $EMPTY_STRING) {
+	croak 'The empty string is not an acceptable formula status.';
+    }
+
+    if ($new_status =~ / \N{LF} /m) {
+	croak 'A TPTP formula status cannot contain a linefeed character.';
+    }
+
+    if ($new_status =~ / \s /) {
+	croak 'A TPTP formula status cannot contain whitespace.';
+    }
+
+    if ($new_status !~ / [a-z_]+ /) {
+	croak 'A TPTP formula status must consist of lowercase alphabetic characters and the underscore character \'_\'.';
+    }
+
+    my $formula = $self->get_formula ();
+    my $name = $self->get_name ();
+
+    return Formula->new (status => $new_status,
+			 name => $name,
+			 formula => $formula);
+}
+
+sub negate {
+    my $self = shift;
+
+    my $formula = $self->get_formula ();
+
+    return Formula->new (
+	status => $self->get_status (),
+	name => $self->get_name (),
+	formula => "~ ( ${formula} )",
+    );
+
 }
 
 1;
