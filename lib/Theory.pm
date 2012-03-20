@@ -6,6 +6,7 @@ use IPC::Run qw(run start timer harness);
 use Carp qw(croak);
 use Readonly;
 use charnames qw(:full);
+use List::MoreUtils qw(firstidx);
 
 use Formula;
 use Utils qw(ensure_readable_file slurp);
@@ -38,7 +39,7 @@ sub BUILD {
 
     my %formula_table = ();
 
-    my @formulas = $self->get_formulas ();
+    my @formulas = $self->get_formulas (1);
 
     foreach my $formula (@formulas) {
 	my $name = $formula->get_name ();
@@ -75,14 +76,36 @@ sub formula_with_name {
 
 sub get_formulas {
     my $self = shift;
+    my $expand_includes = shift;
+
     my $path = $self->get_path ();
 
-    my @tptp4x_call = ('tptp4X', '-N', '-V', '-c', '-x', '-umachine', $path);
+    my @tptp4x_call = ('tptp4X', '-N', '-V', '-c', '-umachine');
+
+    if (defined $expand_includes && $expand_includes) {
+	push (@tptp4x_call, '-x');
+    }
+
+    push (@tptp4x_call, $path);
+
     my $tptp4x_err = $EMPTY_STRING;
     my $tptp4x_out = $EMPTY_STRING;
-    my $tptp4x_harness = harness (\@tptp4x_call,
-				  '>', \$tptp4x_out,
-				  '2>', \$tptp4x_err);
+
+    my $tptp4x_harness;
+
+    if (defined $expand_includes && $expand_includes) {
+	$tptp4x_harness = harness (\@tptp4x_call,
+				   '>', \$tptp4x_out,
+				   '2>', \$tptp4x_err);
+    } else {
+	my @grep_call = ('grep', '--invert-match', '^include(');
+	$tptp4x_harness = harness (\@tptp4x_call,
+				   '|',
+				   \@grep_call,
+				   '>', \$tptp4x_out,
+				   '2>', \$tptp4x_err);
+
+    }
 
     $tptp4x_harness->start ();
     $tptp4x_harness->finish ();
@@ -132,8 +155,9 @@ sub get_conjecture {
 
 sub get_axioms {
     my $self = shift;
+    my $expand_includes = shift;
 
-    my @formulas = $self->get_formulas ();
+    my @formulas = $self->get_formulas ($expand_includes);
 
     my @axioms = ();
     foreach my $formula (@formulas) {
