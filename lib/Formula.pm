@@ -5,6 +5,7 @@ use Regexp::DefaultFlags;
 use charnames qw(:full);
 use Carp qw(croak);
 use Readonly;
+use Term::ANSIColor qw(colored);
 
 Readonly my $TWO_SPACES => q{  };
 Readonly my $EMPTY_STRING => q{};
@@ -93,6 +94,14 @@ sub negate {
 	formula => "~ ( ${formula} )",
     );
 
+}
+
+sub name_with_color {
+    my $self = shift;
+    my $color = shift;
+
+    my $name = $self->get_name ();
+    return colored ($name, $color);
 }
 
 1;

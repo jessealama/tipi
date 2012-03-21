@@ -10,10 +10,12 @@ use Readonly;
 use charnames qw(:full);
 use English qw(-no_match_vars);
 use Data::Dumper;
+use feature 'say';
 
 our @EXPORT_OK = qw(ensure_tptp4x_available
 		    ensure_valid_tptp_file
-		    prove_if_possible);
+		    prove_if_possible
+		    ensure_sensible_tptp_theory);
 
 use Result;
 use Utils qw(ensure_readable_file);
@@ -45,7 +47,8 @@ sub ensure_valid_tptp_file {
     $tptp4x_harness->finish ();
 
     my $tptp4x_exit_code = $tptp4x_harness->result (0);
-    return ($tptp4x_exit_code == 0);
+
+    return ($tptp4x_exit_code == 0 ? 1 : 0);
 }
 
 sub ensure_sensible_prover_parameters {
@@ -227,4 +230,10 @@ sub find_model {
     }
 
 }
+
+sub ensure_sensible_tptp_theory {
+    my $theory_path = shift;
+    return ensure_readable_file ($theory_path) && ensure_valid_tptp_file ($theory_path);
+}
+
 __END__

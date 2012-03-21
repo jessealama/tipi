@@ -5,6 +5,10 @@ use warnings;
 use strict;
 use Regexp::DefaultFlags;
 use Carp qw(croak);
+use Readonly;
+use charnames qw(:full);
+use English qw(-no_match_vars);
+use Term::ANSIColor;
 
 our @EXPORT_OK = qw(ensure_readable_file
 		    ensure_directory
@@ -12,7 +16,13 @@ our @EXPORT_OK = qw(ensure_readable_file
 	            write_string_to_file
 	            extension
 		    strip_extension
-		    slurp);
+		    slurp
+		    error_message
+		    warning_message
+		    message);
+
+Readonly my $EMPTY_STRING => q{};
+Readonly my $BAD_COLOR => 'red';
 
 sub ensure_readable_file {
   my $file = shift;
@@ -98,4 +108,32 @@ sub slurp {
     return $contents;
 }
 
+sub message {
+    my @message_parts = @_;
+    my $msg = join $EMPTY_STRING, @message_parts;
+    return $msg . "\N{LF}";
+}
+
+sub message_with_extra_linefeed {
+    my @message_parts = @_;
+    my $msg = join $EMPTY_STRING, @message_parts;
+    return message (message ($msg));
+}
+
+sub warning_message {
+    my @message_parts = @_;
+    my $message = join ($EMPTY_STRING, @message_parts);
+    my $message_with_warning_padding
+	= colored ('Warning', $BAD_COLOR) . ': ' . $message;
+    return $message_with_warning_padding;
+}
+
+sub error_message {
+    my @message_parts = @_;
+    my $message = join ($EMPTY_STRING, @message_parts);
+    my $message_with_error_padding = colored ('Error', $BAD_COLOR) . ': ' . $message;
+    return $message_with_error_padding;
+}
+
 1;
+__END__
