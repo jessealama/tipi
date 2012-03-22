@@ -15,6 +15,8 @@ use feature 'say';
 use FindBin qw($RealBin);
 use lib "$RealBin/../lib";
 
+use Utils qw(error_message);
+
 # Commands
 use ProveCommand;
 use ReproveCommand;
@@ -120,19 +122,19 @@ if (defined $eval_command) {
 } elsif (defined $eval_message) {
     print {*STDERR} error_message ('Something went wrong executing the command \'', $command_name, '\'');
     if (scalar @ARGV == 0) {
-	print {*STDERR} message (' (without any further arguments).');
+	say STDERR (' (without any further arguments).');
     } else {
 	my $argument_list = join ($SPACE, @ARGV);
-	print {*STDERR} message (' with the arguments', "\N{LF}");
-	print {*STDERR} message ($TWO_SPACES, $argument_list, "\N{LF}");
+	say STDERR (' with the arguments', "\N{LF}");
+	say STDERR ($TWO_SPACES, $argument_list, "\N{LF}");
     }
-    print {*STDERR} message ('The error was:', "\N{LF}");
-    print {*STDERR} message ($eval_message);
-    print {*STDERR} message ('Please inform the maintainers.');
+    say STDERR ('The error was:', "\N{LF}");
+    say STDERR $eval_message;
+    say STDERR 'Please inform the maintainers.';
     exit 1;
 } else {
-    print {*STDERR} error_message ('Something went badly wrong trying to execute the command \'', $command_name, '\'.');
-    print {*STDERR} message ('Please inform the maintainers.');
+    say STDERR error_message ('Something went badly wrong trying to execute the command \'', $command_name, '\'.');
+    say STDERR 'Please inform the maintainers.';
     exit 1;
 }
 __END__
