@@ -284,5 +284,28 @@ sub remove_formula {
 
 }
 
+sub add_formula {
+    my $self = shift;
+    my $formula = shift;
+
+    my $path = $self->get_path ();
+    my @axioms = $self->get_axioms (1);
+
+    (my $new_fh, my $new_path) = tempfile ();
+
+    foreach my $axiom (@axioms) {
+	my $axiom_name = $axiom->get_name ();
+	print {$new_fh} $axiom->tptpify (), "\N{LF}";
+    }
+
+    print {$new_fh} $formula->tptpify (), "\N{LF}";
+
+    close $new_fh
+	or croak 'Error: unable to close the output filehandle for ', $path, '.';
+
+    return Theory->new (path => $new_path);
+
+}
+
 1;
 __END__
