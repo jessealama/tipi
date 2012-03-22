@@ -28,6 +28,8 @@ Readonly my $DESCRIPTION => 'Prove a conjecture again, perhaps using different p
 Readonly my $GOOD_COLOR => 'green';
 Readonly my $BAD_COLOR => 'red';
 Readonly my $UNKNOWN_COLOR => 'yellow';
+Readonly my $NEEDED_PREMISE_COLOR => 'red';
+Readonly my $UNNEEDED_PREMISE_COLOR => 'bright_black';
 
 my $opt_show_output = 0;
 my $opt_show_premises = 0;
@@ -36,8 +38,10 @@ my $opt_man = 0;
 my $opt_verbose = 0;
 my $opt_debug = 0;
 my $opt_method = 'syntactically';
-my $opt_timeout = 5;
+my $opt_model_finder_timeout = 5;
+my $opt_proof_finder_timeout = 30;
 my $opt_force = 0;
+my $opt_semantically_use_all_axioms = 0;
 
 sub print_formula_names_with_color {
     my $formulas_ref = shift;
@@ -67,7 +71,9 @@ around 'execute' => sub {
 	'verbose' => \$opt_verbose,
 	'help|?' => \$opt_help,
 	'method=s' => \$opt_method,
-	'timeout=i' => \$opt_timeout,
+	'model-finder-timeout=i' => \$opt_model_finder_timeout,
+	'proof-finder-timeout=i' => \$opt_proof_finder_timeout,
+	'use-all-axioms' => \$opt_semantically_use_all_axioms,
 	'force' => \$opt_force,
     ) or pod2usage (2);
 
@@ -102,8 +108,18 @@ around 'execute' => sub {
 		   -exitval => 2);
     }
 
-    if ($opt_timeout < 0) {
-	pod2usage (-msg => error_message ('Invalid value ', $opt_timeout, ' for the timeout option.'),
+    if ($opt_method ne 'semantically' && $opt_semantically_use_all_axioms) {
+	pod2usage (-msg => error_message ('The --use-all-axioms option is applicable only when reproving semantically.'),
+		   -exitval => 2);
+    }
+
+    if ($opt_model_finder_timeout < 0) {
+	pod2usage (-msg => error_message ('Invalid value ', $opt_model_finder_timeout, ' for the model-finder timeout option.'),
+		   -exitval => 2);
+    }
+
+    if ($opt_proof_finder_timeout < 0) {
+	pod2usage (-msg => error_message ('Invalid value ', $opt_proof_finder_timeout, ' for the proof-finder timeout option.'),
 		   -exitval => 2);
     }
 
@@ -177,7 +193,7 @@ sub reprove_semantically {
 
     my $theory_path = $theory->get_path ();
 
-    my @axioms = $theory->get_axioms ();
+    my @axioms = $theory->get_axioms (1);
     my $conjecture = $theory->get_conjecture ();
 
     if (scalar @axioms == 0) {
@@ -196,31 +212,59 @@ sub reprove_semantically {
     if ($initial_proof_szs_status eq 'Theorem') {
 	say $SPACE, colored ('OK', 'green');
     } else {
-	say colored ('Not OK', 'red'), ' (SZS status ', $initial_proof_szs_status, ')';
+	say $SPACE, colored ('Not OK', 'red'), ' (SZS status ', $initial_proof_szs_status, ')';
     }
 
     if ($initial_proof_szs_status ne 'Theorem' && $opt_force) {
-	say 'Continuing anyway, as requested; the results that follow may not be meaningful.';
+	if (scalar @axioms == 0) {
+	    say 'Even though we were requested to proceed, it does not make sense';
+	    say 'to do so because there are no axioms in the background theory.';
+	    return 1;
+	} else {
+	    say 'Continuing anyway, as requested; the results that follow may not be meaningful.';
+	    if (scalar @axioms == 1) {
+		my $axiom = $axioms[0];
+		my $axiom_name = $axiom->get_name ();
+		say 'Since we did not find a derivation, we will now inspect ', $axiom_name, ', treating each as potentially needed.';
+	    } else {
+		say 'Since we did not find a derivation, we will now inspect all ', scalar @axioms, ' axioms, treating each as potentially needed.';
+	    }
+
+	}
     }
 
     if ($initial_proof_szs_status ne 'Theorem' && ! $opt_force) {
 	return 1;
     }
 
+    if (! $opt_semantically_use_all_axioms) {
+	my $derivation = $initial_proof_result->output_as_derivation ();
+	my @unused_formulas = $derivation->get_unused_premises ();
+	warn 'There were ', scalar @unused_formulas, ' unused formulas.';
+	foreach my $unused (@unused_formulas) {
+	    $theory = $theory->remove_formula ($unused);
+	}
+	@axioms = $theory->get_axioms ();
+    }
+
+    my @axioms_now = $theory->get_axioms (1);
+    warn 'After deleting unused formulas, the theory now has these axioms: ', Dumper (map { $_->get_name () } @axioms_now);
+
     $theory = $theory->promote_conjecture_to_false_axiom ();
 
     my %needed = ();
+    my %unneeded = ();
     my %unknown = ();
 
     say colored ('Step 2', 'blue'), ': Determine needed premises (deletion leads to countersatisfiability):';
 
-    print 'PREMISES (', colored ('needed', $USED_PREMISE_COLOR), ' / ', colored ('not needed', $UNUSED_PREMISE_COLOR), ' / ', colored ('unknown', $UNKNOWN_COLOR), ')', "\N{LF}";
+    print 'PREMISES (', colored ('needed', $NEEDED_PREMISE_COLOR), ' / ', colored ('not needed', $UNNEEDED_PREMISE_COLOR), ' / ', colored ('unknown', $UNKNOWN_COLOR), ')', "\N{LF}";
 
     foreach my $axiom (@axioms) {
 	my $axiom_name = $axiom->get_name ();
 	my $trimmed_theory = $theory->remove_formula ($axiom);
 	my $tptp_result = eval
-	    { TPTP::find_model ($trimmed_theory, { 'timeout' => $opt_timeout }) };
+	    { TPTP::find_model ($trimmed_theory, { 'timeout' => $opt_model_finder_timeout }) };
 	my $tptp_find_model_message = $@;
 
 	my $szs_status
@@ -231,25 +275,25 @@ sub reprove_semantically {
 
 	if (defined $tptp_result) {
 	    if ($tptp_result->timed_out ()) {
-		print colored ($axiom_name, $UNKNOWN_COLOR);
+		say colored ($axiom_name, $UNKNOWN_COLOR);
 		$unknown{$axiom_name} = 0;
 	    } elsif ($szs_status eq 'Satisfiable') {
-		print colored ($axiom_name, $USED_PREMISE_COLOR);
+		say colored ($axiom_name, $NEEDED_PREMISE_COLOR);
 		$needed{$axiom_name} = 0;
 	    } elsif ($szs_status eq 'Unsatisfiable') {
-		print colored ($axiom_name, $UNUSED_PREMISE_COLOR);
+		say colored ($axiom_name, $UNNEEDED_PREMISE_COLOR);
+		$unneeded{$axiom_name} = 0;
 	    } else {
-		print colored ($axiom_name, $UNKNOWN_COLOR);
+		say colored ($axiom_name, $UNKNOWN_COLOR);
 		$unknown{$axiom_name} = 0;
 	    }
 	} else {
-	    print {*STDERR} message (warning_message ('Something went wrong when testing whether ', $axiom_name, ' can be removed:', "\N{LF}", $tptp_find_model_message));
+	    say {*STDERR} warning_message ('Something went wrong when testing whether ', $axiom_name, ' can be removed:', "\N{LF}", $tptp_find_model_message);
 	}
 
-	print "\N{LF}";
     }
 
-    print colored ('Step 3', 'blue'), ': Try to derive the conjecture from only needed premises:';
+    print colored ('Step 3', 'blue'), ': Try to derive the conjecture from only ', colored ('needed', $NEEDED_PREMISE_COLOR), ' premises:';
 
     # Dump everything that is not known to be needed
     my $small_theory = $theory;
@@ -270,7 +314,8 @@ sub reprove_semantically {
 	croak 'The theory ', $small_theory_path, ' has no conjecture formula!';
     }
 
-    my $new_result = TPTP::prove ($small_theory);
+    my $new_result = TPTP::prove ($small_theory,
+				  { 'timeout' => $opt_proof_finder_timeout });
     my $new_result_szs_status
 	= $new_result->has_szs_status () ? $new_result->get_szs_status () : 'Unknown';
 
@@ -283,26 +328,49 @@ sub reprove_semantically {
     if ($new_result_szs_status eq 'Theorem') {
 	say 'The needed formulas alone suffice to prove the conjecture.';
     } else {
-	say 'The needed formulas alone do not suffice to prove the conjecture;';
+	say 'The needed formulas alone do not suffice to prove the conjecture.';
 	say 'We will now try, for each premise P that was marked as ', colored ('unknown', $UNKNOWN_COLOR), ',';
-	say 'to derive the conjecture from P plus the premises marked ', colored ('needed', $USED_PREMISE_COLOR), '.';
+	say 'to derive the conjecture from P plus the premises marked ', colored ('needed', $NEEDED_PREMISE_COLOR), '.';
 
 	say 'UNKNOWN PREMISE';
+
+	my %still_unknown = ();
+	my %known_now = ();
 
 	my @unknown_formula_names = keys %unknown;
 	foreach my $formula_name (@unknown_formula_names) {
 	    my $formula = $theory->formula_with_name ($formula_name);
 	    my $bigger_theory = $small_theory->add_formula ($formula);
-	    my $bigger_result = TPTP::prove ($bigger_theory);
+	    my $bigger_result = TPTP::prove ($bigger_theory,
+					     { 'timeout' => $opt_proof_finder_timeout });
 	    my $bigger_result_szs_status
 		= $bigger_result->has_szs_status () ?
 		    $bigger_result->get_szs_status ()
 			: 'Unknown';
 	    if ($bigger_result_szs_status eq 'Theorem') {
 		say colored ($formula_name, $GOOD_COLOR);
+		$known_now{$formula_name} = 0;
 	    } else {
 		say colored ($formula_name, $UNKNOWN_COLOR), ' (SZS status ', $bigger_result_szs_status, ')';
+		$still_unknown{$formula_name} = 0;
 	    }
+	}
+
+	if (scalar keys %known_now == 0) {
+	    say 'We were unfortunately not able to determine whether any ', colored ('unknown', $UNKNOWN_COLOR), ' premise,';
+	    say 'together with all ', colored ('needed', $NEEDED_PREMISE_COLOR), ' premises, suffices to derive the conjecture.';
+	} elsif (scalar keys %still_unknown) {
+	    say 'We were able to determine, for each of the following premises P,';
+	    say 'that the ', colored ('needed', $NEEDED_PREMISE_COLOR), ' premises plus P suffice to derive the conjecture:';
+	    foreach my $formula_name (sort keys %known_now) {
+		say colored ($formula_name, $USED_PREMISE_COLOR);
+	    }
+	    say 'However, we were unable to make a similar decision for the following premises:';
+	    foreach my $formula_name (sort keys %still_unknown) {
+		say colored ($formula_name, $UNKNOWN_COLOR);
+	    }
+	} else {
+
 	}
 
     }

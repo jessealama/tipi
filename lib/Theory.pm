@@ -209,7 +209,7 @@ sub promote_conjecture_to_true_axiom {
     my $self = shift;
 
     my $path = $self->get_path ();
-    my @axioms = $self->get_axioms ();
+    my @axioms = $self->get_axioms (1);
 
     (my $new_fh, my $new_path) = tempfile ();
 
@@ -233,7 +233,7 @@ sub promote_conjecture_to_false_axiom {
     my $self = shift;
 
     my $path = $self->get_path ();
-    my @axioms = $self->get_axioms ();
+    my @axioms = $self->get_axioms (1);
 
     (my $new_fh, my $new_path) = tempfile ();
 
@@ -261,7 +261,7 @@ sub remove_formula {
     my $name_of_formula_to_remove = $formula_to_remove->get_name ();
 
     my $path = $self->get_path ();
-    my @axioms = $self->get_axioms ();
+    my @axioms = $self->get_axioms (1);
 
     (my $new_fh, my $new_path) = tempfile ();
 
@@ -305,6 +305,21 @@ sub add_formula {
 
     return Theory->new (path => $new_path);
 
+}
+
+sub tptpify {
+    my $self = shift;
+
+    my $tptp_form = $EMPTY_STRING;
+
+    my @formulas = $self->get_formulas (1);
+
+    foreach my $formula (@formulas) {
+	$tptp_form .= $formula->tptpify ();
+	$tptp_form .= "\N{LF}";
+    }
+
+    return $tptp_form;
 }
 
 1;

@@ -95,28 +95,37 @@ sub prove {
 
     my $eprover_out = $EMPTY_STRING;
     my $eprover_err = $EMPTY_STRING;
+    my $timer = timeout ($timeout);
     my $eprover_harness = harness (\@eprover_call,
 				   '<', $theory_path,
 				   '|', \@epclextract_call,
 				   '>', \$eprover_out,
 				   '2>', \$eprover_err,
-			           );
-    my $timer = timer ($timeout);
-    $eprover_harness->run ();
-    $timer->start ();
+				   $timer);
+
+    eval { $eprover_harness->run () };
 
     until (defined eval { $eprover_harness->result () } || $timer->is_expired ()) {
 	sleep 1;
     }
 
-    my $timed_out = $timer->is_expired ();
-    my $exit_code = defined eval { $eprover_harness->result (0) } ? $eprover_harness->result (0) : undef;
+    if ($timer->is_expired ()) {
+	$eprover_harness->kill_kill ();
+	return Result->new (timed_out => 1,
+			    exit_code => undef,
+			    output => $eprover_out,
+			    error_output => $eprover_err,
+			    background_theory => $theory);
 
-    return Result->new (timed_out => $timed_out,
-			exit_code => $exit_code,
-			output => $eprover_out,
-			error_output => $eprover_err,
-		        background_theory => $theory);
+    } else {
+	my @results = $eprover_harness->full_results ();
+	my $exit_code = scalar @results == 0 ? 1 : $results[0];
+	return Result->new (timed_out => 0,
+			    exit_code => $exit_code,
+			    output => $eprover_out,
+			    error_output => $eprover_err,
+			    background_theory => $theory);
+    }
 
 }
 

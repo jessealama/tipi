@@ -40,7 +40,7 @@ sub get_unused_premises {
     my $self = shift;
     my $background = $self->get_background_theory ();
 
-    my @axioms = $background->get_axioms ();
+    my @axioms = $background->get_axioms (1);
     my @used = $self->get_used_premises ();
 
     my @axiom_names = map { $_->get_name () } @axioms;
@@ -55,7 +55,13 @@ sub get_unused_premises {
 	delete $unused{$formula};
     }
 
-    return map { $background->formula_with_name ($_) } keys %unused;
+    my @unused = map { $background->formula_with_name ($_) } keys %unused;
+
+    if (wantarray) {
+	return @unused;
+    } else {
+	return \@unused;
+    }
 }
 
 sub theory_from_used_premises {
