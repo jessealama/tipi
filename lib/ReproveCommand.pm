@@ -19,6 +19,7 @@ use Theory;
 use TPTP qw(ensure_tptp4x_available ensure_valid_tptp_file prove_if_possible ensure_sensible_tptp_theory);
 use Utils qw(error_message);
 
+Readonly my $EMPTY_STRING => q{};
 Readonly my $TWO_SPACES => q{  };
 Readonly my $SPACE => q{ };
 Readonly my $USED_PREMISE_COLOR => 'blue';
@@ -36,6 +37,7 @@ my $opt_verbose = 0;
 my $opt_debug = 0;
 my $opt_method = 'syntactically';
 my $opt_timeout = 5;
+my $opt_force = 0;
 
 sub print_formula_names_with_color {
     my $formulas_ref = shift;
@@ -66,6 +68,7 @@ around 'execute' => sub {
 	'help|?' => \$opt_help,
 	'method=s' => \$opt_method,
 	'timeout=i' => \$opt_timeout,
+	'force' => \$opt_force,
     ) or pod2usage (2);
 
     if ($opt_help) {
@@ -173,21 +176,43 @@ sub reprove_semantically {
     my $theory = shift;
 
     my $theory_path = $theory->get_path ();
-    my $proof_result = eval { TPTP::prove ($theory) };
-
-    if (! defined $proof_result) {
-	print {*STDERR} message (warning_message ('We could not verify that the conjecture of ', $theory_path, ' really is a consequence of its axioms.'));
-	print {*STDERR} message ('The results that follow may be meaningless.');
-    }
-
-    my $proof_szs_status
-	= $proof_result->has_szs_status ? $proof_result->get_szs_status : 'Unknown';
 
     my @axioms = $theory->get_axioms ();
+    my $conjecture = $theory->get_conjecture ();
+
+    if (scalar @axioms == 0) {
+	print colored ('Step 1', 'blue'), ': Derive the conjecture:';
+    } elsif (scalar @axioms == 1) {
+	print colored ('Step 1', 'blue'), ': Derive the conjecture the sole available premises:';
+    } else {
+	print colored ('Step 1', 'blue'), ': Derive the conjecture from all ', scalar @axioms, ' available premises:';
+    }
+
+    my $initial_proof_result = TPTP::prove ($theory);
+    my $initial_proof_szs_status
+	= $initial_proof_result->has_szs_status ? $initial_proof_result->get_szs_status
+	    : 'Unknown';
+
+    if ($initial_proof_szs_status eq 'Theorem') {
+	say $SPACE, colored ('OK', 'green');
+    } else {
+	say colored ('Not OK', 'red'), ' (SZS status ', $initial_proof_szs_status, ')';
+    }
+
+    if ($initial_proof_szs_status ne 'Theorem' && $opt_force) {
+	say 'Continuing anyway, as requested; the results that follow may not be meaningful.';
+    }
+
+    if ($initial_proof_szs_status ne 'Theorem' && ! $opt_force) {
+	return 1;
+    }
 
     $theory = $theory->promote_conjecture_to_false_axiom ();
 
     my %needed = ();
+    my %unknown = ();
+
+    say colored ('Step 2', 'blue'), ': Determine needed premises (deletion leads to countersatisfiability):';
 
     print 'PREMISES (', colored ('needed', $USED_PREMISE_COLOR), ' / ', colored ('not needed', $UNUSED_PREMISE_COLOR), ' / ', colored ('unknown', $UNKNOWN_COLOR), ')', "\N{LF}";
 
@@ -207,18 +232,79 @@ sub reprove_semantically {
 	if (defined $tptp_result) {
 	    if ($tptp_result->timed_out ()) {
 		print colored ($axiom_name, $UNKNOWN_COLOR);
+		$unknown{$axiom_name} = 0;
 	    } elsif ($szs_status eq 'Satisfiable') {
 		print colored ($axiom_name, $USED_PREMISE_COLOR);
+		$needed{$axiom_name} = 0;
 	    } elsif ($szs_status eq 'Unsatisfiable') {
 		print colored ($axiom_name, $UNUSED_PREMISE_COLOR);
 	    } else {
 		print colored ($axiom_name, $UNKNOWN_COLOR);
+		$unknown{$axiom_name} = 0;
 	    }
 	} else {
 	    print {*STDERR} message (warning_message ('Something went wrong when testing whether ', $axiom_name, ' can be removed:', "\N{LF}", $tptp_find_model_message));
 	}
 
 	print "\N{LF}";
+    }
+
+    print colored ('Step 3', 'blue'), ': Try to derive the conjecture from only needed premises:';
+
+    # Dump everything that is not known to be needed
+    my $small_theory = $theory;
+    foreach my $axiom (@axioms) {
+	my $axiom_name = $axiom->get_name ();
+	if (! defined $needed{$axiom_name}) {
+	    $small_theory = $small_theory->remove_formula ($axiom);
+	}
+    }
+
+    # Remove the old conjecture, which was promoted to a false axiom,
+    # and put it back as the conjecture.
+    $small_theory = $small_theory->remove_formula ($conjecture);
+    $small_theory = $small_theory->add_formula ($conjecture);
+
+    if (! $small_theory->has_conjecture_formula ()) {
+	my $small_theory_path = $small_theory->get_path ();
+	croak 'The theory ', $small_theory_path, ' has no conjecture formula!';
+    }
+
+    my $new_result = TPTP::prove ($small_theory);
+    my $new_result_szs_status
+	= $new_result->has_szs_status () ? $new_result->get_szs_status () : 'Unknown';
+
+    if ($new_result_szs_status eq 'Theorem') {
+	say $SPACE, colored ('OK', 'green');
+    } else {
+	say $SPACE, colored ('Not OK', 'red'), ' (SZS status ', $new_result_szs_status, ')';
+    }
+
+    if ($new_result_szs_status eq 'Theorem') {
+	say 'The needed formulas alone suffice to prove the conjecture.';
+    } else {
+	say 'The needed formulas alone do not suffice to prove the conjecture;';
+	say 'We will now try, for each premise P that was marked as ', colored ('unknown', $UNKNOWN_COLOR), ',';
+	say 'to derive the conjecture from P plus the premises marked ', colored ('needed', $USED_PREMISE_COLOR), '.';
+
+	say 'UNKNOWN PREMISE';
+
+	my @unknown_formula_names = keys %unknown;
+	foreach my $formula_name (@unknown_formula_names) {
+	    my $formula = $theory->formula_with_name ($formula_name);
+	    my $bigger_theory = $small_theory->add_formula ($formula);
+	    my $bigger_result = TPTP::prove ($bigger_theory);
+	    my $bigger_result_szs_status
+		= $bigger_result->has_szs_status () ?
+		    $bigger_result->get_szs_status ()
+			: 'Unknown';
+	    if ($bigger_result_szs_status eq 'Theorem') {
+		say colored ($formula_name, $GOOD_COLOR);
+	    } else {
+		say colored ($formula_name, $UNKNOWN_COLOR), ' (SZS status ', $bigger_result_szs_status, ')';
+	    }
+	}
+
     }
 
     return 1;
