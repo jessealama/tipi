@@ -15,7 +15,8 @@ use feature 'say';
 our @EXPORT_OK = qw(ensure_tptp4x_available
 		    ensure_valid_tptp_file
 		    prove_if_possible
-		    ensure_sensible_tptp_theory);
+		    ensure_sensible_tptp_theory
+		    ensure_getsymbols_available);
 
 use Result;
 use Utils qw(ensure_readable_file);
@@ -28,9 +29,14 @@ Readonly my $USED_PREMISE_COLOR => 'blue';
 Readonly my $UNUSED_PREMISE_COLOR => 'bright_black';
 Readonly my $GOOD_COLOR => 'green';
 Readonly my $BAD_COLOR => 'red';
+Readonly my $GETSYMBOLS => 'GetSymbols';
 
 sub ensure_tptp4x_available {
     return can_run ($TPTP4X);
+}
+
+sub ensure_getsymbols_available {
+    return can_run ($GETSYMBOLS);
 }
 
 sub ensure_valid_tptp_file {
