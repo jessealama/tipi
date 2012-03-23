@@ -8,12 +8,13 @@ use Readonly;
 use charnames qw(:full);
 use List::MoreUtils qw(firstidx);
 use File::Temp qw(tempfile);
-
+use Regexp::DefaultFlags;
 use Formula;
 use Utils qw(ensure_readable_file slurp);
 
 Readonly my $TPTP4X => 'tptp4X';
 Readonly my $EMPTY_STRING => q{};
+Readonly my $TWO_SPACES => q{  };
 
 has 'path' => (
     is => 'ro',
@@ -35,6 +36,20 @@ has 'formula_table' => (
     reader => 'get_formula_table',
 );
 
+has function_symbol_table => (
+    isa => 'HashRef',
+    is => 'rw',
+    writer => '_set_function_symbol_table',
+    reader => 'get_function_symbol_table',
+);
+
+has predicate_symbol_table => (
+    isa => 'HashRef',
+    is => 'rw',
+    writer => '_set_predicate_symbol_table',
+    reader => 'get_predicate_symbol_table',
+);
+
 sub BUILD {
     my $self = shift;
 
@@ -50,6 +65,77 @@ sub BUILD {
 	    $self->_set_conjecture ($formula);
 	}
     }
+
+    my $path = $self->get_path ();
+    my %predicate_symbol_arities = ();
+    my %function_symbol_arities = ();
+    my %function_symbol_table = ();
+    my %predicate_symbol_table = ();
+
+    my @GetSymbols_call = ('GetSymbols', $path);
+    my $GetSymbols_out = $EMPTY_STRING;
+    my $GetSymbols_err = $EMPTY_STRING;
+    my $GetSymbols_harness = harness (\@GetSymbols_call,
+				      '>', \$GetSymbols_out,
+				      '2>', \$GetSymbols_err);
+
+    $GetSymbols_harness->run ();
+    $GetSymbols_harness->finish ();
+
+    my @GetSymbols_harness_results = $GetSymbols_harness->results ();
+
+    if (scalar @GetSymbols_harness_results == 0) {
+	croak 'Soemthing went wrong calling GetSymbols.  Here is its error output: ', $GetSymbols_err;
+    }
+
+    my $GetSymbols_exit_code = $GetSymbols_harness_results[0];
+
+    if ($GetSymbols_exit_code != 0) {
+	croak 'Soemthing went wrong calling GetSymbols.  Here is its error output: ', $GetSymbols_err;
+    }
+
+    my @symbols_by_formula = split ("\N{LF}", $GetSymbols_out);
+
+    foreach my $symbol_by_formula (@symbols_by_formula) {
+	if ($symbol_by_formula =~ / \A symbols [(]
+                                                   ([a-z0-9_]+)
+                                                   [,]
+                                                   [[] (.*) []]
+                                                   [,]
+                                                   [[] (.*) []]
+                                               [)] [.] \z/) {
+	    (my $formula_name, my $function_symbols_str, my $predicate_symbols_str) = ($1, $2, $3);
+
+	    my @function_symbols = split (',', $function_symbols_str);
+	    my @predicate_symbols = split (',', $predicate_symbols_str);
+
+	    foreach my $function_symbol_info (@function_symbols) {
+		if ($function_symbol_info =~ / \A (.+) [\/] ([0-9]+) [\/] ([0-9]+) \z/) {
+		    (my $name, my $arity, my $num_occurrences) = ($1, $2, $3);
+		    $function_symbol_arities{$name} = $arity;
+		    $function_symbol_table{$formula_name}{$name} = $num_occurrences;
+		} else {
+		    croak 'Unable to make sense of the part', "\N{LF}", "\N{LF}", $TWO_SPACES, $function_symbol_info, "\N{LF}", "\N{LF}", 'emitted by GetSymbols';
+		}
+	    }
+
+	    foreach my $predicate_symbol_info (@predicate_symbols) {
+		if ($predicate_symbol_info =~ / \A (.+) [\/] ([0-9]+) [\/] ([0-9]+) \z/) {
+		    (my $name, my $arity, my $num_occurrences) = ($1, $2, $3);
+		    $predicate_symbol_arities{$name} = $arity;
+		    $predicate_symbol_table{$formula_name}{$name} = $num_occurrences;
+		} else {
+		    croak 'Unable to make sense of the part', "\N{LF}", "\N{LF}", $TWO_SPACES, $predicate_symbol_info, "\N{LF}", "\N{LF}", 'emitted by GetSymbols';
+		}
+	    }
+
+	} else {
+	    croak 'Unable to make sense of the GetSymbols line', "\N{LF}", "\N{LF}", $symbol_by_formula;
+	}
+    }
+
+    $self->_set_function_symbol_table (\%function_symbol_table);
+    $self->_set_predicate_symbol_table (\%predicate_symbol_table);
 
     $self->_set_formula_table (\%formula_table);
 
@@ -320,6 +406,116 @@ sub tptpify {
     }
 
     return $tptp_form;
+}
+
+sub get_function_symbol_counts {
+    my $self = shift;
+
+    my %function_table = %{$self->get_function_symbol_table ()};
+    my %function_symbol_counts = ();
+
+    foreach my $formula (keys %function_table) {
+
+	my %by_formula = %{$function_table{$formula}};
+	foreach my $symbol (keys %by_formula) {
+	    my $count_for_this_formula = $by_formula{$symbol};
+	    if (defined $function_symbol_counts{$symbol}) {
+		$function_symbol_counts{$symbol} += $count_for_this_formula;
+	    } else {
+		$function_symbol_counts{$symbol} = $count_for_this_formula;
+	    }
+	}
+
+    }
+
+    return \%function_symbol_counts;
+}
+
+sub get_predicate_symbol_counts {
+    my $self = shift;
+
+    my %predicate_table = %{$self->get_predicate_symbol_table ()};
+    my %predicate_symbol_counts = ();
+
+    foreach my $formula (keys %predicate_table) {
+
+	my %by_formula = %{$predicate_table{$formula}};
+	foreach my $symbol (keys %by_formula) {
+	    my $count_for_this_formula = $by_formula{$symbol};
+	    if (defined $predicate_symbol_counts{$symbol}) {
+		$predicate_symbol_counts{$symbol} += $count_for_this_formula;
+	    } else {
+		$predicate_symbol_counts{$symbol} = $count_for_this_formula;
+	    }
+	}
+
+    }
+
+    return \%predicate_symbol_counts;
+}
+
+sub get_function_symbols {
+    my $self = shift;
+
+    my %function_symbol_table = %{$self->get_function_symbol_table ()};
+    my %function_symbols = ();
+
+    foreach my $formula (keys %function_symbol_table) {
+	my %function_symbols_for_formula = %{$function_symbol_table{$formula}};
+	foreach my $symbol (keys %function_symbols_for_formula) {
+	    $function_symbols{$symbol} = 0;
+	}
+    }
+
+    my @function_symbols = keys %function_symbols;
+
+    if (wantarray) {
+	return @function_symbols;
+    } else {
+	return \@function_symbols;
+    }
+
+}
+
+sub get_predicate_symbols {
+    my $self = shift;
+
+    my %predicate_symbol_table = %{$self->get_predicate_symbol_table ()};
+    my %predicate_symbols = ();
+
+    foreach my $formula (keys %predicate_symbol_table) {
+	my %predicate_symbols_for_formula = %{$predicate_symbol_table{$formula}};
+	foreach my $symbol (keys %predicate_symbols_for_formula) {
+	    $predicate_symbols{$symbol} = 0;
+	}
+    }
+
+    my @predicate_symbols = keys %predicate_symbols;
+
+    if (wantarray) {
+	return @predicate_symbols;
+    } else {
+	return \@predicate_symbols;
+    }
+
+}
+
+sub get_all_symbols {
+    my $self = shift;
+
+    my @function_symbols = $self->get_function_symbols ();
+    my @predicate_symbols = $self->get_predicate_symbols ();
+
+    my @all_symbols = ();
+    push (@all_symbols, @function_symbols);
+    push (@all_symbols, @predicate_symbols);
+
+    if (wantarray) {
+	return @all_symbols;
+    } else {
+	return \@all_symbols;
+    }
+
 }
 
 1;
