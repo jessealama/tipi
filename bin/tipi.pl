@@ -23,6 +23,7 @@ use ReproveCommand;
 use PremisesCommand;
 use ConjectureCommand;
 use ModelCommand;
+use SymbolsCommand;
 
 Readonly my $VERSION => qv('1.0');
 
@@ -37,6 +38,7 @@ Readonly my %COMMANDS => (
     'premises' => PremisesCommand->new (),
     'conjecture' => ConjectureCommand->new (),
     'model' => ModelCommand->new (),
+    'symbols' => SymbolsCommand->new (),
 );
 
 my $opt_man       = 0;
