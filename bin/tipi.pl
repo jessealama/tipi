@@ -52,7 +52,7 @@ sub summarize_commands {
     foreach my $command_name (keys %COMMANDS) {
 	my $command = $COMMANDS{$command_name};
 	my $description = $command->describe ();
-	$summary .= message ('  * ', colored ($command, 'blue'), ' -- ', $description);
+	$summary .= message ('  * ', colored ($command_name, 'blue'), ' -- ', $description);
     }
 
     return $summary;
