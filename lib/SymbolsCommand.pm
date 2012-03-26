@@ -48,6 +48,7 @@ around 'execute' => sub {
 	'man' => \$opt_man,
 	'verbose' => \$opt_verbose,
 	'help|?' => \$opt_help,
+	'debug' => \$opt_debug,
     ) or pod2usage (2);
 
     if ($opt_help) {
@@ -155,25 +156,12 @@ sub execute {
 	my %function_symbol_counts = %{$theory->get_function_symbol_counts ()};
 	my %predicate_symbol_counts = %{$theory->get_predicate_symbol_counts ()};
 
-	# warn 'Predicate symbol counts table: ', Dumper (%predicate_symbol_counts);
-
 	my @all_symbols = $theory->get_all_symbols ();
 	my @all_symbols_sorted = sort @all_symbols;
 
-	my @symbol_lengths = map { length ($_) } @all_symbols;
-	my $length_of_longest_symbol = max @symbol_lengths;
-
-	# warn 'All symbols: ', Dumper (@all_symbols_sorted);
-
-	say fill_up_to_column ('Symbol', $length_of_longest_symbol), ' | Number of occurrences | Formulas with occurrences';
+	my @records = ();
 
 	foreach my $symbol (@all_symbols_sorted) {
-	    my $current_column = 0;
-	    say '----------------------------------------------------------------------';
-	    print fill_up_to_column ($symbol, $length_of_longest_symbol);
-	    $current_column += $length_of_longest_symbol;
-	    print ' | ';
-	    $current_column += 3;
 
 	    my $count_for_symbol = undef;
 
@@ -185,59 +173,81 @@ sub execute {
 		croak 'Unknown symbol \'', $symbol, '\'.';
 	    }
 
-	    my $num_digits_of_count = floor (log $count_for_symbol) + 1;
+	    my %formulas_for_symbol = ();
+	    my $num_occurrences = 0;
 
-	    # warn 'Number of digits in \'', $count_for_symbol, '\' is ', $num_digits_of_count;
-
-	    print_with_initial_padding ($MAX_SYMBOL_COUNT_DIGITS - $num_digits_of_count,
-					$count_for_symbol);
-
-	    $current_column += $MAX_SYMBOL_COUNT_DIGITS - $num_digits_of_count;
-
-	    print ' | ';
-
-	    $current_column += 3;
-
-	    my $printed_first_formula = 0;
-
-	    # warn 'Mapping over ', scalar @formula_names, ' formulas...';
 	    foreach my $formula (@formula_names) {
 		if (defined $function_table{$formula}) {
 		    my %by_symbol = %{$function_table{$formula}};
 		    if (defined $by_symbol{$symbol}) {
-			my $num_occurrences = $by_symbol{$symbol};
-			if ($printed_first_formula) {
-			    print_with_initial_padding ($current_column, ' | ', $formula, $SPACE, '(', $num_occurrences, ')', "\N{LF}")
-			} else {
-			    print $formula, $SPACE, '(', $num_occurrences, ')', "\N{LF}";
-			    $printed_first_formula = 1;
-			}
+			my $num_occurrences_here = $by_symbol{$symbol};
+			$num_occurrences += $num_occurrences_here;
+			$formulas_for_symbol{$formula} = $num_occurrences_here;
 		    }
 		}
 
 		if (defined $predicate_table{$formula}) {
 		    my %by_symbol = %{$predicate_table{$formula}};
-
-		    # warn 'By-symbol table for ', $formula, ' is ', Dumper (%by_symbol);
-
 		    if (defined $by_symbol{$symbol}) {
-			my $num_occurrences = $by_symbol{$symbol};
-			if ($printed_first_formula) {
-			    print_with_initial_padding ($current_column, ' | ', $formula, $SPACE, '(', $num_occurrences, ')', "\N{LF}");
-
-			} else {
-			    print $formula, $SPACE, '(', $num_occurrences, ')', "\N{LF}";
-			    $printed_first_formula = 1;
-			}
+			my $num_occurrences_here = $by_symbol{$symbol};
+			$num_occurrences += $num_occurrences_here;
+			$formulas_for_symbol{$formula} = $num_occurrences_here;
 		    }
 		}
+
 	    }
 
+	    my @record = ($symbol,
+			  $num_occurrences,
+			  \%formulas_for_symbol);
+	    push (@records, \@record);
+
 	}
+
+	$self->print_symbols_by_occurrence (\@records);
 
     }
 
     return 1;
+
+}
+
+sub print_symbols_by_occurrence {
+    my $self = shift;
+    my $records_ref = shift;
+
+    my @records = @{$records_ref};
+
+    my $symbol;
+    my $num_total_occurrences;
+
+    format STDOUT_TOP =
+@<<<<<<<<<<<<<<<... @<<<<<<<<<<<<<<<<<<<<<<<<<<<
+'Symbol',           'Total number of occurrences'
+.
+
+    format STDOUT =
+@<<<<<<<<<<<<<<<... @*
+$symbol,            $num_total_occurrences
+.
+
+	# write STDOUT_TOP;
+    foreach my $record_ref (@records) {
+	my @record = @{$record_ref};
+
+	if ($opt_debug) {
+	    warn 'Record is: ', Dumper (@record);
+	}
+
+	$symbol = $record[0];
+	$num_total_occurrences = $record[1];
+	if ($num_total_occurrences == 1) {
+	    $num_total_occurrences = colored ($num_total_occurrences, 'red');
+	}
+	write;
+    }
+
+    return;
 
 }
 
