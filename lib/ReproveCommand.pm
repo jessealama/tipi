@@ -12,16 +12,18 @@ use English qw(-no_match_vars);
 use Data::Dumper;
 use Term::ANSIColor qw(colored);
 use feature 'say';
+use List::MoreUtils qw(any);
 
 extends 'Command';
 
 use Theory;
 use TPTP qw(ensure_tptp4x_available ensure_valid_tptp_file prove_if_possible ensure_sensible_tptp_theory);
-use Utils qw(error_message);
+use Utils qw(error_message all_nonempty_sublists subtuple tuple_less_than_wrt_ordering);
 
 Readonly my $EMPTY_STRING => q{};
 Readonly my $TWO_SPACES => q{  };
 Readonly my $SPACE => q{ };
+Readonly my $COMMA => q{,};
 Readonly my $USED_PREMISE_COLOR => 'blue';
 Readonly my $UNUSED_PREMISE_COLOR => 'bright_black';
 Readonly my $DESCRIPTION => 'Prove a conjecture again, perhaps using different premises.';
@@ -70,6 +72,7 @@ around 'execute' => sub {
 	'man' => \$opt_man,
 	'verbose' => \$opt_verbose,
 	'help|?' => \$opt_help,
+	'debug' => \$opt_debug,
 	'method=s' => \$opt_method,
 	'model-finder-timeout=i' => \$opt_model_finder_timeout,
 	'proof-finder-timeout=i' => \$opt_proof_finder_timeout,
@@ -309,6 +312,10 @@ sub reprove_semantically {
     $small_theory = $small_theory->remove_formula ($conjecture);
     $small_theory = $small_theory->add_formula ($conjecture);
 
+    if ($opt_debug) {
+	warn 'The minimal theory is', "\N{LF}", Dumper ($small_theory);
+    }
+
     if (! $small_theory->has_conjecture_formula ()) {
 	my $small_theory_path = $small_theory->get_path ();
 	croak 'The theory ', $small_theory_path, ' has no conjecture formula!';
@@ -332,15 +339,62 @@ sub reprove_semantically {
 	say 'We will now try, for each premise P that was marked as ', colored ('unknown', $UNKNOWN_COLOR), ',';
 	say 'to derive the conjecture from P plus the premises marked ', colored ('needed', $NEEDED_PREMISE_COLOR), '.';
 
-	say 'UNKNOWN PREMISE';
-
-	my %still_unknown = ();
-	my %known_now = ();
-
 	my @unknown_formula_names = keys %unknown;
-	foreach my $formula_name (@unknown_formula_names) {
-	    my $formula = $theory->formula_with_name ($formula_name);
-	    my $bigger_theory = $small_theory->add_formula ($formula);
+	my @unknown_formula_names_sorted = sort @unknown_formula_names;
+	my @solved_so_far = ();
+
+	my @tuples = all_nonempty_sublists (\@unknown_formula_names_sorted);
+
+	my @tuples_sorted = sort { tuple_less_than_wrt_ordering ($a, $b, \@unknown_formula_names_sorted) } @tuples;
+
+	if ($opt_debug) {
+	    warn 'Sorted tuples:', "\N{LF}", Dumper (@tuples_sorted);
+	}
+
+	if ($opt_debug) {
+	    warn 'All sublists of', "\N{LF}", join ("\N{LF}", @unknown_formula_names_sorted), "\N{LF}", 'are:', "\N{LF}", Dumper (@tuples);
+	}
+
+	foreach my $tuple_ref (@tuples_sorted) {
+	    my @tuple = @{$tuple_ref};
+	    if (scalar @tuple == 0) {
+		next;
+	    }
+
+	    if ($opt_debug) {
+		warn 'Considering the tuple', $SPACE, join (',', @tuple);
+	    }
+
+	    if ($opt_debug) {
+		warn 'Solved so far:', "\N{LF}", Dumper (@solved_so_far);
+	    }
+
+	    if (any { ! defined $_ } @solved_so_far) {
+		warn 'Undefined value in @solved_so_far';
+	    }
+
+
+	    my $already_known = any { my @known_tuple = @{$_};
+				      subtuple (\@known_tuple, \@tuple); } @solved_so_far;
+
+	    if ($already_known) {
+		if ($opt_debug) {
+		    warn 'The tuple', $SPACE, join ($COMMA, @tuple), $SPACE, 'is already known.';
+		}
+		next;
+	    } else {
+		if ($opt_debug) {
+		    warn 'The tuple', $SPACE, join ($COMMA, @tuple), $SPACE, 'is new.';
+		}
+	    }
+
+	    my @formulas = map { $theory->formula_with_name ($_) } @tuple;
+	    my $bigger_theory = $small_theory->postulate (\@formulas);
+
+	    if ($opt_debug) {
+		warn 'Minimal theory with new axioms is', "\N{LF}", Dumper ($bigger_theory->get_formulas (1));
+	    }
+
 	    my $bigger_result = TPTP::prove ($bigger_theory,
 					     { 'timeout' => $opt_proof_finder_timeout });
 	    my $bigger_result_szs_status
@@ -348,30 +402,53 @@ sub reprove_semantically {
 		    $bigger_result->get_szs_status ()
 			: 'Unknown';
 	    if ($bigger_result_szs_status eq 'Theorem') {
-		say colored ($formula_name, $GOOD_COLOR);
-		$known_now{$formula_name} = 0;
+		say colored ('Theorem', $GOOD_COLOR);
+		push (@solved_so_far, \@tuple);
 	    } else {
-		say colored ($formula_name, $UNKNOWN_COLOR), ' (SZS status ', $bigger_result_szs_status, ')';
-		$still_unknown{$formula_name} = 0;
+		say colored ($bigger_result_szs_status, $UNKNOWN_COLOR);
 	    }
 	}
 
-	if (scalar keys %known_now == 0) {
-	    say 'We were unfortunately not able to determine whether any ', colored ('unknown', $UNKNOWN_COLOR), ' premise,';
-	    say 'together with all ', colored ('needed', $NEEDED_PREMISE_COLOR), ' premises, suffices to derive the conjecture.';
-	} elsif (scalar keys %still_unknown) {
-	    say 'We were able to determine, for each of the following premises P,';
-	    say 'that the ', colored ('needed', $NEEDED_PREMISE_COLOR), ' premises plus P suffice to derive the conjecture:';
-	    foreach my $formula_name (sort keys %known_now) {
-		say colored ($formula_name, $USED_PREMISE_COLOR);
-	    }
-	    say 'However, we were unable to make a similar decision for the following premises:';
-	    foreach my $formula_name (sort keys %still_unknown) {
-		say colored ($formula_name, $UNKNOWN_COLOR);
-	    }
-	} else {
+	my @solved_sorted = sort { subtuple ($a, $b) } @solved_so_far;
 
+	say 'In the presence of the ', colored ('needed', $NEEDED_PREMISE_COLOR), ' premises, the following additional premises suffice to prove the theorem:';
+
+	my %sufficient_additional_axioms;
+	foreach my $tuple_ref (@solved_so_far) {
+	    my @tuple = @{$tuple_ref};
+	    foreach my $formula_name (@tuple) {
+		$sufficient_additional_axioms{$formula_name} = 0;
+	    }
 	}
+
+	my @sufficient_additional_axioms = keys %sufficient_additional_axioms;
+	my @sorted_sufficient_additional_axioms
+	    = sort @sufficient_additional_axioms;
+
+
+	foreach my $axiom (@sorted_sufficient_additional_axioms) {
+	    print $SPACE, $axiom;
+	}
+	print "\N{LF}";
+
+	foreach my $tuple_ref (@solved_sorted) {
+	    my @tuple = @{$tuple_ref};
+	    foreach my $axiom (@sorted_sufficient_additional_axioms) {
+		if (any { $_ eq $axiom } @tuple) {
+		    print $SPACE, colored ('o', 'green');
+		} else {
+		    print $SPACE;
+		}
+	    }
+	    print "\N{LF}";
+	}
+
+	say 'The theories above are orthongal each other in the sense that the sets of (names of) premises of no pair of them is included in the other.';
+
+	say '(However, it is possible that the the theories may admit common subtheories,';
+	say 'if one considers the content of the formulas and not their names.)';
+
+
 
     }
 

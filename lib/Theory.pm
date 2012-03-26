@@ -11,10 +11,12 @@ use File::Temp qw(tempfile);
 use Regexp::DefaultFlags;
 use Formula;
 use Utils qw(ensure_readable_file slurp);
+use Data::Dumper;
 
 Readonly my $TPTP4X => 'tptp4X';
 Readonly my $EMPTY_STRING => q{};
 Readonly my $TWO_SPACES => q{  };
+Readonly my $SPACE => q{};
 
 has 'path' => (
     is => 'ro',
@@ -264,7 +266,7 @@ sub get_axioms {
 
 sub has_conjecture_formula {
     my $self = shift;
-    my @formulas = $self->get_formulas (0); # don't expand
+    my @formulas = $self->get_formulas (1);
     my $conjecture_formula = undef;
     my $conjecture_idx = firstidx { $_->get_status () eq 'conjecture' } @formulas;
 
@@ -382,6 +384,11 @@ sub add_formula {
     foreach my $axiom (@axioms) {
 	my $axiom_name = $axiom->get_name ();
 	print {$new_fh} $axiom->tptpify (), "\N{LF}";
+    }
+
+    if ($self->has_conjecture_formula ()) {
+	my $conjecture = $self->get_conjecture ();
+	print {$new_fh} $conjecture->tptpify (), "\N{LF}";
     }
 
     print {$new_fh} $formula->tptpify (), "\N{LF}";
@@ -515,6 +522,25 @@ sub get_all_symbols {
     } else {
 	return \@all_symbols;
     }
+
+}
+
+sub postulate {
+    my $self = shift;
+    my $new_axioms_ref = shift;
+
+    my @new_axioms = @{$new_axioms_ref};
+
+    my $theory = $self;
+
+    # warn 'New axioms:', $SPACE, Dumper (@new_axioms);
+
+    foreach my $formula (@new_axioms) {
+	my $axiom = $formula->make_axiom ();
+	$theory = $theory->add_formula ($axiom);
+    }
+
+    return $theory;
 
 }
 

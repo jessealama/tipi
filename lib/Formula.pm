@@ -83,6 +83,11 @@ sub change_status {
 			 formula => $formula);
 }
 
+sub make_axiom {
+    my $self = shift;
+    return $self->change_status ('axiom');
+}
+
 sub negate {
     my $self = shift;
 
