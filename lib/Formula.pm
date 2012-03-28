@@ -33,7 +33,7 @@ sub make_formula {
 
     if (grep { / \N{LF} / } $formula_string) {
 	croak 'Unable to parse the TPTP formula string', "\n", "\n", $TWO_SPACES, $formula_string;
-    } elsif ($formula_string =~ /\A fof \( ([^,]+), ([^,]+), (.+) \) [.] \z/) {
+    } elsif ($formula_string =~ /\A fof [(] ([^,]+), ([^,]+), (.+) [)] [.] \z/) {
 	(my $name, my $status, my $content) = ($1, $2, $3);
 	return Formula->new (name => $name,
 			     status => $status,
