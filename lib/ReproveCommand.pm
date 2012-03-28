@@ -55,6 +55,12 @@ my $opt_proof_finder_timeout = 30;
 my $opt_force = 0;
 my $opt_semantically_use_all_axioms = 0;
 
+sub BUILD {
+    my $self = shift;
+    $self->_set_description ($DESCRIPTION);
+    return $self;
+}
+
 sub fill_up_to_column {
     my $str = shift;
     my $column = shift;

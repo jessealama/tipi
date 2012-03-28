@@ -38,6 +38,12 @@ my $opt_debug = 0;
 my $opt_by_occurrence = 1;
 my $opt_by_name = 0;
 
+sub BUILD {
+    my $self = shift;
+    $self->_set_description ($DESCRIPTION);
+    return $self;
+}
+
 around 'execute' => sub {
     my $orig = shift;
     my $self = shift;
