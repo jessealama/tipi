@@ -117,8 +117,16 @@ sub slurp {
     return $contents;
 }
 
+sub maybe_render_undefined {
+    my $str = shift;
+    return defined $str ? $str : '(undefined)';
+}
+
 sub message {
     my @message_parts = @_;
+
+    @message_parts = map { maybe_render_undefined ($_) } @message_parts;
+
     my $msg = join $EMPTY_STRING, @message_parts;
     return $msg . "\N{LF}";
 }
