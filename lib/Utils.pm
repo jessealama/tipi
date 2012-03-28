@@ -160,18 +160,13 @@ sub all_sublists {
 	} else {
 	    return \@all;
 	}
-    } else {
-	warn 'Computing all sublists of the', $SPACE, scalar @l, '-element list', $SPACE, join (',', @l);
     }
 
     foreach my $i (0 .. $len - 1) {
 	my $a = $l[$i];
 	my @tail = @l[$i + 1 .. $len - 1];
-	warn 'Tail has length', $SPACE, scalar @tail, $FULL_STOP;
 	my @all_from_tail = all_sublists (\@tail);
-	warn 'Recursively, we got', $SPACE, scalar @all_from_tail, $SPACE, 'new lists.';
 	my @extended = prepend_element_to_all_lists ($a, \@all_from_tail);
-	warn '@extended (all_sublists) is', $SPACE, Dumper (@extended);
 	foreach my $lst (@extended) {
 	    push (@all, $lst);
 	}
@@ -191,17 +186,13 @@ sub prepend_element_to_all_lists {
 
     my @list_of_list_refs = @{$list_of_lists_ref};
 
-    warn 'prepend_element_to_all_lists: prepend', $SPACE, $element, ' to every list in the', $SPACE, scalar @list_of_list_refs, '-element list of lists', "\N{LF}", Dumper (@list_of_list_refs);
-
     my @extended = ();
 
     foreach my $list_ref (@list_of_list_refs) {
 	my @new = ();
 	push (@new, $element);
 	my @l = @{$list_ref};
-	warn 'adding ', $element, ' to the', $SPACE, scalar @l, '-element list ', Dumper (@l);
 	push (@new, @l);
-	warn 'Done adding ', $element, ' to the list ', Dumper (@l), '; the result is ', Dumper (@new);
 	push (@extended, \@new);
     }
 
@@ -223,21 +214,15 @@ sub all_nonempty_sublists {
 
     if ($len == 0) {
 	return \@all;
-    } else {
-	warn 'Computing all nonempty sublists of the', $SPACE, scalar @l, '-element list', $SPACE, join (',', @l);
     }
 
     foreach my $i (0 .. $len - 1) {
 	my $a = $l[$i];
 	my @tail = @l[$i + 1 .. $len - 1];
-	warn 'Tail has length', $SPACE, scalar @tail, $FULL_STOP;
 	my @all_from_tail = all_sublists (\@tail);
-	warn 'From all_sublists, we got', $SPACE, scalar @all_from_tail, $SPACE, 'new lists:', $SPACE, Dumper (@all_from_tail);
 	my @extended = prepend_element_to_all_lists ($a, \@all_from_tail);
-	warn '@extended (all_nonempty_sublists) is:', $SPACE, Dumper (@extended);
 	foreach my $lst_ref (@extended) {
 	    my @lst = @{$lst_ref};
-	    warn 'An extended list:', $SPACE, Dumper (@lst);
 	    push (@all, $lst_ref);
 	}
     }
@@ -254,8 +239,6 @@ sub subtuple {
     my $aref_2 = shift;
     my @array_1 = @{$aref_1};
     my @array_2 = @{$aref_2};
-
-    warn 'Checking whether', "\N{LF}", join ("\N{SPACE}", @array_1), "\N{LF}", 'is a subtuple of', "\N{LF}", join ("\N{SPACE}", @array_2);
 
     if (scalar @array_1 == 0) {
 	return 1;
