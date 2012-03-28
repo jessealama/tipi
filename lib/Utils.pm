@@ -10,7 +10,7 @@ use charnames qw(:full);
 use English qw(-no_match_vars);
 use Term::ANSIColor;
 use Data::Dumper;
-use List::MoreUtils qw(first_index);
+use List::MoreUtils qw(first_index any);
 
 our @EXPORT_OK = qw(ensure_readable_file
 		    ensure_directory
