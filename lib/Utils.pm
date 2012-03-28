@@ -24,7 +24,8 @@ our @EXPORT_OK = qw(ensure_readable_file
 		    message
 		    all_nonempty_sublists
 		    subtuple
-		    tuple_less_than_wrt_ordering);
+		    tuple_less_than_wrt_ordering
+	            message_with_extra_linefeed);
 
 Readonly my $EMPTY_STRING => q{};
 Readonly my $BAD_COLOR => 'red';
