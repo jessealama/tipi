@@ -10,6 +10,12 @@ use Term::ANSIColor qw(colored);
 Readonly my $TWO_SPACES => q{  };
 Readonly my $EMPTY_STRING => q{};
 
+has 'kind' => (
+    isa => 'Str',
+    is => 'ro',
+    reader => 'get_kind',
+);
+
 has 'name' => (
     isa => 'Str',
     is => 'ro',
@@ -33,9 +39,10 @@ sub make_formula {
 
     if (grep { / \N{LF} / } $formula_string) {
 	croak 'Unable to parse the TPTP formula string', "\n", "\n", $TWO_SPACES, $formula_string;
-    } elsif ($formula_string =~ /\A fof [(] ([^,]+), ([^,]+), (.+) [)] [.] \z/) {
-	(my $name, my $status, my $content) = ($1, $2, $3);
-	return Formula->new (name => $name,
+    } elsif ($formula_string =~ /\A ([a-z]+) [(] ([^,]+), ([^,]+), (.+) [)] [.] \z/) {
+	(my $kind, my $name, my $status, my $content) = ($1, $2, $3, $4);
+	return Formula->new (kind => $kind,
+			     name => $name,
 			     status => $status,
 			     formula => $content);
     } else {
@@ -45,10 +52,11 @@ sub make_formula {
 
 sub tptpify {
     my $self = shift;
+    my $kind = $self->get_kind ();
     my $name = $self->get_name ();
     my $status = $self->get_status ();
     my $content = $self->get_formula ();
-    return "fof(${name},${status},${content}).";
+    return "${kind}(${name},${status},${content}).";
 }
 
 sub change_status {
@@ -77,8 +85,10 @@ sub change_status {
 
     my $formula = $self->get_formula ();
     my $name = $self->get_name ();
+    my $kind = $self->get_kind ();
 
-    return Formula->new (status => $new_status,
+    return Formula->new (kind => $kind,
+			 status => $new_status,
 			 name => $name,
 			 formula => $formula);
 }
@@ -94,6 +104,7 @@ sub negate {
     my $formula = $self->get_formula ();
 
     return Formula->new (
+	kind => $self->get_kind (),
 	status => $self->get_status (),
 	name => $self->get_name (),
 	formula => "~ ( ${formula} )",
