@@ -100,7 +100,7 @@ sub BUILD {
 
     foreach my $symbol_by_formula (@symbols_by_formula) {
 	if ($symbol_by_formula =~ / \A symbols [(]
-                                                   ([a-z0-9_]+)
+                                                   ([a-zA-Z0-9_]+)
                                                    [,]
                                                    [[] (.*) []]
                                                    [,]
