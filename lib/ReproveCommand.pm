@@ -321,12 +321,12 @@ sub reprove_semantically {
 	say 'PREMISES', $SPACE, '(', colored ('used', $USED_PREMISE_COLOR), $SPACE, '/', $SPACE, colored ('unused', $UNUSED_PREMISE_COLOR), ')';
 
 	if (scalar @used_premises > 0) {
-	    print_formula_names_with_color (\@used_premises_sorted,
+	    print_formula_names_with_color (\@used_premises,
 					    $USED_PREMISE_COLOR
 					    { 'sorted' => 1 });
 	}
 	if (scalar @unused_premises > 0) {
-	    print_formula_names_with_color (\@unused_premises_sorted,
+	    print_formula_names_with_color (\@unused_premises,
 					    $UNUSED_PREMISE_COLOR,
 					    { 'sorted' => 1 });
 	}
