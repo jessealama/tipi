@@ -360,20 +360,15 @@ sub remove_formula {
     my $name_of_formula_to_remove = $formula_to_remove->get_name ();
 
     my $path = $self->get_path ();
-    my @axioms = $self->get_axioms (1);
+    my @formulas = $self->get_formulas (1);
 
     (my $new_fh, my $new_path) = tempfile ();
 
-    foreach my $axiom (@axioms) {
-	my $axiom_name = $axiom->get_name ();
-	if ($axiom_name ne $name_of_formula_to_remove) {
-	    print {$new_fh} $axiom->tptpify (), "\N{LF}";
+    foreach my $formula (@formulas) {
+	my $formula_name = $formula->get_name ();
+	if ($formula_name ne $name_of_formula_to_remove) {
+	    print {$new_fh} $formula->tptpify (), "\N{LF}";
 	}
-    }
-
-    if ($self->has_conjecture_formula ()) {
-	my $conjecture = $self->get_conjecture ();
-	print {$new_fh} $conjecture->tptpify (), "\N{LF}";
     }
 
     close $new_fh
