@@ -2,6 +2,10 @@ package TPTP;
 
 use strict;
 use warnings;
+
+require 5.10.0; # for the 'say' feature
+use feature 'say';
+
 use base qw(Exporter);
 use IPC::Cmd qw(can_run);
 use IPC::Run qw(run start timer harness timeout);
@@ -10,7 +14,7 @@ use Readonly;
 use charnames qw(:full);
 use English qw(-no_match_vars);
 use Data::Dumper;
-use feature 'say';
+use Term::ANSIColor;
 
 our @EXPORT_OK = qw(ensure_tptp4x_available
 		    ensure_valid_tptp_file
@@ -19,7 +23,9 @@ our @EXPORT_OK = qw(ensure_tptp4x_available
 		    ensure_getsymbols_available);
 
 use Result;
-use Utils qw(ensure_readable_file);
+use Utils qw(ensure_readable_file
+	     message
+	     error_message);
 
 Readonly my $TPTP4X => 'tptp4X';
 Readonly my $EMPTY_STRING => q{};
@@ -177,10 +183,10 @@ sub prove_if_possible {
 	exit 1;
     }
 
-    if ($szs_status ne 'Theorem') {
-	print {*STDERR} message (error_message ('We expected to obtain a theorem, but the SZS status for a proof attempt for ', $theory_path, ' was', "\N{LF}", "\N{LF}", $TWO_SPACES, colored ($szs_status, $BAD_COLOR)));
-	exit 1;
-    }
+    # if ($szs_status ne 'Theorem') {
+    # 	print {*STDERR} message (error_message ('We expected to obtain a theorem, but the SZS status for a proof attempt for ', $theory_path, ' was', "\N{LF}", "\N{LF}", $TWO_SPACES, colored ($szs_status, $BAD_COLOR)));
+    # 	exit 1;
+    # }
 
     my $derivation = $tptp_result->output_as_derivation ();
 
