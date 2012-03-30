@@ -69,7 +69,6 @@ sub theory_from_used_premises {
 
     my $theory = $self->get_background_theory ();
     my @used_premises = @{$self->get_used_premises ()};
-    my $conjecture = $theory->get_conjecture ();
 
     (my $tmp_theory_fh, my $tmp_theory_path) = tempfile ()
 	or croak 'Failed to create a temporary file.';
@@ -82,8 +81,6 @@ sub theory_from_used_premises {
 
     close $tmp_theory_fh
 	or croak 'Unable to close the output filehandle for our temporary theory file.';
-
-    # carp 'Contents of the new temporary theory:', "\n", `cat $tmp_theory_path`;
 
     return Theory->new (path => $tmp_theory_path);
 }
