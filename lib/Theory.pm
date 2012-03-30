@@ -6,7 +6,7 @@ use IPC::Run qw(run start timer harness);
 use Carp qw(croak);
 use Readonly;
 use charnames qw(:full);
-use List::MoreUtils qw(firstidx);
+use List::MoreUtils qw(firstidx none);
 use File::Temp qw(tempfile);
 use Regexp::DefaultFlags;
 use Formula;
@@ -356,6 +356,34 @@ sub remove_formula {
     foreach my $axiom (@axioms) {
 	my $axiom_name = $axiom->get_name ();
 	if ($axiom_name ne $name_of_formula_to_remove) {
+	    print {$new_fh} $axiom->tptpify (), "\N{LF}";
+	}
+    }
+
+    if ($self->has_conjecture_formula ()) {
+	my $conjecture = $self->get_conjecture ();
+	print {$new_fh} $conjecture->tptpify (), "\N{LF}";
+    }
+
+    close $new_fh
+	or croak 'Error: unable to close the output filehandle for the conjecture-free variant of ', $path, '.';
+
+    return Theory->new (path => $new_path);
+
+}
+
+sub remove_formulas {
+    my $self = shift;
+    my @formulas_to_remove = @_;
+
+    my $path = $self->get_path ();
+    my @axioms = $self->get_axioms (1);
+
+    (my $new_fh, my $new_path) = tempfile ();
+
+    foreach my $axiom (@axioms) {
+	my $axiom_name = $axiom->get_name ();
+	if (none { $axiom_name eq $_ } @formulas_to_remove) {
 	    print {$new_fh} $axiom->tptpify (), "\N{LF}";
 	}
     }
