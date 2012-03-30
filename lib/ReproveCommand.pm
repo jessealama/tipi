@@ -322,7 +322,7 @@ sub reprove_semantically {
 
 	if (scalar @used_premises > 0) {
 	    print_formula_names_with_color (\@used_premises,
-					    $USED_PREMISE_COLOR
+					    $USED_PREMISE_COLOR,
 					    { 'sorted' => 1 });
 	}
 	if (scalar @unused_premises > 0) {
