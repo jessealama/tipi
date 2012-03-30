@@ -86,7 +86,7 @@ sub print_formula_names_with_color {
 	my @formula_names = map { $_->get_name () } @formulas;
 	my @formula_names_sorted = sort @formula_names;
 	my @formula_names_colored
-	    = map { $_->name_with_color ($color) } @formula_names_sorted;
+	    = map { colored ($_, $color) } @formula_names_sorted;
 	say join ("\N{LF}", @formula_names_colored);
     } else {
 	my @formula_names_colored = map { $_->name_with_color ($color) } @formulas;
