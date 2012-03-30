@@ -76,11 +76,22 @@ sub fill_up_to_column {
 sub print_formula_names_with_color {
     my $formulas_ref = shift;
     my $color = shift;
+    my $parameters_ref = shift;
+
+    my %parameters = defined $parameters_ref ? %{$parameters_ref} : ();
 
     my @formulas = @{$formulas_ref};
 
-    my @formula_names_colored = map { $_->name_with_color ($color) } @formulas;
-    say join ("\N{LF}", @formula_names_colored);
+    if (defined $parameters{'sorted'} && $parameters{'sorted'}) {
+	my @formula_names = map { $_->get_name () } @formulas;
+	my @formula_names_sorted = sort @formula_names;
+	my @formula_names_colored
+	    = map { $_->name_with_color ($color) } @formula_names_sorted;
+	say join ("\N{LF}", @formula_names_colored);
+    } else {
+	my @formula_names_colored = map { $_->name_with_color ($color) } @formulas;
+	say join ("\N{LF}", @formula_names_colored);
+    }
 
     return 1;
 
@@ -310,14 +321,14 @@ sub reprove_semantically {
 	say 'PREMISES', $SPACE, '(', colored ('used', $USED_PREMISE_COLOR), $SPACE, '/', $SPACE, colored ('unused', $UNUSED_PREMISE_COLOR), ')';
 
 	if (scalar @used_premises > 0) {
-	    my @used_premises_sorted = sort @used_premises;
 	    print_formula_names_with_color (\@used_premises_sorted,
-					    $USED_PREMISE_COLOR);
+					    $USED_PREMISE_COLOR
+					    { 'sorted' => 1 });
 	}
 	if (scalar @unused_premises > 0) {
-	    my @unused_premises_sorted = sort @unused_premises;
 	    print_formula_names_with_color (\@unused_premises_sorted,
-					    $UNUSED_PREMISE_COLOR);
+					    $UNUSED_PREMISE_COLOR,
+					    { 'sorted' => 1 });
 	}
 
 	$theory = $theory->remove_formulas (@unused_premises);
