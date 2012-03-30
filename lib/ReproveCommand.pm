@@ -79,12 +79,8 @@ sub print_formula_names_with_color {
 
     my @formulas = @{$formulas_ref};
 
-    if (scalar @formulas == 0) {
-	say '(none)';
-    } else {
-	my @formula_names_colored = map { $_->name_with_color ($color) } @formulas;
-	say join ("\N{LF}", @formula_names_colored);
-    }
+    my @formula_names_colored = map { $_->name_with_color ($color) } @formulas;
+    say join ("\N{LF}", @formula_names_colored);
 
     return 1;
 
