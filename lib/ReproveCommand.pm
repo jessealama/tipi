@@ -50,6 +50,7 @@ my $opt_help = 0;
 my $opt_man = 0;
 my $opt_verbose = 0;
 my $opt_debug = 0;
+my $opt_solution_szs_status = 'Theorem';
 my $opt_method = 'syntactically';
 my $opt_model_finder_timeout = 5;
 my $opt_proof_finder_timeout = 30;
@@ -101,6 +102,7 @@ around 'execute' => sub {
 	'help|?' => \$opt_help,
 	'debug' => \$opt_debug,
 	'method=s' => \$opt_method,
+	'solution-szs-status=s' => \$opt_solution_szs_status,
 	'model-finder-timeout=i' => \$opt_model_finder_timeout,
 	'proof-finder-timeout=i' => \$opt_proof_finder_timeout,
 	'use-all-axioms' => \$opt_semantically_use_all_axioms,
@@ -130,6 +132,17 @@ around 'execute' => sub {
 
     if (scalar @arguments > 1) {
 	pod2usage (-msg => error_message ('Unable to make sense of the prove arguments', "\N{LF}", "\N{LF}", $TWO_SPACES, join ($SPACE, @arguments)),
+		   -exitval => 2);
+    }
+
+    if ($opt_solution_szs_status eq $EMPTY_STRING) {
+	pod2usage (-msg => error_message ('The empty string is not an acceptable SZS problem status.'),
+		   -exitval => 2);
+
+    }
+
+    if ($opt_solution_szs_status !~ /\A [A-Za-z]+ \z/) {
+	pod2usage (-msg => error_message ('Unacceptable SZS problem status', "\N{LF}", "\N{LF}", $TWO_SPACES, $opt_solution_szs_status),
 		   -exitval => 2);
     }
 
@@ -229,28 +242,44 @@ sub reprove_semantically {
     my $theory_path = $theory->get_path ();
 
     my @axioms = $theory->get_axioms (1);
-    my $conjecture = $theory->get_conjecture ();
+
+    my $conjecture = undef;
+    if ($theory->has_conjecture_formula ()) {
+	$conjecture = $theory->get_conjecture ();
+    }
 
     if (scalar @axioms == 0) {
-	print colored ('Step 1', 'blue'), ': Derive the conjecture:';
+	if (defined $conjecture) {
+	    print colored ('Step 1', 'blue'), ': Derive the conjecture:';
+	} else {
+	    print colored ('Step 1', 'blue'), ': Solve the problem:';
+	}
     } elsif (scalar @axioms == 1) {
-	print colored ('Step 1', 'blue'), ': Derive the conjecture the sole available premises:';
+	if (defined $conjecture) {
+	    print colored ('Step 1', 'blue'), ': Derive the conjecture the sole available premises:';
+	} else {
+	    print colored ('Step 1', 'blue'), ': Solve the problem from the sole available premise:';
+	}
     } else {
-	print colored ('Step 1', 'blue'), ': Derive the conjecture from all ', scalar @axioms, ' available premises:';
+	if (defined $conjecture) {
+	    print colored ('Step 1', 'blue'), ': Derive the conjecture from all ', scalar @axioms, ' available premises:';
+	} else {
+	    print colored ('Step 1', 'blue'), ': Solve the problem from all ', scalar @axioms, ' available premises:';
+	}
     }
 
     my $initial_proof_result = TPTP::prove ($theory);
     my $initial_proof_szs_status
-	= $initial_proof_result->has_szs_status ? $initial_proof_result->get_szs_status
+ 	= $initial_proof_result->has_szs_status ? $initial_proof_result->get_szs_status
 	    : 'Unknown';
 
-    if ($initial_proof_szs_status eq 'Theorem') {
+    if ($initial_proof_szs_status eq $opt_solution_szs_status) {
 	say $SPACE, colored ('OK', 'green');
     } else {
 	say $SPACE, colored ('Not OK', 'red'), ' (SZS status ', $initial_proof_szs_status, ')';
     }
 
-    if ($initial_proof_szs_status ne 'Theorem' && $opt_force) {
+    if ($initial_proof_szs_status ne $opt_solution_szs_status && $opt_force) {
 	if (scalar @axioms == 0) {
 	    say 'Even though we were requested to proceed, it does not make sense';
 	    say 'to do so because there are no axioms in the background theory.';
@@ -268,7 +297,7 @@ sub reprove_semantically {
 	}
     }
 
-    if ($initial_proof_szs_status ne 'Theorem' && ! $opt_force) {
+    if ($initial_proof_szs_status ne $opt_solution_szs_status && ! $opt_force) {
 	return 1;
     }
 
@@ -276,8 +305,7 @@ sub reprove_semantically {
 	say 'PREMISES', $SPACE, '(', colored ('used', $USED_PREMISE_COLOR), $SPACE, '/', $SPACE, colored ('unused', $UNUSED_PREMISE_COLOR), ')';
 	print_formula_names_with_color (\@axioms, $USED_PREMISE_COLOR);
 	say '(As requested, we are regarding all the theory\'s axioms as used,';
-	say 'even if only some of them were actually used in a successful derivation';
-	say 'of its conjecture.)';
+	say 'even if only some of them were actually used in a successful derivation.)';
     } else {
 	my $derivation = $initial_proof_result->output_as_derivation ();
 	my @used_premises = $derivation->get_used_premises ();
@@ -288,14 +316,14 @@ sub reprove_semantically {
 	print_formula_names_with_color (\@used_premises, $USED_PREMISE_COLOR);
 	print_formula_names_with_color (\@unused_premises, $UNUSED_PREMISE_COLOR);
 
-	foreach my $unused (@unused_premises) {
-	    $theory = $theory->remove_formula ($unused);
-	}
+	$theory = $theory->remove_formulas (@unused_premises);
 
-	@axioms = $theory->get_axioms ();
+	@axioms = @used_premises;
     }
 
-    $theory = $theory->promote_conjecture_to_false_axiom ();
+    if ($theory->has_conjecture_formula ()) {
+	$theory = $theory->promote_conjecture_to_false_axiom ();
+    }
 
     my %needed = ();
     my %unneeded = ();
@@ -317,13 +345,13 @@ sub reprove_semantically {
 
 	if (defined $tptp_result) {
 	    if ($tptp_result->timed_out ()) {
-		say colored ($axiom_name, $UNKNOWN_COLOR);
+		say colored ($axiom_name, $UNKNOWN_COLOR), $SPACE, '(SZS status', $SPACE, $szs_status, ')';
 		$unknown{$axiom_name} = 0;
 	    } elsif ($szs_status eq 'Satisfiable') {
-		say colored ($axiom_name, $NEEDED_PREMISE_COLOR);
+		say colored ($axiom_name, $NEEDED_PREMISE_COLOR), $SPACE, '(SZS status', $SPACE, $szs_status, ')';
 		$needed{$axiom_name} = 0;
 	    } else {
-		say colored ($axiom_name, $UNKNOWN_COLOR);
+		say colored ($axiom_name, $UNKNOWN_COLOR), $SPACE, '(SZS status', $SPACE, $szs_status, ')';
 		$unknown{$axiom_name} = 0;
 	    }
 	} else {
@@ -332,7 +360,11 @@ sub reprove_semantically {
 
     }
 
-    print colored ('Step 3', 'blue'), ': Derive the conjecture from only ', colored ('needed', $NEEDED_PREMISE_COLOR), ' premises:';
+    if ($theory->has_conjecture_formula ()) {
+	print colored ('Step 3', 'blue'), ': Derive the conjecture from only ', colored ('needed', $NEEDED_PREMISE_COLOR), ' premises:';
+    } else {
+	print colored ('Step 3', 'blue'), ': Solve the problem from only ', colored ('needed', $NEEDED_PREMISE_COLOR), ' premises:';
+    }
 
     # Dump everything that is not known to be needed
     my $small_theory = $theory;
@@ -345,14 +377,17 @@ sub reprove_semantically {
 
     # Remove the old conjecture, which was promoted to a false axiom,
     # and put it back as the conjecture.
-    $small_theory = $small_theory->remove_formula ($conjecture);
-    $small_theory = $small_theory->add_formula ($conjecture);
+    if ($theory->has_conjecture_formula ()) {
+	$small_theory = $small_theory->remove_formula ($conjecture);
+	$small_theory = $small_theory->add_formula ($conjecture);
+    }
 
     if ($opt_debug) {
 	warn 'The minimal theory is', "\N{LF}", Dumper ($small_theory);
     }
 
-    if (! $small_theory->has_conjecture_formula ()) {
+    if ($theory->has_conjecture_formula () &&
+	    ! $small_theory->has_conjecture_formula ()) {
 	my $small_theory_path = $small_theory->get_path ();
 	croak 'The theory ', $small_theory_path, ' has no conjecture formula!';
     }
@@ -362,18 +397,30 @@ sub reprove_semantically {
     my $new_result_szs_status
 	= $new_result->has_szs_status () ? $new_result->get_szs_status () : 'Unknown';
 
-    if ($new_result_szs_status eq 'Theorem') {
+    if ($new_result_szs_status eq $opt_solution_szs_status) {
 	say $SPACE, colored ('OK', 'green');
     } else {
 	say $SPACE, colored ('Not OK', 'red'), ' (SZS status ', $new_result_szs_status, ')';
     }
 
-    if ($new_result_szs_status eq 'Theorem') {
-	say 'The', $SPACE, colored ('needed', $NEEDED_PREMISE_COLOR), $SPACE, 'formulas alone suffice to prove the conjecture; we are done.';
+    if ($new_result_szs_status eq $opt_solution_szs_status) {
+	if ($theory->has_conjecture_formula ()) {
+	    say 'The', $SPACE, colored ('needed', $NEEDED_PREMISE_COLOR), $SPACE, 'formulas alone suffice to prove the conjecture; we are done.';
+	} else {
+	    say 'The', $SPACE, colored ('needed', $NEEDED_PREMISE_COLOR), $SPACE, 'formulas alone suffice to solve the problem; we are done.';
+	}
     } else {
-	say 'The needed formulas alone do not suffice to prove the conjecture.';
+	if ($theory->has_conjecture_formula ()) {
+	    say 'The needed formulas alone do not suffice to prove the conjecture.';
+	} else {
+	    say 'The needed formulas alone do not suffice to solve the problem.';
+	}
 
-	say colored ('Step 4', 'blue'), ': Find combinations of', $SPACE, colored ('unknown', $UNKNOWN_COLOR), $SPACE, 'premises that, together with the', $SPACE, colored ('needed', $NEEDED_PREMISE_COLOR), ' premises, suffice to derive the conjecture.';
+	if ($theory->has_conjecture_formula ()) {
+	    say colored ('Step 4', 'blue'), ': Find combinations of', $SPACE, colored ('unknown', $UNKNOWN_COLOR), $SPACE, 'premises that, together with the', $SPACE, colored ('needed', $NEEDED_PREMISE_COLOR), ' premises, suffice to derive the conjecture.';
+	} else {
+	    say colored ('Step 4', 'blue'), ': Find combinations of', $SPACE, colored ('unknown', $UNKNOWN_COLOR), $SPACE, 'premises that, together with the', $SPACE, colored ('needed', $NEEDED_PREMISE_COLOR), ' premises, suffice to solve the problem.';
+	}
 
 	my @unknown_formula_names = keys %unknown;
 	my @unknown_formula_names_sorted = sort @unknown_formula_names;
@@ -390,7 +437,8 @@ sub reprove_semantically {
 	my $num_candidates_unknown = 0;
 	$progress->update ($num_tuples_handled);
 
-	my @tuples_sorted = sort { tuple_less_than_wrt_ordering ($a, $b, \@unknown_formula_names_sorted) } @tuples;
+	my @tuples_sorted
+	    = sort { tuple_less_than_wrt_ordering ($a, $b, \@unknown_formula_names_sorted) } @tuples;
 
 	foreach my $tuple_ref (@tuples_sorted) {
 
@@ -419,7 +467,7 @@ sub reprove_semantically {
 		= $bigger_result->has_szs_status () ?
 		    $bigger_result->get_szs_status ()
 			: 'Unknown';
-	    if ($bigger_result_szs_status eq 'Theorem') {
+	    if ($bigger_result_szs_status eq $opt_solution_szs_status) {
 		push (@solved_so_far, \@tuple);
 	    } else {
 		$num_candidates_unknown++;
@@ -437,7 +485,12 @@ sub reprove_semantically {
 
 	    say 'We found', $SPACE, scalar @solved_so_far, $SPACE, 'solution(s).';
 	    say 'There were', $SPACE, $num_candidates_unknown, $SPACE, 'non-solution combinations.  For these we either timed out evaluating them,';
-	    say 'or the candidate was shown to be too weak to derive the conjecture.';
+
+	    if ($theory->has_conjecture_formula ()) {
+		say 'or the candidate was shown to be too weak to derive the conjecture.';
+	    } else {
+		say 'or the candidate was shown to be too weak to solve the problem.';
+	    }
 
 	    my @solved_sorted = sort { subtuple ($a, $b) } @solved_so_far;
 
