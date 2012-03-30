@@ -36,13 +36,13 @@ Readonly my $TWO_SPACES => q{  };
 Readonly my $SPACE => q{ };
 Readonly my $COMMA => q{,};
 Readonly my $USED_PREMISE_COLOR => 'blue';
-Readonly my $UNUSED_PREMISE_COLOR => 'bright_black';
+Readonly my $UNUSED_PREMISE_COLOR => 'yellow';
 Readonly my $DESCRIPTION => 'Prove a conjecture again, perhaps using different premises.';
 Readonly my $GOOD_COLOR => 'green';
 Readonly my $BAD_COLOR => 'red';
 Readonly my $UNKNOWN_COLOR => 'yellow';
 Readonly my $NEEDED_PREMISE_COLOR => 'red';
-Readonly my $UNNEEDED_PREMISE_COLOR => 'bright_black';
+Readonly my $UNNEEDED_PREMISE_COLOR => 'yellow';
 
 my $opt_show_output = 0;
 my $opt_show_premises = 0;
