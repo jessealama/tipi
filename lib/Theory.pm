@@ -16,7 +16,7 @@ use Data::Dumper;
 Readonly my $TPTP4X => 'tptp4X';
 Readonly my $EMPTY_STRING => q{};
 Readonly my $TWO_SPACES => q{  };
-Readonly my $SPACE => q{};
+Readonly my $SPACE => q{ };
 
 has 'path' => (
     is => 'ro',
