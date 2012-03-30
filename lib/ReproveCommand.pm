@@ -352,7 +352,8 @@ sub reprove_semantically {
 	my $axiom_name = $axiom->get_name ();
 	my $trimmed_theory = $theory->remove_formula ($axiom);
 	my $tptp_result = eval
-	    { TPTP::find_model ($trimmed_theory, { 'timeout' => $opt_model_finder_timeout }) };
+	    { TPTP::find_model ($trimmed_theory,
+				{ 'timeout' => $opt_model_finder_timeout }) };
 	my $tptp_find_model_message = $@;
 
 	my $szs_status
