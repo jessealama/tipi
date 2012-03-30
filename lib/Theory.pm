@@ -3,7 +3,7 @@ package Theory;
 use Moose;
 use IPC::Cmd qw(can_run);
 use IPC::Run qw(run start timer harness);
-use Carp qw(croak);
+use Carp qw(croak confess);
 use Readonly;
 use charnames qw(:full);
 use List::MoreUtils qw(firstidx none);
@@ -88,9 +88,9 @@ sub BUILD {
 
     if (scalar @GetSymbols_harness_results == 0) {
 	if ($GetSymbols_err eq $EMPTY_STRING) {
-	    croak 'Something went badly wrong calling GetSymbols (did it crash?).  We did not even get any error output.';
+	    confess 'Something went badly wrong calling GetSymbols (did it crash?).  We did not even get any error output.';
 	} else {
-	    croak 'Something went badly wrong calling GetSymbols (did it crash?).  Here is its error output: ', $GetSymbols_err;
+	    confess 'Something went badly wrong calling GetSymbols (did it crash?).  Here is its error output: ', $GetSymbols_err;
 	}
     }
 
@@ -98,9 +98,9 @@ sub BUILD {
 
     if ($GetSymbols_exit_code != 0) {
 	if ($GetSymbols_err eq $EMPTY_STRING) {
-	    croak 'Something went wrong calling GetSymbols on', "\N{LF}", "\N{LF}", $TWO_SPACES, $path, "\N{LF}", "\N{LF}", 'Its exit code was', $SPACE, $GetSymbols_exit_code, '.  Somehow, it did not produce any error output.'
+	    confess 'Something went wrong calling GetSymbols on', "\N{LF}", "\N{LF}", $TWO_SPACES, $path, "\N{LF}", "\N{LF}", 'Its exit code was', $SPACE, $GetSymbols_exit_code, '.  Somehow, it did not produce any error output.'
 	} else {
-	    croak 'Something went wrong calling GetSymbols; its exit code was', $SPACE, $GetSymbols_exit_code, '.  The error output was:', "\N{LF}", $GetSymbols_err, "\N{LF}";
+	    confess 'Something went wrong calling GetSymbols; its exit code was', $SPACE, $GetSymbols_exit_code, '.  The error output was:', "\N{LF}", $GetSymbols_err, "\N{LF}";
 	}
     }
 
