@@ -388,20 +388,17 @@ sub remove_formulas {
     my @formulas_to_remove = @_;
 
     my $path = $self->get_path ();
-    my @axioms = $self->get_axioms (1);
+    my @formulas = $self->get_formulas (1);
 
     (my $new_fh, my $new_path) = tempfile ();
 
-    foreach my $axiom (@axioms) {
-	my $axiom_name = $axiom->get_name ();
-	if (none { $axiom_name eq $_ } @formulas_to_remove) {
-	    print {$new_fh} $axiom->tptpify (), "\N{LF}";
+    foreach my $formula (@formulas) {
+	my $formula_name = $formula->get_name ();
+	if (any { $formula_name eq $_ } @formulas_to_remove) {
+	    # do nothing
+	} else {
+	    print {$new_fh} $formula->tptpify (), "\N{LF}";
 	}
-    }
-
-    if ($self->has_conjecture_formula ()) {
-	my $conjecture = $self->get_conjecture ();
-	print {$new_fh} $conjecture->tptpify (), "\N{LF}";
     }
 
     close $new_fh
