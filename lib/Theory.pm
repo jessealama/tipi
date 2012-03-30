@@ -87,13 +87,21 @@ sub BUILD {
     my @GetSymbols_harness_results = $GetSymbols_harness->results ();
 
     if (scalar @GetSymbols_harness_results == 0) {
-	croak 'Soemthing went wrong calling GetSymbols.  Here is its error output: ', $GetSymbols_err;
+	if ($GetSymbols_err eq $EMPTY_STRING) {
+	    croak 'Something went badly wrong calling GetSymbols (did it crash?).  We did not even get any error output.';
+	} else {
+	    croak 'Something went badly wrong calling GetSymbols (did it crash?).  Here is its error output: ', $GetSymbols_err;
+	}
     }
 
     my $GetSymbols_exit_code = $GetSymbols_harness_results[0];
 
     if ($GetSymbols_exit_code != 0) {
-	croak 'Soemthing went wrong calling GetSymbols.  Here is its error output: ', $GetSymbols_err;
+	if ($GetSymbols_err eq $EMPTY_STRING) {
+	    croak 'Something went wrong calling GetSymbols; its exit code was', $SPACE, $GetSymbols_exit_code, '.  The error output was:', "\N{LF}", $GetSymbols_err, "\N{LF}";
+	} else {
+	    croak 'Something went wrong calling GetSymbols.  Here is its error output: ', $GetSymbols_err;
+	}
     }
 
     my @symbols_by_formula = split ("\N{LF}", $GetSymbols_out);
