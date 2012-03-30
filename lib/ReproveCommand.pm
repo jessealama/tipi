@@ -310,10 +310,14 @@ sub reprove_semantically {
 	say 'PREMISES', $SPACE, '(', colored ('used', $USED_PREMISE_COLOR), $SPACE, '/', $SPACE, colored ('unused', $UNUSED_PREMISE_COLOR), ')';
 
 	if (scalar @used_premises > 0) {
-	    print_formula_names_with_color (\@used_premises, $USED_PREMISE_COLOR);
+	    my @used_premises_sorted = sort @used_premises;
+	    print_formula_names_with_color (\@used_premises_sorted,
+					    $USED_PREMISE_COLOR);
 	}
 	if (scalar @unused_premises > 0) {
-	    print_formula_names_with_color (\@unused_premises, $UNUSED_PREMISE_COLOR);
+	    my @unused_premises_sorted = sort @unused_premises;
+	    print_formula_names_with_color (\@unused_premises_sorted,
+					    $UNUSED_PREMISE_COLOR);
 	}
 
 	$theory = $theory->remove_formulas (@unused_premises);
