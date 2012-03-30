@@ -98,9 +98,9 @@ sub BUILD {
 
     if ($GetSymbols_exit_code != 0) {
 	if ($GetSymbols_err eq $EMPTY_STRING) {
-	    croak 'Something went wrong calling GetSymbols; its exit code was', $SPACE, $GetSymbols_exit_code, '.  The error output was:', "\N{LF}", $GetSymbols_err, "\N{LF}";
+	    croak 'Something went wrong calling GetSymbols on', "\N{LF}", "\N{LF}", $TWO_SPACES, $path, "\N{LF}", "\N{LF}", 'Its exit code was', $SPACE, $GetSymbols_exit_code, '.  Somehow, it did not produce any error output.'
 	} else {
-	    croak 'Something went wrong calling GetSymbols.  Here is its error output: ', $GetSymbols_err;
+	    croak 'Something went wrong calling GetSymbols; its exit code was', $SPACE, $GetSymbols_exit_code, '.  The error output was:', "\N{LF}", $GetSymbols_err, "\N{LF}";
 	}
     }
 
