@@ -15,6 +15,7 @@ use feature 'say';
 use List::Util qw(max);
 use List::MoreUtils qw(any);
 use Term::ProgressBar;
+use Regexp::DefaultFlags;
 
 extends 'Command';
 
