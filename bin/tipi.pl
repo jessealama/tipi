@@ -3,6 +3,9 @@
 use strict;
 use warnings;
 
+require 5.10.0; # for the 'say' feature
+use feature 'say';
+
 use Getopt::Long qw(:config gnu_compat pass_through);
 use Pod::Usage;
 use Readonly;
@@ -10,12 +13,14 @@ use charnames qw(:full);
 use version;
 use Regexp::DefaultFlags;
 use List::MoreUtils qw(all);
-use feature 'say';
+use Term::ANSIColor;
 
 use FindBin qw($RealBin);
 use lib "$RealBin/../lib";
 
-use Utils qw(error_message);
+use Utils qw(error_message
+	     message_with_extra_linefeed
+	     message);
 
 # Commands
 use ProveCommand;
