@@ -250,6 +250,7 @@ sub reprove_semantically {
 
     my @axioms = $theory->get_axioms (1);
 
+    my $theory_has_conjecture = $theory->has_conjecture_formula ();
     my $conjecture = undef;
     if ($theory->has_conjecture_formula ()) {
 	$conjecture = $theory->get_conjecture ();
@@ -393,7 +394,7 @@ sub reprove_semantically {
 
     # Remove the old conjecture, which was promoted to a false axiom,
     # and put it back as the conjecture.
-    if ($theory->has_conjecture_formula ()) {
+    if ($theory_has_conjecture) {
 	$small_theory = $small_theory->remove_formula ($conjecture);
 	$small_theory = $small_theory->add_formula ($conjecture);
     }
