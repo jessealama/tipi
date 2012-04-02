@@ -125,5 +125,25 @@ sub name_with_color {
     return colored ($name, $color);
 }
 
+sub equal_to {
+    my $self = shift;
+    my $other_formula = shift;
+
+    my $self_kind = $self->get_kind ();
+    my $self_name = $self->get_name ();
+    my $self_status = $self->get_status ();
+    my $self_formula = $self->get_formula ();
+
+    my $other_formula_kind = $other_formula->get_kind ();
+    my $other_formula_name = $other_formula->get_name ();
+    my $other_formula_status = $other_formula->get_status ();
+    my $other_formula_formula = $other_formula->get_formula ();
+
+    return ($self_kind eq $other_formula_kind
+		&& $self_name eq $other_formula_name
+		    && $self_status eq $other_formula_status
+			&& $self_formula eq $other_formula_formula);
+}
+
 1;
 __END__
