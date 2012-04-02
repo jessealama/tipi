@@ -272,6 +272,7 @@ sub reprove_semantically {
 
     my @axioms = $theory->get_axioms (1);
 
+    my $theory_has_conjecture = $theory->has_conjecture_formula ();
     my $conjecture = undef;
     if ($theory->has_conjecture_formula ()) {
 	$conjecture = $theory->get_conjecture ();
