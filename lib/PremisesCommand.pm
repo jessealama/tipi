@@ -34,6 +34,7 @@ my $opt_man = 0;
 my $opt_verbose = 0;
 my $opt_debug = 0;
 my $opt_expand_includes = 1;
+my $opt_names_only = 0;
 
 sub BUILD {
     my $self = shift;
@@ -50,7 +51,8 @@ around 'execute' => sub {
 	\@arguments,
 	'man' => \$opt_man,
 	'verbose' => \$opt_verbose,
-	'help|?' => => \$opt_help,
+	'help|?' => \$opt_help,
+	'names-only' => \$opt_names_only,
     ) or pod2usage (2);
 
     if ($opt_help) {
@@ -105,8 +107,14 @@ sub execute {
     my @premises = $theory->get_axioms ($opt_expand_includes);
     my @names = map { $_->get_name () } @premises;
 
-    if (scalar @names > 0) {
-	say join ("\N{LF}", @names);
+    if ($opt_names_only) {
+	if (scalar @names > 0) {
+	    say join ("\N{LF}", @names);
+	}
+    } else {
+	foreach my $premise (@premises) {
+	    say $premise->tptpify ();
+	}
     }
 
     return 1;
