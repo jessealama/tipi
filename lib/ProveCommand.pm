@@ -158,7 +158,11 @@ sub execute {
     my $result = TPTP::prove ($theory);
 
     if (! $result->exited_cleanly ()) {
+	my $exit_code = $result->get_exit_code ();
+	my $err_output = $result->get_error_output ();
 	say STDERR (error_message ('The prover terminated, but it did not exit cleanly when working with ', $theory_path, '.'));
+	say STDERR 'The exit code was', $SPACE, $exit_code, ', and the error output was:';
+	say $err_output;
 	exit 1;
     }
 
