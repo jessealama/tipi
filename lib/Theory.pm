@@ -832,5 +832,21 @@ sub fofify {
 
 }
 
+sub is_first_order {
+    my $self = shift;
+
+    my @formulas = $self->get_formulas (1);
+
+    if (scalar @formulas == 0) {
+	return 1;
+    } else {
+	if (any { ! $_->is_first_order () } @formulas) {
+	    return 0;
+	} else {
+	    return 1;
+	}
+    }
+}
+
 1;
 __END__
