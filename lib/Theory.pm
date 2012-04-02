@@ -3,7 +3,7 @@ package Theory;
 use Moose;
 use IPC::Cmd qw(can_run);
 use IPC::Run qw(run start timer harness);
-use Carp qw(croak confess);
+use Carp qw(croak confess carp);
 use Readonly;
 use charnames qw(:full);
 use List::MoreUtils qw(firstidx any);
