@@ -19,9 +19,10 @@ Readonly my $TWO_SPACES => q{  };
 Readonly my $SPACE => q{ };
 
 has 'path' => (
-    is => 'ro',
+    is => 'rw',
     isa => 'Str',
     reader => 'get_path',
+    writer => '_set_path',
     required => 1,
 );
 
@@ -54,6 +55,19 @@ has predicate_symbol_table => (
 
 sub BUILD {
     my $self = shift;
+    my $path = $self->get_path ();
+
+    if ($path eq '--') {
+	my $theory_content = slurp *STDIN
+	    or croak 'Unable to slurp the theory from standard input.';
+	(my $new_fh, my $new_path) = tempfile ();
+	say {$new_fh} $theory_content
+	    or croak 'Unable to print a copy of the theory on standard input to a temporary filehandle.';
+	close $new_fh
+	    or croak 'Unable to close the output filehandle for the temporary file containing the theory we just read from standard input.';
+	$self->_set_path ($new_path);
+	$path = $new_path;
+    }
 
     my %formula_table = ();
 
@@ -68,79 +82,81 @@ sub BUILD {
 	}
     }
 
-    my $path = $self->get_path ();
     my %predicate_symbol_arities = ();
     my %function_symbol_arities = ();
     my %function_symbol_table = ();
     my %predicate_symbol_table = ();
 
-    my @GetSymbols_call = ('GetSymbols', $path);
-    my $GetSymbols_out = $EMPTY_STRING;
-    my $GetSymbols_err = $EMPTY_STRING;
-    my $GetSymbols_harness = harness (\@GetSymbols_call,
-				      '>', \$GetSymbols_out,
-				      '2>', \$GetSymbols_err);
+    if (scalar @formulas > 0) {
 
-    $GetSymbols_harness->run ();
-    $GetSymbols_harness->finish ();
+	my @GetSymbols_call = ('GetSymbols', $path);
+	my $GetSymbols_out = $EMPTY_STRING;
+	my $GetSymbols_err = $EMPTY_STRING;
+	my $GetSymbols_harness = harness (\@GetSymbols_call,
+					  '>', \$GetSymbols_out,
+					  '2>', \$GetSymbols_err);
 
-    my @GetSymbols_harness_results = $GetSymbols_harness->results ();
+	$GetSymbols_harness->run ();
+	$GetSymbols_harness->finish ();
 
-    if (scalar @GetSymbols_harness_results == 0) {
-	if ($GetSymbols_err eq $EMPTY_STRING) {
-	    confess 'Something went badly wrong calling GetSymbols (did it crash?).  We did not even get any error output.';
-	} else {
-	    confess 'Something went badly wrong calling GetSymbols (did it crash?).  Here is its error output: ', $GetSymbols_err;
+	my @GetSymbols_harness_results = $GetSymbols_harness->results ();
+
+	if (scalar @GetSymbols_harness_results == 0) {
+	    if ($GetSymbols_err eq $EMPTY_STRING) {
+		confess 'Something went badly wrong calling GetSymbols (did it crash?).  We did not even get any error output.';
+	    } else {
+		confess 'Something went badly wrong calling GetSymbols (did it crash?).  Here is its error output: ', $GetSymbols_err;
+	    }
 	}
-    }
 
-    my $GetSymbols_exit_code = $GetSymbols_harness_results[0];
+	my $GetSymbols_exit_code = $GetSymbols_harness_results[0];
 
-    if ($GetSymbols_exit_code != 0) {
-	if ($GetSymbols_err eq $EMPTY_STRING) {
-	    confess 'Something went wrong calling GetSymbols on', "\N{LF}", "\N{LF}", $TWO_SPACES, $path, "\N{LF}", "\N{LF}", 'Its exit code was', $SPACE, $GetSymbols_exit_code, '.  Somehow, it did not produce any error output.'
-	} else {
-	    confess 'Something went wrong calling GetSymbols; its exit code was', $SPACE, $GetSymbols_exit_code, '.  The error output was:', "\N{LF}", $GetSymbols_err, "\N{LF}";
+	if ($GetSymbols_exit_code != 0) {
+	    if ($GetSymbols_err eq $EMPTY_STRING) {
+		confess 'Something went wrong calling GetSymbols on', "\N{LF}", "\N{LF}", $TWO_SPACES, $path, "\N{LF}", "\N{LF}", 'Its exit code was', $SPACE, $GetSymbols_exit_code, '.  Somehow, it did not produce any error output.'
+	    } else {
+		confess 'Something went wrong calling GetSymbols; its exit code was', $SPACE, $GetSymbols_exit_code, '.  The error output was:', "\N{LF}", $GetSymbols_err, "\N{LF}";
+	    }
 	}
-    }
 
-    my @symbols_by_formula = split ("\N{LF}", $GetSymbols_out);
+	my @symbols_by_formula = split ("\N{LF}", $GetSymbols_out);
 
-    foreach my $symbol_by_formula (@symbols_by_formula) {
-	if ($symbol_by_formula =~ / \A symbols [(]
+	foreach my $symbol_by_formula (@symbols_by_formula) {
+	    if ($symbol_by_formula =~ / \A symbols [(]
                                                    ([a-zA-Z0-9_]+)
                                                    [,]
                                                    [[] (.*) []]
                                                    [,]
                                                    [[] (.*) []]
                                                [)] [.] \z/) {
-	    (my $formula_name, my $function_symbols_str, my $predicate_symbols_str) = ($1, $2, $3);
+		(my $formula_name, my $function_symbols_str, my $predicate_symbols_str) = ($1, $2, $3);
 
-	    my @function_symbols = split (',', $function_symbols_str);
-	    my @predicate_symbols = split (',', $predicate_symbols_str);
+		my @function_symbols = split (',', $function_symbols_str);
+		my @predicate_symbols = split (',', $predicate_symbols_str);
 
-	    foreach my $function_symbol_info (@function_symbols) {
-		if ($function_symbol_info =~ / \A (.+) [\/] ([0-9]+) [\/] ([0-9]+) \z/) {
-		    (my $name, my $arity, my $num_occurrences) = ($1, $2, $3);
-		    $function_symbol_arities{$name} = $arity;
-		    $function_symbol_table{$formula_name}{$name} = $num_occurrences;
-		} else {
-		    croak 'Unable to make sense of the part', "\N{LF}", "\N{LF}", $TWO_SPACES, $function_symbol_info, "\N{LF}", "\N{LF}", 'emitted by GetSymbols';
+		foreach my $function_symbol_info (@function_symbols) {
+		    if ($function_symbol_info =~ / \A (.+) [\/] ([0-9]+) [\/] ([0-9]+) \z/) {
+			(my $name, my $arity, my $num_occurrences) = ($1, $2, $3);
+			$function_symbol_arities{$name} = $arity;
+			$function_symbol_table{$formula_name}{$name} = $num_occurrences;
+		    } else {
+			croak 'Unable to make sense of the part', "\N{LF}", "\N{LF}", $TWO_SPACES, $function_symbol_info, "\N{LF}", "\N{LF}", 'emitted by GetSymbols';
+		    }
 		}
-	    }
 
-	    foreach my $predicate_symbol_info (@predicate_symbols) {
-		if ($predicate_symbol_info =~ / \A (.+) [\/] ([0-9]+) [\/] ([0-9]+) \z/) {
-		    (my $name, my $arity, my $num_occurrences) = ($1, $2, $3);
-		    $predicate_symbol_arities{$name} = $arity;
-		    $predicate_symbol_table{$formula_name}{$name} = $num_occurrences;
-		} else {
-		    croak 'Unable to make sense of the part', "\N{LF}", "\N{LF}", $TWO_SPACES, $predicate_symbol_info, "\N{LF}", "\N{LF}", 'emitted by GetSymbols';
+		foreach my $predicate_symbol_info (@predicate_symbols) {
+		    if ($predicate_symbol_info =~ / \A (.+) [\/] ([0-9]+) [\/] ([0-9]+) \z/) {
+			(my $name, my $arity, my $num_occurrences) = ($1, $2, $3);
+			$predicate_symbol_arities{$name} = $arity;
+			$predicate_symbol_table{$formula_name}{$name} = $num_occurrences;
+		    } else {
+			croak 'Unable to make sense of the part', "\N{LF}", "\N{LF}", $TWO_SPACES, $predicate_symbol_info, "\N{LF}", "\N{LF}", 'emitted by GetSymbols';
+		    }
 		}
-	    }
 
-	} else {
-	    croak 'Unable to make sense of the GetSymbols line', "\N{LF}", "\N{LF}", $symbol_by_formula;
+	    } else {
+		croak 'Unable to make sense of the GetSymbols line', "\N{LF}", "\N{LF}", $symbol_by_formula;
+	    }
 	}
     }
 
@@ -286,7 +302,7 @@ sub strip_conjecture {
     my $self = shift;
 
     my $path = $self->get_path ();
-    my @axioms = $self->get_axioms ();
+    my @axioms = $self->get_axioms (1);
 
     (my $new_fh, my $new_path) = tempfile ();
 
@@ -569,6 +585,177 @@ sub postulate {
     }
 
     return $theory;
+
+}
+
+sub independent_axiom {
+    my $self = shift;
+    my $axiom = shift;
+
+    my $axiom_name = $axiom->get_name ();
+
+    if (! $self->has_axiom ($axiom)) {
+	my $axiom_as_tptp_formula = $axiom->tptpify ();
+	my $path = $self->get_path ();
+	croak 'The theory at', $SPACE, $path, $SPACE, 'has no axiom called', $SPACE, $axiom_name, $SPACE, 'or, if it does, it is not identical to the given axiom', "\N{LF}", "\N{LF}", $TWO_SPACES, $axiom_as_tptp_formula;
+    }
+
+    my $trimmed_theory = $self->remove_formula ($axiom);
+
+    my $trimmed_theory_conjecture_false
+	= $trimmed_theory->promote_conjecture_to_false_axiom ();
+
+    # carp 'Testing independence of', $SPACE, $axiom_name, ', the trimmed theory is now:', "\N{LF}", Dumper ($trimmed_theory);
+
+    my $satisfiable = $trimmed_theory_conjecture_false->is_satisfiable ();
+
+    if ($satisfiable == -1) {
+	# carp 'Model finder failed; trying a theorem prover.';
+	my $proves = $trimmed_theory->proves ($axiom);
+	if ($proves == -1) {
+	    return -1;
+	} elsif ($proves == 0) {
+	    return 1;
+	} else {
+	    return 0;
+	}
+    } else {
+	return $satisfiable;
+    }
+
+    return $trimmed_theory->is_satisfiable ();
+
+}
+
+sub is_satisfiable {
+    my $self = shift;
+    my $model_result = TPTP::find_model ($self);
+
+    my $model_szs_status
+	= $model_result->has_szs_status () ? $model_result->get_szs_status () : 'Unknown';
+
+    my $model_output = $model_result->get_output ();
+
+    # carp 'Model output:', "\N{LF}", $model_output;
+
+    if ($model_result->timed_out () || $model_szs_status eq 'Unknown') {
+	# Try to use a theorem prover
+
+	# carp 'Failed to determine satisfiability using a model finder (SZS status ', $model_szs_status, '); going for a theorem prover';
+
+	my $prover_result = TPTP::prove ($self);
+
+	# carp 'Prover result:', Dumper ($prover_result);
+
+	my $prover_szs_status = $prover_result->has_szs_status () ? $prover_result->get_szs_status () : 'Unknown';
+	if ($prover_result->timed_out ()) {
+	    return -1;
+	} elsif ($prover_szs_status eq 'Unknown') {
+	    return -1;
+	} elsif ($prover_szs_status eq 'Satisfiable') {
+	    return 1;
+	} elsif ($prover_szs_status eq 'Unsatisfiable') {
+	    return 0;
+	} else {
+	    # Can't figure this out
+	    return -1;
+	}
+    } elsif ($model_szs_status eq 'Unsatisfiable') {
+	return 0;
+    } elsif ($model_szs_status eq 'Satisfiable') {
+	return 1;
+    } else {
+	# Can't figure this out
+	return -1;
+    }
+
+}
+
+sub proves {
+    my $self = shift;
+    my $formula = shift;
+
+    if ($self->has_conjecture_formula ()) {
+	my $path = $self->get_path ();
+	my $formula_name = $formula->get_name ();
+	croak 'The theory at', "\N{LF}", "\N{LF}", $TWO_SPACES, $path, "\N{LF}", "\N{LF}", 'already has a conjecture formula; checking whether it proves', "\N{LF}", "\N{LF}", $TWO_SPACES, $formula_name, "\N{LF}", "\N{LF}", 'is not well-defined.';
+    }
+
+    my $formula_as_conjecture = $formula->make_conjecture ();
+    my $new_theory = $self->add_formula ($formula_as_conjecture);
+
+    my $result = TPTP::prove ($new_theory);
+    my $szs_status
+	= $result->has_szs_status () ? $result->get_szs_status () : 'Unknown';
+
+    if ($result->timed_out ()) {
+	return -1;
+    } elsif ($szs_status eq 'Unknown') {
+	return -1;
+    } elsif ($szs_status eq 'Theorem') {
+	return 1;
+    } elsif ($szs_status eq 'Unsatisfiable') {
+	return 1;
+    } else {
+	return 0;
+    }
+
+}
+
+sub has_axiom {
+    my $self = shift;
+    my $maybe_axiom = shift;
+
+    my $maybe_axiom_name = $maybe_axiom->get_name ();
+    my @axioms = $self->get_axioms (1);
+    my @axiom_names = map { $_->get_name () } @axioms;
+
+    if (any { $_ eq $maybe_axiom_name } @axiom_names) {
+	my $found_axiom = $self->formula_with_name ($maybe_axiom_name);
+	return $maybe_axiom->equal_to ($found_axiom);
+    } else {
+	return 0;
+    }
+
+}
+
+sub fofify {
+    my $self = shift;
+
+    my $path = $self->get_path ();
+
+    my @tptp4x_call
+	= ('tptp4X', '-N', '-V', '-c', '-umachine', '-x', '-tfofify', $path);
+
+    my $tptp4x_err = $EMPTY_STRING;
+    my $tptp4x_out = $EMPTY_STRING;
+
+    my $tptp4x_harness = harness (\@tptp4x_call,
+				  '>', \$tptp4x_out,
+				  '2>', \$tptp4x_err);
+
+    $tptp4x_harness->start ();
+    $tptp4x_harness->finish ();
+
+    my $tptp4x_exit_code = $tptp4x_harness->result (0);
+
+    if ($tptp4x_exit_code != 0) {
+	if ($tptp4x_err eq $EMPTY_STRING) {
+	    croak 'tptp4X did not exit cleanly working on ', $path, '; there was no error output.';
+	} else {
+	    croak 'tptp4X did not exit cleanly working on ', $path, '; the error output was:', "\n", $tptp4x_err;
+	}
+    }
+
+    (my $new_fh, my $new_path) = tempfile ();
+
+    print {$new_fh} $tptp4x_out
+	or croak 'Unable to print the tptp4X fofify output to a temporary filehandle.';
+
+    close $new_fh
+	or croak 'Unable to close the output filehandle into which we are writing the fofify\'d version of', $SPACE, $path;
+
+    return Theory->new (path => $new_path);
 
 }
 
