@@ -17,6 +17,7 @@ Readonly my $TPTP4X => 'tptp4X';
 Readonly my $EMPTY_STRING => q{};
 Readonly my $TWO_SPACES => q{  };
 Readonly my $SPACE => q{ };
+Readonly my $FULL_STOP => q{.};
 
 has 'path' => (
     is => 'rw',
@@ -51,6 +52,20 @@ has predicate_symbol_table => (
     is => 'rw',
     writer => '_set_predicate_symbol_table',
     reader => 'get_predicate_symbol_table',
+);
+
+has function_symbol_arities => (
+    isa => 'HashRef',
+    is => 'rw',
+    writer => '_set_function_symbol_arities',
+    reader => 'get_function_symbol_arities',
+);
+
+has predicate_symbol_arities => (
+    isa => 'HashRef',
+    is => 'rw',
+    writer => '_set_predicate_symbol_arities',
+    reader => 'get_predicate_symbol_arities',
 );
 
 sub BUILD {
@@ -123,7 +138,7 @@ sub BUILD {
 
 	foreach my $symbol_by_formula (@symbols_by_formula) {
 	    if ($symbol_by_formula =~ / \A symbols [(]
-                                                   ([a-zA-Z0-9_]+)
+                                                   (.+)
                                                    [,]
                                                    [[] (.*) []]
                                                    [,]
@@ -160,7 +175,9 @@ sub BUILD {
 	}
     }
 
+    $self->_set_function_symbol_arities (\%function_symbol_arities);
     $self->_set_function_symbol_table (\%function_symbol_table);
+    $self->_set_predicate_symbol_arities (\%predicate_symbol_arities);
     $self->_set_predicate_symbol_table (\%predicate_symbol_table);
 
     $self->_set_formula_table (\%formula_table);
@@ -178,6 +195,8 @@ sub formula_with_name {
     my $name = shift;
 
     my %formula_table = %{$self->get_formula_table ()};
+
+    carp 'Formula table:', Dumper (%formula_table);
 
     if (defined $formula_table{$name}) {
 	return $formula_table{$name};
@@ -569,6 +588,57 @@ sub get_all_symbols {
 
 }
 
+sub has_function_symbol {
+    my $self = shift;
+    my $symbol = shift;
+
+    my @function_symbols = @{$self->get_function_symbols ()};
+
+    return any { $_ eq $symbol } @function_symbols;
+}
+
+sub has_predicate_symbol {
+    my $self = shift;
+    my $symbol = shift;
+
+    my @predicate_symbols = @{$self->get_predicate_symbols ()};
+
+    return any { $_ eq $symbol } @predicate_symbols;
+}
+
+sub has_symbol {
+    my $self = shift;
+    my $symbol = shift;
+
+    return ($self->has_function_symbol ($symbol)
+		|| $self->has_predicate_symbol ($symbol));
+}
+
+sub arity_of_symbol {
+    my $self = shift;
+    my $symbol = shift;
+
+    my $path = $self->get_path ();
+
+    if ($self->has_predicate_symbol ($symbol)) {
+	my %predicate_symbol_arities = %{$self->get_predicate_symbol_arities ()};
+	if (defined $predicate_symbol_arities{$symbol}) {
+	    return $predicate_symbol_arities{$symbol};
+	} else {
+	    croak 'The theory at', $SPACE, $path, $SPACE, 'has the symbol', $SPACE, $symbol, $SPACE, ', but it is missing from the predicate symbol arities table.';
+	}
+    } elsif ($self->has_function_symbol ($symbol)) {
+	my %function_symbol_arities = %{$self->get_function_symbol_arities ()};
+	if (defined $function_symbol_arities{$symbol}) {
+	    return $function_symbol_arities{$symbol};
+	} else {
+	    croak 'The theory at', $SPACE, $path, $SPACE, 'has the symbol', $SPACE, $symbol, $SPACE, ', but it is missing from the function symbol arities table.';
+	}
+    } else {
+	croak 'The symbol', $SPACE, $symbol, $SPACE, 'is not used by any formula of the theory at', $SPACE, $path, $SPACE, $FULL_STOP;
+    }
+}
+
 sub postulate {
     my $self = shift;
     my $new_axioms_ref = shift;
@@ -629,7 +699,10 @@ sub independent_axiom {
 
 sub is_satisfiable {
     my $self = shift;
-    my $model_result = TPTP::find_model ($self);
+    my $parameters_ref = shift;
+
+    my %parameters = defined $parameters_ref ? %{$parameters_ref} : ();
+    my $model_result = TPTP::find_model ($self, \%parameters);
 
     my $model_szs_status
 	= $model_result->has_szs_status () ? $model_result->get_szs_status () : 'Unknown';
@@ -643,7 +716,7 @@ sub is_satisfiable {
 
 	# carp 'Failed to determine satisfiability using a model finder (SZS status ', $model_szs_status, '); going for a theorem prover';
 
-	my $prover_result = TPTP::prove ($self);
+	my $prover_result = TPTP::prove ($self, \%parameters);
 
 	# carp 'Prover result:', Dumper ($prover_result);
 
