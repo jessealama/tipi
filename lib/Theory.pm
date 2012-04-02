@@ -13,9 +13,6 @@ use Formula;
 use Utils qw(ensure_readable_file slurp);
 use Data::Dumper;
 
-use overload fallback => 1,
-    '""' => \&tptpify;
-
 Readonly my $TPTP4X => 'tptp4X';
 Readonly my $EMPTY_STRING => q{};
 Readonly my $TWO_SPACES => q{  };
