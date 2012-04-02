@@ -57,6 +57,8 @@ my $opt_model_finder_timeout = 5;
 my $opt_proof_finder_timeout = 30;
 my $opt_force = 0;
 my $opt_semantically_use_all_axioms = 0;
+my $opt_show_only_final_used_premises = 0;
+my $opt_show_only_final_unused_premises = 0;
 
 sub BUILD {
     my $self = shift;
@@ -115,6 +117,8 @@ around 'execute' => sub {
 	'proof-finder-timeout=i' => \$opt_proof_finder_timeout,
 	'use-all-axioms' => \$opt_semantically_use_all_axioms,
 	'force' => \$opt_force,
+	'only-used' => \$opt_show_only_final_used_premises,
+	'only-unused' => \$opt_show_only_final_unused_premises,
     ) or pod2usage (2);
 
     if ($opt_help) {
@@ -161,6 +165,11 @@ around 'execute' => sub {
 
     if ($opt_method ne 'semantically' && $opt_semantically_use_all_axioms) {
 	pod2usage (-msg => error_message ('The --use-all-axioms option is applicable only when reproving semantically.'),
+		   -exitval => 2);
+    }
+
+    if ($opt_show_only_final_used_premises && $opt_show_only_final_unused_premises) {
+	pod2usage (-msg => error_message ('One cannot choose to show only the used and unused premises.'),
 		   -exitval => 2);
     }
 
@@ -223,13 +232,18 @@ sub reprove_syntactically {
 	print {*STDERR} 'The derivation was just obtained:', "\N{LF}", Dumper ($derivation);
     }
 
-    print 'PREMISES (', colored ('used', $USED_PREMISE_COLOR), ' / ', colored ('unused', $UNUSED_PREMISE_COLOR), ')', "\N{LF}";
+    if (! $opt_show_only_final_used_premises
+	    && ! $opt_show_only_final_unused_premises) {
+	print 'PREMISES (', colored ('used', $USED_PREMISE_COLOR), ' / ', colored ('unused', $UNUSED_PREMISE_COLOR), ')', "\N{LF}";
+    }
 
     my @unused_premises = $derivation->get_unused_premises ();
 
     while (scalar @unused_premises > 0) {
 
-	print_formula_names_with_color (\@unused_premises, $UNUSED_PREMISE_COLOR);
+	if (! $opt_show_only_final_used_premises) {
+	    print_formula_names_with_color (\@unused_premises, $UNUSED_PREMISE_COLOR);
+	}
 
 	$theory = $derivation->theory_from_used_premises ();
 	$derivation = prove_if_possible ($theory);
@@ -238,7 +252,14 @@ sub reprove_syntactically {
     }
 
     my @used_premises = $derivation->get_used_premises ();
-    print_formula_names_with_color (\@used_premises, $USED_PREMISE_COLOR);
+
+    if ($opt_show_only_final_used_premises) {
+	print_formula_names_with_color (\@used_premises);
+    } elsif ($opt_show_only_final_unused_premises) {
+	# nothing to do
+    } else {
+	print_formula_names_with_color (\@used_premises, $USED_PREMISE_COLOR);
+    }
 
     return 1;
 
