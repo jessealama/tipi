@@ -44,7 +44,7 @@ Readonly my $GOOD_COLOR => 'green';
 Readonly my $BAD_COLOR => 'red';
 Readonly my $UNKNOWN_COLOR => 'yellow';
 Readonly my $NEEDED_PREMISE_COLOR => 'red';
-Readonly my $UNNEEDED_PREMISE_COLOR => 'yellow';
+Readonly my $UNNEEDED_PREMISE_COLOR => 'cyan';
 
 my $opt_show_output = 0;
 my $opt_show_premises = 0;
