@@ -98,6 +98,11 @@ sub make_axiom {
     return $self->change_status ('axiom');
 }
 
+sub make_conjecture {
+    my $self = shift;
+    return $self->change_status ('conjecture');
+}
+
 sub negate {
     my $self = shift;
 
