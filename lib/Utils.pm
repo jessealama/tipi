@@ -10,7 +10,7 @@ use charnames qw(:full);
 use English qw(-no_match_vars);
 use Term::ANSIColor;
 use Data::Dumper;
-use List::MoreUtils qw(first_index any);
+use List::MoreUtils qw(first_index any all none);
 
 our @EXPORT_OK = qw(ensure_readable_file
 		    ensure_directory
@@ -22,7 +22,9 @@ our @EXPORT_OK = qw(ensure_readable_file
 		    error_message
 		    warning_message
 		    message
+		    all_sublists
 		    all_nonempty_sublists
+		    remove_duplicate_lists
 		    subtuple
 		    tuple_less_than_wrt_ordering
 	            message_with_extra_linefeed);
@@ -302,6 +304,70 @@ sub tuple_less_than_wrt_ordering {
 	}
     } else {
 	return 1;
+    }
+}
+
+sub list_member {
+    my $element = shift;
+    my $list_ref = shift;
+    my @list = @{$list_ref};
+    return ((any { $_ eq $element } @list) ? 1 : 0);
+}
+
+sub sublist {
+    my $list_ref_1 = shift;
+    my $list_ref_2 = shift;
+
+    my @list_1 = @{$list_ref_1};
+
+    if (scalar @list_1 == 0) {
+	return 1;
+    } else {
+	my $result = all { list_member ($_, $list_ref_2) } @list_1;
+	$result = $result ? 1 : 0;
+	return $result;
+    }
+
+
+}
+
+sub equal_lists {
+    my $list_ref_1 = shift;
+    my $list_ref_2 = shift;
+
+    my @list_1 = @{$list_ref_1};
+    my @list_2 = @{$list_ref_2};
+
+    if (sublist ($list_ref_1, $list_ref_2)) {
+	return sublist ($list_ref_2, $list_ref_1);
+    } else {
+	return 0;
+    }
+
+}
+
+sub remove_duplicate_lists {
+    my @list_refs = @_;
+
+    my $num_list_refs = scalar @list_refs;
+    my @final_list = ();
+
+    foreach my $i (0 .. $num_list_refs - 1) {
+	my $list_ref = $list_refs[$i];
+	my @tail = @list_refs[$i + 1 .. $num_list_refs - 1];
+	if (scalar @tail == 0) {
+	    push (@final_list, $list_ref);
+	} else {
+	    if (none { equal_lists ($_, $list_ref) } @tail) {
+		push (@final_list, $list_ref);
+	    }
+	}
+    }
+
+    if (wantarray) {
+	return @final_list;
+    } else {
+	return \@final_list;
     }
 }
 
