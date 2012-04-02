@@ -29,6 +29,7 @@ use PremisesCommand;
 use ConjectureCommand;
 use ModelCommand;
 use SymbolsCommand;
+use IndependenceCommand;
 
 Readonly my $VERSION => qv('1.0');
 
@@ -44,6 +45,7 @@ Readonly my %COMMANDS => (
     'conjecture' => ConjectureCommand->new (),
     'model' => ModelCommand->new (),
     'symbols' => SymbolsCommand->new (),
+    'independence' => IndependenceCommand->new (),
 );
 
 my $opt_man       = 0;
