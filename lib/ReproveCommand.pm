@@ -366,42 +366,32 @@ sub reprove_semantically {
     my %unneeded = ();
     my %unknown = ();
 
-    say colored ('Step 2', 'blue'), ': From the', $SPACE, scalar @axioms, $SPACE, colored ('used', $USED_PREMISE_COLOR), $SPACE, 'premises, determine the', $SPACE, colored ('needed', $NEEDED_PREMISE_COLOR), $SPACE, 'premises.';
+    say colored ('Step 2', 'blue'), ': From the', $SPACE, scalar @axioms, $SPACE, colored ('used', $USED_PREMISE_COLOR), $SPACE, 'premises, determine the', $SPACE, colored ('needed', $NEEDED_PREMISE_COLOR), $SPACE, 'ones.';
 
-    print 'PREMISES (', colored ('needed', $NEEDED_PREMISE_COLOR), ' / ', colored ('unknown', $UNKNOWN_COLOR), ')', "\N{LF}";
+    print 'PREMISES (', colored ('needed', $NEEDED_PREMISE_COLOR), $SPACE, $SLASH, $SPACE, colored ('unneeded', $UNNEEDED_PREMISE_COLOR), $SPACE, $SLASH, $SPACE, colored ('unknown', $UNKNOWN_COLOR), ')', "\N{LF}";
 
     foreach my $axiom (@axioms) {
 	my $axiom_name = $axiom->get_name ();
 	my $trimmed_theory = $theory->remove_formula ($axiom);
-	my $tptp_result = eval
-	    { TPTP::find_model ($trimmed_theory,
-				{ 'timeout' => $opt_model_finder_timeout }) };
-	my $tptp_find_model_message = $@;
+	my $satisfiable = $trimmed_theory->is_satisfiable ();
 
-	my $szs_status
-	    = (defined $tptp_result && $tptp_result->has_szs_status ()) ? $tptp_result->get_szs_status () : 'Unknown';
-
-	if (defined $tptp_result) {
-	    if ($tptp_result->timed_out ()) {
-		say colored ($axiom_name, $UNKNOWN_COLOR), $SPACE, '(SZS status', $SPACE, $szs_status, ')';
-		$unknown{$axiom_name} = 0;
-	    } elsif ($szs_status eq 'Satisfiable') {
-		say colored ($axiom_name, $NEEDED_PREMISE_COLOR), $SPACE, '(SZS status', $SPACE, $szs_status, ')';
-		$needed{$axiom_name} = 0;
-	    } else {
-		say colored ($axiom_name, $UNKNOWN_COLOR), $SPACE, '(SZS status', $SPACE, $szs_status, ')';
-		$unknown{$axiom_name} = 0;
-	    }
+	if ($satisfiable == -1) {
+	    say colored ($axiom_name, $UNKNOWN_COLOR);
+	    $unknown{$axiom_name} = 0;
+	} elsif ($satisfiable == 0) {
+	    say colored ($axiom_name, $UNNEEDED_PREMISE_COLOR);
+	    $unneeded{$axiom_name} = 0;
 	} else {
-	    say {*STDERR} warning_message ('Something went wrong when testing whether ', $axiom_name, ' can be removed:', "\N{LF}", $tptp_find_model_message);
+	    say colored ($axiom_name, $NEEDED_PREMISE_COLOR);
+	    $needed{$axiom_name} = 0;
 	}
 
     }
 
-    if ($theory->has_conjecture_formula ()) {
-	print colored ('Step 3', 'blue'), ': Derive the conjecture from only ', colored ('needed', $NEEDED_PREMISE_COLOR), ' premises:';
+    if (defined $conjecture) {
+	print colored ('Step 3', 'blue'), ': Derive the conjecture from only the', $SPACE, scalar keys %needed, $SPACE, colored ('needed', $NEEDED_PREMISE_COLOR), ' premises:';
     } else {
-	print colored ('Step 3', 'blue'), ': Solve the problem from only ', colored ('needed', $NEEDED_PREMISE_COLOR), ' premises:';
+	print colored ('Step 3', 'blue'), ': Solve the problem from only the', $SPACE, scalar keys %needed, $SPACE, colored ('needed', $NEEDED_PREMISE_COLOR), ' premises:';
     }
 
     # Dump everything that is not known to be needed
@@ -415,7 +405,7 @@ sub reprove_semantically {
 
     # Remove the old conjecture, which was promoted to a false axiom,
     # and put it back as the conjecture.
-    if ($theory->has_conjecture_formula ()) {
+    if (defined $conjecture) {
 	$small_theory = $small_theory->remove_formula ($conjecture);
 	$small_theory = $small_theory->add_formula ($conjecture);
     }
@@ -436,9 +426,9 @@ sub reprove_semantically {
 	= $new_result->has_szs_status () ? $new_result->get_szs_status () : 'Unknown';
 
     if ($new_result_szs_status eq $opt_solution_szs_status) {
-	say $SPACE, colored ('OK', 'green');
+	say $SPACE, colored ('OK', $GOOD_COLOR);
     } else {
-	say $SPACE, colored ('Not OK', 'red'), ' (SZS status ', $new_result_szs_status, ')';
+	say $SPACE, colored ('Not OK', $BAD_COLOR), ' (SZS status ', $new_result_szs_status, ')';
     }
 
     if ($new_result_szs_status eq $opt_solution_szs_status) {
@@ -518,7 +508,9 @@ sub reprove_semantically {
 	$progress->update ($num_combinations);
 
 	if (scalar @solved_so_far == 0) {
-	    say 'Unfortunately, no solutions were found.';
+	    say 'Unfortunately, we found no proper subtheories of the original theory';
+	    say 'that contain all', $SPACE, colored ('needed', $NEEDED_PREMISE_COLOR), $SPACE, 'premises';
+	    say 'and which derive the conjecture.';
 	} else {
 
 	    say 'We found', $SPACE, scalar @solved_so_far, $SPACE, 'solution(s).';
