@@ -31,6 +31,7 @@ Readonly my $TPTP4X => 'tptp4X';
 Readonly my $EMPTY_STRING => q{};
 Readonly my $DEFAULT_PROVER_TIMEOUT => 30;
 Readonly my $TWO_SPACES => q{  };
+Readonly my $SPACE => q{ };
 Readonly my $USED_PREMISE_COLOR => 'blue';
 Readonly my $UNUSED_PREMISE_COLOR => 'bright_black';
 Readonly my $GOOD_COLOR => 'green';
@@ -143,9 +144,12 @@ sub prove {
 
 sub prove_if_possible {
     my $theory = shift;
+    my $parameters_ref = shift;
+
+    my %parameters = defined $parameters_ref ? %{$parameters_ref} : ();
 
     my $theory_path = $theory->get_path ();
-    my $tptp_result = eval { prove ($theory) };
+    my $tptp_result = eval { prove ($theory, \%parameters) };
     my $tptp_message = $@;
 
     if (! defined $tptp_result) {
@@ -170,7 +174,11 @@ sub prove_if_possible {
     }
 
     if (! $tptp_result->exited_cleanly ()) {
+	my $exit_code = $tptp_result->get_exit_code ();
+	my $error_output = $tptp_result->get_error_output ();
 	print {*STDERR} message (error_message ('The prover terminated, but it did not exit cleanly when working with ', $theory_path, '.'));
+	say STDERR 'The exit code was', $SPACE, $exit_code, ', and the error output was:';
+	say $error_output;
 	exit 1;
     }
 
