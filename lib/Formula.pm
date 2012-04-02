@@ -145,5 +145,12 @@ sub equal_to {
 			&& $self_formula eq $other_formula_formula);
 }
 
+sub is_first_order {
+    my $self = shift;
+    my $kind = $self->get_kind ();
+
+    return $kind ne 'tff';
+}
+
 1;
 __END__
