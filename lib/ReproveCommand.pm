@@ -47,7 +47,6 @@ Readonly my $NEEDED_PREMISE_COLOR => 'red';
 Readonly my $UNNEEDED_PREMISE_COLOR => 'cyan';
 
 my $opt_show_output = 0;
-my $opt_show_premises = 0;
 my $opt_help = 0;
 my $opt_man = 0;
 my $opt_verbose = 0;
