@@ -443,7 +443,7 @@ sub reprove_semantically {
     # Remove the old conjecture, which was promoted to a false axiom,
     # and put it back as the conjecture.
     if (defined $conjecture) {
-	$small_theory = $small_theory->remove_formula ($conjecture);
+	$small_theory = $small_theory->strip_conjecture ($conjecture);
 	$small_theory = $small_theory->add_formula ($conjecture);
     }
 
