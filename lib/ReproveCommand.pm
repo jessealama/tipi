@@ -379,6 +379,10 @@ sub reprove_semantically {
 
 	$theory = $theory->remove_formulas (@unused_premises);
 
+	if ($opt_debug) {
+	    say {*STDERR} 'After removing', "\N{LF}", join ("\N{LF}", @unused_premises), "\N{LF}", 'the theory now looks like this:', "\N{LF}", Dumper ($theory);
+	}
+
 	@axioms = @used_premises;
     }
 
@@ -421,11 +425,18 @@ sub reprove_semantically {
     }
 
     # Dump everything that is not known to be needed
-    my $small_theory = $theory;
+    my $small_theory = $theory->copy ();
     foreach my $axiom (@axioms) {
 	my $axiom_name = $axiom->get_name ();
-	if (! defined $needed{$axiom_name}) {
+	if (defined $needed{$axiom_name}) {
+	    if ($opt_debug) {
+		say {*STDERR} $axiom_name, $SPACE, 'is needed, so we are keeping it.';
+	    }
+	} else {
 	    $small_theory = $small_theory->remove_formula ($axiom);
+	    if ($opt_debug) {
+		say {*STDERR} $axiom_name, $SPACE, 'is not needed, so it has been removed.';
+	    }
 	}
     }
 
@@ -572,7 +583,10 @@ sub reprove_semantically {
 			$bigger_result->get_szs_status ()
 			    : 'Unknown';
 		if ($bigger_result_szs_status eq $opt_solution_szs_status) {
-		    message ('Solution found:', "\N{LF}", join ("\N{LF}", @tuple));
+		    say 'Solution found:', "\N{LF}", join ("\N{LF}", @tuple), "\N{LF}";
+		    if ($opt_debug) {
+			say {*STDERR} 'The theory where this was proved is:', "\N{LF}", Dumper ($bigger_theory);
+		    }
 		    push (@solved_so_far_positively, \@tuple);
 		} else {
 		    $num_candidates_unknown++;
