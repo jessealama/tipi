@@ -349,7 +349,8 @@ sub reprove_semantically {
     }
 
     if ($initial_proof_szs_status ne $opt_solution_szs_status && ! $opt_force) {
-	say '(Use --force to continue, even when the initial proof attempt is unsuccessful.)';
+	say '(Use --force to continue, even when the initial proof attempt is unsuccessful.';
+	say '(Use --use-all-axioms to treat all of the axioms of the theory as "used" in the initial proof attempt.)';
 	return 1;
     }
 
