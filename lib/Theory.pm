@@ -643,7 +643,8 @@ sub postulate {
 
     my @new_axioms = @{$new_axioms_ref};
 
-    my $theory = $self;
+    my $path = $self->get_path ();
+    my $theory = Theory->new (path => $path);
 
     # warn 'New axioms:', $SPACE, Dumper (@new_axioms);
 
