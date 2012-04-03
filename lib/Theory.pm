@@ -196,8 +196,6 @@ sub formula_with_name {
 
     my %formula_table = %{$self->get_formula_table ()};
 
-    carp 'Formula table:', Dumper (%formula_table);
-
     if (defined $formula_table{$name}) {
 	return $formula_table{$name};
     } else {
