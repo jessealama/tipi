@@ -847,5 +847,11 @@ sub is_first_order {
     }
 }
 
+sub copy {
+    my $self = shift;
+    my $path = $self->get_path ();
+    return Theory->new (path => $path);
+}
+
 1;
 __END__
