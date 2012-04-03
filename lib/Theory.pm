@@ -414,12 +414,12 @@ sub remove_formulas {
 
     my $path = $self->get_path ();
     my @formulas = $self->get_formulas (1);
-
+    my @names_of_formulas_to_remove = map { $_->get_name () } @formulas_to_remove;
     (my $new_fh, my $new_path) = tempfile ();
 
     foreach my $formula (@formulas) {
 	my $formula_name = $formula->get_name ();
-	if (any { $formula_name eq $_ } @formulas_to_remove) {
+	if (any { $formula_name eq $_ } @names_of_formulas_to_remove) {
 	    # do nothing
 	} else {
 	    print {$new_fh} $formula->tptpify (), "\N{LF}";
