@@ -95,7 +95,7 @@ sub process_commandline {
     }
 
     if (scalar @ARGV == 0) {
-	my $message = message_with_extra_padding ('Please supply a tipi command.  The available commands are:');
+	my $message = message_with_extra_linefeed ('Please supply a tipi command.  The available commands are:');
 	$message .= message (summarize_commands ());
 	$message .= message ('See the man page for more information.  (Invoke this program with the option \'--man\'.)');
 	pod2usage (-message => error_message ($message),
