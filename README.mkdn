@@ -74,7 +74,22 @@ able to get by without all the dependencies, but for safety I
 recommend you install all of them.  If a needed dependency is missing,
 your perl will quickly complain loudly and die.  It's possible that
 earlier versions of the required modules may work, but that is not
-tested.
+tested.  To install perl modules, I recommend using either the package
+system that comes with your operating system (probably all of the
+packages are available in a recent release of Ubuntu GNU/Linux) or the
+CPAN module.  Get started by doing:
+
+    $ perl -MCPAN -e shell
+
+and then installing packages using commands such as
+
+    install Algorithm::Combinatorics
+
+and then watch it fly.  Any needed but missing dependencies will be
+downloaded and installed.  There is an issue about where CPAN installs
+the modules.  Do you want the modules installed just for you, or for
+other people on your machine?  I can't really help you answer that
+question.
 
 # Go! #
 
