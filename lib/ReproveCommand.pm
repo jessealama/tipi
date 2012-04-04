@@ -233,6 +233,7 @@ sub reprove_syntactically {
     my $theory = shift;
 
     my $derivation = prove_if_possible ($theory,
+					$opt_prover,
 					{ 'timeout' => $opt_proof_finder_timeout });
 
     if ($opt_debug) {
