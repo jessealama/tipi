@@ -56,6 +56,7 @@ my $opt_man = 0;
 my $opt_verbose = 0;
 my $opt_debug = 0;
 my $opt_solution_szs_status = 'Theorem';
+my $opt_proof_finder = 'eprover';
 my $opt_model_finder_timeout = 5;
 my $opt_proof_finder_timeout = 30;
 my $opt_skip_initial_proof = 0;
@@ -113,6 +114,7 @@ around 'execute' => sub {
 	'verbose' => \$opt_verbose,
 	'help|?' => \$opt_help,
 	'debug' => \$opt_debug,
+	'proof-finder=s' => \$opt_proof_finder,
 	'solution-szs-status=s' => \$opt_solution_szs_status,
 	'model-finder-timeout=i' => \$opt_model_finder_timeout,
 	'proof-finder-timeout=i' => \$opt_proof_finder_timeout,
@@ -241,7 +243,7 @@ sub execute {
 	$initial_proof_szs_status = $opt_solution_szs_status;
     } else {
 
-	$initial_proof_result = TPTP::prove ($theory);
+	$initial_proof_result = TPTP::prove ($theory, $opt_proof_finder);
 	$initial_proof_szs_status
 	    = $initial_proof_result->has_szs_status ? $initial_proof_result->get_szs_status ()
 		: 'Unknown';
