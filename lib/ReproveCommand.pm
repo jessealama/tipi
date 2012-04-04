@@ -489,6 +489,7 @@ sub reprove_semantically {
 	my $progress = Term::ProgressBar->new ({ count => $num_combinations });
 	my $num_tuples_handled = 0;
 	my $num_candidates_unknown = 0;
+	my $num_already_known_good = 0;
 	$progress->update (0);
 
 	foreach my $k (0 .. scalar @candidate_formulas) {
@@ -515,12 +516,9 @@ sub reprove_semantically {
 		    = any { subtuple ($_, \@tuple); } @solved_so_far_positively;
 
 		if ($already_known_good) {
-		    $progress->update ($num_tuples_handled);
+		    $num_already_known_good++;
 		    next;
 		}
-
-		my $already_known_bad
-		    = any { subtuple (\@tuple, $_); } @solved_so_far_negatively;
 
 		my @formulas = map { $theory->formula_with_name ($_) } @tuple;
 		my $bigger_theory = $small_theory->postulate (\@formulas);
@@ -586,6 +584,11 @@ sub reprove_semantically {
 
 	    print_solvable_supertheories (\@solved_sorted,
 					  \@sorted_sufficient_additional_axioms);
+
+	    say 'Along the way, we found', $SPACE, $num_candidates_unknown, $SPACE, 'combinations of premises';
+	    say 'for which we could not determine whether they constitute a solution.';
+	    say 'There were', $SPACE, $num_already_known_good, $SPACE, 'combinations that properly extend known good combinations,';
+	    say 'so they were not printed.';
 	}
 
     }
