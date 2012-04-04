@@ -27,6 +27,7 @@ our @EXPORT_OK = qw(ensure_tptp4x_available
 use Result;
 use Utils qw(ensure_readable_file
 	     message
+	     message_with_extra_linefeed
 	     error_message);
 
 Readonly my $TPTP4X => 'tptp4X';
