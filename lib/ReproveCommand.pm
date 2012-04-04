@@ -515,7 +515,9 @@ sub reprove_semantically {
 
 	foreach my $k (0 .. scalar @candidate_formulas) {
 
-	    carp 'Iterating combinations of size', $SPACE, $k;
+	    if ($opt_debug) {
+		carp 'Iterating combinations of size', $SPACE, $k;
+	    }
 
 	    my $candidate_iterator = combinations (\@candidate_formulas, $k);
 
