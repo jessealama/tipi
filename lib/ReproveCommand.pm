@@ -168,6 +168,11 @@ around 'execute' => sub {
 		   -exitval => 2);
     }
 
+    # debult to syntactically
+    if (! $opt_semantically) {
+	$opt_syntactically = 1;
+    }
+
     if ($opt_model_finder_timeout < 0) {
 	pod2usage (-msg => error_message ('Invalid value ', $opt_model_finder_timeout, ' for the model-finder timeout option.'),
 		   -exitval => 2);
