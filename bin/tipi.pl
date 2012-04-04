@@ -98,7 +98,7 @@ sub process_commandline {
 	my $message = message_with_extra_linefeed ('Please supply a tipi command.  The available commands are:');
 	$message .= message (summarize_commands ());
 	$message .= message ('See the man page for more information.  (Invoke this program with the option \'--man\'.)');
-	pod2usage (-message => error_message ($message),
+	pod2usage (-message => $message,
 		   -exitstatus => 2);
     }
 
