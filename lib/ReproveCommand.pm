@@ -17,6 +17,7 @@ use List::MoreUtils qw(any);
 use Term::ProgressBar;
 use Regexp::DefaultFlags;
 use POSIX qw(ceil);
+use Algorithm::Combinatorics qw(combinations);
 
 extends 'Command';
 
@@ -481,55 +482,24 @@ sub reprove_semantically {
 	}
 
 	if (defined $conjecture) {
-	    say colored ('Step 4', 'blue'), ': Find combinations of', $SPACE, colored ('unknown', $UNKNOWN_COLOR), $SPACE, 'premises that, together with the', $SPACE, colored ('needed', $NEEDED_PREMISE_COLOR), ' premises, suffice to derive the conjecture.';
+	    say colored ('Step 4', 'blue'), ': Find combinations of', $SPACE, colored ('unknown', $UNKNOWN_COLOR), $SPACE, 'and', $SPACE, colored ('unneeded', $UNNEEDED_PREMISE_COLOR), $SPACE, 'premises that, together with the', $SPACE, colored ('needed', $NEEDED_PREMISE_COLOR), ' premises, suffice to derive the conjecture.';
 	} else {
-	    say colored ('Step 4', 'blue'), ': Find combinations of', $SPACE, colored ('unknown', $UNKNOWN_COLOR), $SPACE, 'premises that, together with the', $SPACE, colored ('needed', $NEEDED_PREMISE_COLOR), ' premises, suffice to solve the problem.';
+	    say colored ('Step 4', 'blue'), ': Find combinations of', $SPACE, colored ('unknown', $UNKNOWN_COLOR), $SPACE, 'and', $SPACE, colored ('unneeded', $UNNEEDED_PREMISE_COLOR), $SPACE, 'premises that, together with the', $SPACE, colored ('needed', $NEEDED_PREMISE_COLOR), ' premises, suffice to solve the problem.';
 	}
 
 	my @unknown_formulas = keys %unknown;
 	my @unneeded_formulas = keys %unneeded;
-	my @unknown_tuples = all_sublists (\@unknown_formulas);
+
+	my %candidates = ();
+	foreach my $formula (@unknown_formulas, @unneeded_formulas) {
+	    $candidates{$formula} = 0;
+	}
+	my @candidate_formulas = keys %candidates;
 
 	my @solved_so_far_positively = ();
 	my @solved_so_far_negatively = ();
 
-	my @candidates = @unknown_tuples;
-
-	push (@candidates, \@unneeded_formulas);
-
-	foreach my $unneeded_formula (@unneeded_formulas) {
-
-	    delete $unneeded{$unneeded_formula};
-	    my @other_unneeded_formulas = keys %unneeded;
-	    $unneeded{$unneeded_formula} = 0; # put it back -- we'll use it later
-
-	    my @other_unneeded_tuple_refs
-		= all_sublists (\@other_unneeded_formulas);
-
-	    foreach my $other_unneeded_tuple_ref (@other_unneeded_tuple_refs) {
-
-		my @other_unneeded_tuple = @{$other_unneeded_tuple_ref};
-
-		foreach my $tuple_ref (@unknown_tuples) {
-		    my @tuple = @{$tuple_ref};
-		    push (@tuple, @other_unneeded_tuple);
-		    push (@candidates, \@tuple);
-		}
-
-	    }
-
-	}
-
-	# Remove any duplicate lists
-	@candidates = remove_duplicate_lists (@candidates);
-
-	# Sort the candidates
-	@candidates = sort { tuple_less_than_wrt_ordering ($a,
-							   $b,
-							   \@axiom_names) }
-	    @candidates;
-
-	my $num_combinations = scalar @candidates;
+	my $num_combinations = 2 ** scalar @candidate_formulas;
 	my $estimate_seconds = $opt_proof_finder_timeout * $num_combinations;
 	my $estimate_minutes = ceil ($estimate_seconds / 60);
 	my $estimate_minutes_at_least_one
@@ -543,62 +513,69 @@ sub reprove_semantically {
 	my $num_candidates_unknown = 0;
 	$progress->update (0);
 
-	foreach my $tuple_ref (@candidates) {
+	foreach my $k (0 .. scalar @candidate_formulas) {
 
-	    $num_tuples_handled++;
+	    carp 'Iterating combinations of size', $SPACE, $k;
 
-	    my @tuple = @{$tuple_ref};
+	    my $candidate_iterator = combinations (\@candidate_formulas, $k);
 
-	    if (scalar @tuple == 0) {
+	    while (defined (my $tuple_ref = $candidate_iterator->next)) {
+
+		$num_tuples_handled++;
 		$progress->update ($num_tuples_handled);
-		next;
-	    }
 
-	    my $already_known_good
-		= any { subtuple ($_, \@tuple); } @solved_so_far_positively;
+		my @tuple = @{$tuple_ref};
 
-	    if ($already_known_good) {
-		$progress->update ($num_tuples_handled);
-		next;
-	    }
-
-	    my $already_known_bad
-		= any { subtuple (\@tuple, $_); } @solved_so_far_negatively;
-
-	    my @formulas = map { $theory->formula_with_name ($_) } @tuple;
-	    my $bigger_theory = $small_theory->postulate (\@formulas);
-
-	    my $bigger_theory_conjecture_false
-		= $bigger_theory->promote_conjecture_to_false_axiom ();
-	    my $conjecture_false_satisfiable
-		= $bigger_theory_conjecture_false->is_satisfiable ({ 'timeout' => $opt_model_finder_timeout });
-
-	    if ($conjecture_false_satisfiable == -1) {
-
-		# model finder did not give an answer; let's use a proof finder
-		my $bigger_result = TPTP::prove ($bigger_theory,
-						 { 'timeout' => $opt_proof_finder_timeout });
-		my $bigger_result_szs_status
-		    = $bigger_result->has_szs_status () ?
-			$bigger_result->get_szs_status ()
-			    : 'Unknown';
-		if ($bigger_result_szs_status eq $opt_solution_szs_status) {
-		    say 'Solution found:', "\N{LF}", join ("\N{LF}", @tuple), "\N{LF}";
-		    if ($opt_debug) {
-			say {*STDERR} 'The theory where this was proved is:', "\N{LF}", Dumper ($bigger_theory);
-		    }
-		    push (@solved_so_far_positively, \@tuple);
-		} else {
-		    $num_candidates_unknown++;
+		if (scalar @tuple == 0) {
+		    $progress->update ($num_tuples_handled);
+		    next;
 		}
 
-	    } elsif ($conjecture_false_satisfiable == 0) {
-		push (@solved_so_far_positively, \@tuple);
-	    } else {
-		push (@solved_so_far_negatively, \@tuple);
-	    }
+		my $already_known_good
+		    = any { subtuple ($_, \@tuple); } @solved_so_far_positively;
 
-	    $progress->update ($num_tuples_handled);
+		if ($already_known_good) {
+		    $progress->update ($num_tuples_handled);
+		    next;
+		}
+
+		my $already_known_bad
+		    = any { subtuple (\@tuple, $_); } @solved_so_far_negatively;
+
+		my @formulas = map { $theory->formula_with_name ($_) } @tuple;
+		my $bigger_theory = $small_theory->postulate (\@formulas);
+
+		my $bigger_theory_conjecture_false
+		    = $bigger_theory->promote_conjecture_to_false_axiom ();
+		my $conjecture_false_satisfiable
+		    = $bigger_theory_conjecture_false->is_satisfiable ({ 'timeout' => $opt_model_finder_timeout });
+
+		if ($conjecture_false_satisfiable == -1) {
+
+		    # model finder did not give an answer; let's use a proof finder
+		    my $bigger_result = TPTP::prove ($bigger_theory,
+						     { 'timeout' => $opt_proof_finder_timeout });
+		    my $bigger_result_szs_status
+			= $bigger_result->has_szs_status () ?
+			    $bigger_result->get_szs_status ()
+				: 'Unknown';
+		    if ($bigger_result_szs_status eq $opt_solution_szs_status) {
+			say 'Solution found:', "\N{LF}", join ("\N{LF}", @tuple), "\N{LF}";
+			if ($opt_debug) {
+			    say {*STDERR} 'The theory where this was proved is:', "\N{LF}", Dumper ($bigger_theory);
+			}
+			push (@solved_so_far_positively, \@tuple);
+		    } else {
+			$num_candidates_unknown++;
+		    }
+
+		} elsif ($conjecture_false_satisfiable == 0) {
+		    push (@solved_so_far_positively, \@tuple);
+		} else {
+		    push (@solved_so_far_negatively, \@tuple);
+		}
+
+	    }
 
 	}
 
