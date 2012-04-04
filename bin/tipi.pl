@@ -46,6 +46,7 @@ Readonly my %COMMANDS => (
     'model' => ModelCommand->new (),
     'symbols' => SymbolsCommand->new (),
     'independence' => IndependenceCommand->new (),
+    'minimize' => MinimizeCommand->new (),
 );
 
 my $opt_man       = 0;
