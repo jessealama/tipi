@@ -30,6 +30,7 @@ use ConjectureCommand;
 use ModelCommand;
 use SymbolsCommand;
 use IndependenceCommand;
+use MinimizeCommand;
 
 Readonly my $VERSION => qv('1.0');
 

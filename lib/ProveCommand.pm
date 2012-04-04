@@ -20,12 +20,14 @@ use Theory;
 use TPTP qw(ensure_tptp4x_available
 	    ensure_valid_tptp_file
 	    prove_if_possible
-	    ensure_sensible_tptp_theory);
+	    ensure_sensible_tptp_theory
+	    known_prover);
 use Utils qw(error_message
 	     ensure_readable_file);
 
 Readonly my $STDIN_PATH => q{--};
 Readonly my $TWO_SPACES => q{  };
+Readonly my $FULL_STOP => q{.};
 Readonly my $SPACE => q{ };
 Readonly my $EMPTY_STRING => q{};
 Readonly my $DESCRIPTION => 'Try proving a conjecture.';
@@ -41,6 +43,7 @@ my $opt_man = 0;
 my $opt_verbose = 0;
 my $opt_debug = 0;
 my $opt_solution_szs_status = 'Theorem';
+my $opt_prover = 'eprover';
 
 sub print_formula_names_with_color {
     my $formulas_ref = shift;
@@ -85,6 +88,7 @@ around 'execute' => sub {
 	'verbose' => \$opt_verbose,
 	'help|?' => \$opt_help,
 	'solution-szs-status=s' => \$opt_solution_szs_status,
+	'prover=s' => \$opt_prover,
     ) or pod2usage (2);
 
     if ($opt_help) {
@@ -106,12 +110,16 @@ around 'execute' => sub {
     if ($opt_solution_szs_status eq $EMPTY_STRING) {
 	pod2usage (-msg => error_message ('The empty string is not an acceptable SZS problem status.'),
 		   -exitval => 2);
-
     }
 
     if ($opt_solution_szs_status !~ /\A [A-Za-z]+ \z/) {
 	pod2usage (-msg => error_message ('Unacceptable SZS problem status', "\N{LF}", "\N{LF}", $TWO_SPACES, $opt_solution_szs_status),
 		   -exitval => 2);
+    }
+
+    if (! known_prover ($opt_prover)) {
+	say {*STDERR} error_message ($opt_prover, $SPACE, 'is not a known theorem prover.');
+	exit 1;
     }
 
     if (scalar @arguments == 0) {
@@ -152,21 +160,17 @@ sub execute {
     my @arguments = @_;
 
     my $theory_path = $arguments[0];
-
     my $theory = Theory->new (path => $theory_path);
+    my $result = TPTP::prove ($theory, $opt_prover);
 
-    my $result = TPTP::prove ($theory);
+    my $err_output = $result->get_error_output ();
+    my $std_output = $result->get_output ();
 
-    if (! $result->exited_cleanly ()) {
-	my $exit_code = $result->get_exit_code ();
-	my $err_output = $result->get_error_output ();
-	say STDERR (error_message ('The prover terminated, but it did not exit cleanly when working with ', $theory_path, '.'));
-	say STDERR 'The exit code was', $SPACE, $exit_code, ', and the error output was:';
-	say $err_output;
-	exit 1;
-    }
+    carp 'Standard output:', $std_output;
 
     my $szs_status = $result->has_szs_status () ? $result->get_szs_status () : 'Unknown';
+
+
 
     my $ok = ($szs_status eq $opt_solution_szs_status);
     say colored ($szs_status, $ok ? $GOOD_COLOR : $BAD_COLOR);
