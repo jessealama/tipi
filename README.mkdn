@@ -88,7 +88,7 @@ analysis tasks.  To get started, try doing
 
 to start reading the manual pages.  This command will give you the man
 page for **Tipi** as a whole.  Every command has its own man page.
-For the reprove command, for example, you can access the man page
+For the `reprove` command, for example, you can access the man page
 via:
 
     $ tipi reprove --man
