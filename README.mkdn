@@ -21,7 +21,11 @@ that.
 
 Download a release of **Tipi** by going to
 
-> [https://github.com/jessealama/tipi/downloads](https://github.com/jessealama/tipi/downloads)
+> [https://github.com/jessealama/tipi/tags](https://github.com/jessealama/tipi/tags)
+
+This will give you a list of so-called tags that I've attached to
+stages of **Tipi** development.  They are ordered by date.  I
+recommend getting the newest release.
 
 # Set? #
 
@@ -29,35 +33,35 @@ To run **Tipi** you will need:
 
 * perl 5.10 or newer and several modules:
 
-    * [Algorithm::Combinatorics](http://search.cpan.org/~fxn/Algorithm-Combinatorics-0.27/Combinatorics.pm Algorithm::Combinatorics) version 0.27 or newer
+    * [Algorithm::Combinatorics](http://search.cpan.org/~fxn/Algorithm-Combinatorics-0.27/Combinatorics.pm "Algorithm::Combinatorics") version 0.27 or newer
 
-	* [File::Basename](http://search.cpan.org/~flora/perl-5.14.2/lib/File/Basename.pm File::Basename) version 2.82 or newer
+	* [File::Basename](http://search.cpan.org/~flora/perl-5.14.2/lib/File/Basename.pm "File::Basename") version 2.82 or newer
 
-	* [File::Temp](http://search.cpan.org/~tjenness/File-Temp-0.22/Temp.pm File::Temp) version 0.22 or newer
+	* [File::Temp](http://search.cpan.org/~tjenness/File-Temp-0.22/Temp.pm "File::Temp") version 0.22 or newer
 
-	* [FindBin](http://search.cpan.org/~flora/perl-5.14.2/lib/FindBin.pm FindBin) version 1.50 or newer
+	* [FindBin](http://search.cpan.org/~flora/perl-5.14.2/lib/FindBin.pm "FindBin") version 1.50 or newer
+n
+	* [Getopt::Long](http://search.cpan.org/~jv/Getopt-Long-2.38/lib/Getopt/Long.pm "Getopt::Long") version 2.38 or newer
 
-	* [Getopt::Long](http://search.cpan.org/~jv/Getopt-Long-2.38/lib/Getopt/Long.pm Getopt::Long) version 2.38 or newer
+	* [IPC::Cmd](http://search.cpan.org/~bingos/IPC-Cmd-0.76/lib/IPC/Cmd.pm "IPC::Cmd") version 0.76 or newer
 
-	* [IPC::Cmd](http://search.cpan.org/~bingos/IPC-Cmd-0.76/lib/IPC/Cmd.pm IPC::Cmd) version 0.76 or newer
+	* [IPC::Run](http://search.cpan.org/~toddr/IPC-Run-0.91/lib/IPC/Run.pm "IPC::Run") version 0.91 or newer
 
-	* [IPC::Run](http://search.cpan.org/~toddr/IPC-Run-0.91/lib/IPC/Run.pm IPC::Run) version 0.91 or newer
+	* [List::Util](http://search.cpan.org/~pevans/Scalar-List-Utils-1.25/lib/List/Util.pm "List::Util") version 1.25 or newer
 
-	* [List::Util](http://search.cpan.org/~pevans/Scalar-List-Utils-1.25/lib/List/Util.pm List::Util) version 1.25 or newer
+	* [List::MoreUtils](http://search.cpan.org/~adamk/List-MoreUtils-0.33/lib/List/MoreUtils.pm "List::MoreUtils") version 0.33 or newer
 
-	* [List::MoreUtils](http://search.cpan.org/~adamk/List-MoreUtils-0.33/lib/List/MoreUtils.pm List::MoreUtils) version 0.33 or newer
+	* [Moose](http://search.cpan.org/~doy/Moose-2.0403/lib/Moose.pm "Moose") version 2.0403 or newer
 
-	* [Moose](http://search.cpan.org/~doy/Moose-2.0403/lib/Moose.pm Moose) version 2.0403 or newer
+	* [POSIX](http://search.cpan.org/~flora/perl-5.14.2/ext/POSIX/lib/POSIX.pod "POSIX") version 1.24 or newer
 
-	* [POSIX](http://search.cpan.org/~flora/perl-5.14.2/ext/POSIX/lib/POSIX.pod POSIX) version 1.24 or newer
+	* [Pod::Usage](http://search.cpan.org/~marekr/Pod-Parser-1.51/lib/Pod/Usage.pm "Pod::Usage") version 1.51 or newer
 
-	* [Pod::Usage](http://search.cpan.org/~marekr/Pod-Parser-1.51/lib/Pod/Usage.pm Pod::Usage) version 1.51 or newer
+	* [Regexp::DefaultFlags](http://search.cpan.org/~autrijus/Regexp-DefaultFlags-0.01/lib/Regexp/DefaultFlags.pm "Regexp::DefaultFlags") version 0.01 or newer
 
-	* [Regexp::DefaultFlags](http://search.cpan.org/~autrijus/Regexp-DefaultFlags-0.01/lib/Regexp/DefaultFlags.pm Regexp::DefaultFlags) version 0.01 or newer
+	* [Term::ANSIColor](http://search.cpan.org/~rra/Term-ANSIColor-3.02/ANSIColor.pm "Term::ANSIColor") version 3.02 or newer
 
-	* [Term::ANSIColor](http://search.cpan.org/~rra/Term-ANSIColor-3.02/ANSIColor.pm Term::ANSIColor) version 3.02 or newer
-
-	* [Term::ProgressBar](http://search.cpan.org/~szabgab/Term-ProgressBar-2.11/lib/Term/ProgressBar.pm Term::ProgressBar) version 2.11 or newer
+	* [Term::ProgressBar](http://search.cpan.org/~szabgab/Term-ProgressBar-2.11/lib/Term/ProgressBar.pm "Term::ProgressBar") version 2.11 or newer
 
 * At least one theorem prover, e.g., **E** (it should be in your PATH
   as 'eprover')
@@ -104,7 +108,10 @@ I welcome all sorts of feedback: bug reports, feature requests,
 documentation gaps or errors, discussion of algorithms, efficiency,
 complexity, etc.  Contact me at:
 
-> [jesse.alama@gmail.com](mailto:jesse.alama@gmail.com Email the maintainer)
+> [jesse.alama@gmail.com](mailto:jesse.alama@gmail.com "Email the maintainer")
+
+You are also welcome to submit bug reports or other issues by using
+the [**Tipi** issue tracking system](https://github.com/jessealama/tipi/issues "Report an issue with Tipi") provided by GitHub.
 
 # Introduction #
 
