@@ -91,6 +91,7 @@ sub ensure_sensible_prover_parameters {
 
 sub prove {
     my $theory = shift;
+    my $prover = shift;
     my $parameters_ref = shift;
 
     my %parameters = defined $parameters_ref ? %{$parameters_ref} : ();
