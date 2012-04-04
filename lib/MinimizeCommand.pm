@@ -461,6 +461,7 @@ sub execute {
 
 		    # model finder did not give an answer; let's use a proof finder
 		    my $bigger_result = TPTP::prove ($bigger_theory,
+						     $opt_proof_finder,
 						     { 'timeout' => $opt_proof_finder_timeout });
 		    my $bigger_result_szs_status
 			= $bigger_result->has_szs_status () ?
