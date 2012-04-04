@@ -15,12 +15,14 @@ use charnames qw(:full);
 use English qw(-no_match_vars);
 use Data::Dumper;
 use Term::ANSIColor;
+use List::MoreUtils qw(any);
 
 our @EXPORT_OK = qw(ensure_tptp4x_available
 		    ensure_valid_tptp_file
 		    prove_if_possible
 		    ensure_sensible_tptp_theory
-		    ensure_getsymbols_available);
+		    ensure_getsymbols_available
+		    known_prover);
 
 use Result;
 use Utils qw(ensure_readable_file
@@ -32,11 +34,13 @@ Readonly my $EMPTY_STRING => q{};
 Readonly my $DEFAULT_PROVER_TIMEOUT => 30;
 Readonly my $TWO_SPACES => q{  };
 Readonly my $SPACE => q{ };
+Readonly my $FULL_STOP => q{.};
 Readonly my $USED_PREMISE_COLOR => 'blue';
 Readonly my $UNUSED_PREMISE_COLOR => 'bright_black';
 Readonly my $GOOD_COLOR => 'green';
 Readonly my $BAD_COLOR => 'red';
 Readonly my $GETSYMBOLS => 'GetSymbols';
+Readonly my @PROVERS => ('eprover', 'vampire');
 
 sub ensure_tptp4x_available {
     return can_run ($TPTP4X);
@@ -87,6 +91,7 @@ sub ensure_sensible_prover_parameters {
 
 sub prove {
     my $theory = shift;
+    my $prover = shift;
     my $parameters_ref = shift;
 
     my %parameters = defined $parameters_ref ? %{$parameters_ref} : ();
@@ -97,46 +102,67 @@ sub prove {
 
     my $theory_path = $theory->get_path ();
 
-    if (! can_run ('eprove')) {
-	croak 'Cannot run eprove.';
+    if (! can_run ($prover)) {
+	croak 'Cannot run', $SPACE, $prover, $FULL_STOP;
     }
 
-    my @eprover_call
-	= ('eprover', '-l4', '-xAuto', '-tAuto', '-R', '--tptp3-in', $theory_path);
-    my @epclextract_call
-	= ('epclextract', '--forward-comments');
-
-    my $eprover_out = $EMPTY_STRING;
-    my $eprover_err = $EMPTY_STRING;
+    my $output = $EMPTY_STRING;
+    my $error = $EMPTY_STRING;
     my $timer = timeout ($timeout);
-    my $eprover_harness = harness (\@eprover_call,
-				   '<', $theory_path,
-				   '|', \@epclextract_call,
-				   '>', \$eprover_out,
-				   '2>', \$eprover_err,
-				   $timer);
 
-    eval { $eprover_harness->run () };
+    my $harness = undef;
 
-    until (defined eval { $eprover_harness->result () } || $timer->is_expired ()) {
+    if ($prover eq 'eprover') {
+	my @eprover_call = ('eprover',
+			    '-l4',
+			    '-xAuto',
+			    '-tAuto',
+			    '-R',
+			    '--tptp3-in',
+			    $theory_path);
+	my @epclextract_call
+	    = ('epclextract',
+	       '--forward-comments');
+
+	$harness = harness (\@eprover_call,
+			    '|',  \@epclextract_call,
+			    '>',  \$output,
+			    '2>', \$error,
+			    $timer);
+
+    } elsif ($prover eq 'vampire') {
+	my @tptp4X_call = ('tptp4X', '-x', $theory_path);
+	my @vampire_call = ('vampire', '-output_axiom_names', 'on', '-mode', 'casc', '-t', $timeout);
+	$harness = harness (\@tptp4X_call,
+			    '|', \@vampire_call,
+			    '>', \$output,
+			    '2>', \$error,
+			    $timer);
+    } else {
+	croak 'Unknown prover', $SPACE, $prover, $FULL_STOP;
+    }
+
+    eval { $harness->run () };
+
+    until (defined eval { $harness->result () } || $timer->is_expired ()) {
 	sleep 1;
     }
 
     if ($timer->is_expired ()) {
-	$eprover_harness->kill_kill ();
+	$harness->kill_kill ();
 	return Result->new (timed_out => 1,
 			    exit_code => undef,
-			    output => $eprover_out,
-			    error_output => $eprover_err,
+			    output => $output,
+			    error_output => $error,
 			    background_theory => $theory);
 
     } else {
-	my @results = $eprover_harness->full_results ();
+	my @results = $harness->full_results ();
 	my $exit_code = scalar @results == 0 ? 1 : $results[0];
 	return Result->new (timed_out => 0,
 			    exit_code => $exit_code,
-			    output => $eprover_out,
-			    error_output => $eprover_err,
+			    output => $output,
+			    error_output => $error,
 			    background_theory => $theory);
     }
 
@@ -263,6 +289,11 @@ sub find_model {
 sub ensure_sensible_tptp_theory {
     my $theory_path = shift;
     return ensure_readable_file ($theory_path) && ensure_valid_tptp_file ($theory_path);
+}
+
+sub known_prover {
+    my $prover = shift;
+    return any { $_ eq $prover } @PROVERS;
 }
 
 __END__

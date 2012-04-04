@@ -1,4 +1,4 @@
-package Minimizeommand;
+package MinimizeCommand;
 
 require v5.10;
 
@@ -153,21 +153,6 @@ around 'execute' => sub {
 
     if ($opt_solution_szs_status !~ /\A [A-Za-z]+ \z/) {
 	pod2usage (-msg => error_message ('Unacceptable SZS problem status', "\N{LF}", "\N{LF}", $TWO_SPACES, $opt_solution_szs_status),
-		   -exitval => 2);
-    }
-
-    if ($opt_syntactically && $opt_semantically) {
-	pod2usage (-msg => error_message ('Please choose which reprove procedure you would like to use (the two options are --syntactically and --semantically).'),
-		   -exitval => 2);
-    }
-
-    # default is syntactic reproof
-    if (! $opt_semantically) {
-	$opt_syntactically = 1;
-    }
-
-    if ($opt_syntactically && $opt_skip_initial_proof) {
-	pod2usage (-msg => error_message ('The --skip-initial-proof option is applicable only when reproving semantically.'),
 		   -exitval => 2);
     }
 

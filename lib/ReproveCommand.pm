@@ -56,6 +56,7 @@ my $opt_man = 0;
 my $opt_verbose = 0;
 my $opt_debug = 0;
 my $opt_solution_szs_status = 'Theorem';
+my $opt_proof_finder = 'eprover';
 my $opt_syntactically = 0;
 my $opt_semantically = 0;
 my $opt_model_finder_timeout = 5;
@@ -118,6 +119,7 @@ around 'execute' => sub {
 	'semantically' => \$opt_semantically,
 	'syntactically' => \$opt_syntactically,
 	'solution-szs-status=s' => \$opt_solution_szs_status,
+	'proof-finder' => \$opt_proof_finder,
 	'model-finder-timeout=i' => \$opt_model_finder_timeout,
 	'proof-finder-timeout=i' => \$opt_proof_finder_timeout,
 	'only-used' => \$opt_show_only_final_used_premises,
@@ -338,6 +340,7 @@ sub reprove_semantically {
     }
 
     my $new_result = TPTP::prove ($small_theory,
+				  $opt_proof_finder,
 				  { 'timeout' => $opt_proof_finder_timeout });
     my $new_result_szs_status
 	= $new_result->has_szs_status () ? $new_result->get_szs_status () : 'Unknown';
