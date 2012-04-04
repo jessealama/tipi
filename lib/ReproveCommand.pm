@@ -254,7 +254,7 @@ sub reprove_syntactically {
 	}
 
 	$theory = $derivation->theory_from_used_premises ();
-	$derivation = prove_if_possible ($theory);
+	$derivation = prove_if_possible ($theory, $opt_proof_finder);
 	@unused_premises = $derivation->get_unused_premises ();
 
     }
