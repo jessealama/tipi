@@ -56,7 +56,8 @@ my $opt_man = 0;
 my $opt_verbose = 0;
 my $opt_debug = 0;
 my $opt_solution_szs_status = 'Theorem';
-my $opt_method = 'syntactically';
+my $opt_syntactically = 0;
+my $opt_semantically = 0;
 my $opt_model_finder_timeout = 5;
 my $opt_proof_finder_timeout = 30;
 my $opt_skip_initial_proof = 0;
@@ -114,7 +115,8 @@ around 'execute' => sub {
 	'verbose' => \$opt_verbose,
 	'help|?' => \$opt_help,
 	'debug' => \$opt_debug,
-	'method=s' => \$opt_method,
+	'semantically' => \$opt_semantically,
+	'syntactically' => \$opt_syntactically,
 	'solution-szs-status=s' => \$opt_solution_szs_status,
 	'model-finder-timeout=i' => \$opt_model_finder_timeout,
 	'proof-finder-timeout=i' => \$opt_proof_finder_timeout,
@@ -145,7 +147,7 @@ around 'execute' => sub {
     }
 
     if (scalar @arguments > 1) {
-	pod2usage (-msg => error_message ('Unable to make sense of the prove arguments', "\N{LF}", "\N{LF}", $TWO_SPACES, join ($SPACE, @arguments)),
+	pod2usage (-msg => error_message ('Unable to make sense of the arguments', "\N{LF}", "\N{LF}", $TWO_SPACES, join ($SPACE, @arguments)),
 		   -exitval => 2);
     }
 
@@ -160,12 +162,17 @@ around 'execute' => sub {
 		   -exitval => 2);
     }
 
-    if ($opt_method ne 'syntactically' && $opt_method ne 'semantically') {
-	pod2usage (-msg => error_message ('The only acceptable values for the --method option are \'syntactically\' and \'semantically\'.'),
+    if ($opt_syntactically && $opt_semantically) {
+	pod2usage (-msg => error_message ('Please choose which reprove procedure you would like to use (the two options are --syntactically and --semantically).'),
 		   -exitval => 2);
     }
 
-    if ($opt_method ne 'semantically' && $opt_skip_initial_proof) {
+    # default is syntactic reproof
+    if (! $opt_semantically) {
+	$opt_syntactically = 1;
+    }
+
+    if ($opt_syntactically && $opt_skip_initial_proof) {
 	pod2usage (-msg => error_message ('The --skip-initial-proof option is applicable only when reproving semantically.'),
 		   -exitval => 2);
     }
@@ -219,12 +226,12 @@ sub execute {
     my $theory_path = $arguments[0];
     my $theory = Theory->new (path => $theory_path);
 
-    if ($opt_method eq 'syntactically') {
+    if ($opt_syntactically) {
 	return reprove_syntactically ($theory);
-    } elsif ($opt_method eq 'semantically') {
+    } elsif ($opt_semantically) {
 	return reprove_semantically ($theory);
     } else {
-	say STDERR error_message ('Unknown reprove method \'', $opt_method, '\'.');
+	say STDERR error_message ('We need to know which reprove method should be use; somehow, neither of the two methods was selected.');
 	exit 1;
     }
 
@@ -375,7 +382,7 @@ sub reprove_semantically {
     my %unneeded = ();
     my %unknown = ();
 
-    say colored ('Step 2', 'blue'), ': From the', $SPACE, scalar @axioms, $SPACE, colored ('used', $USED_PREMISE_COLOR), $SPACE, 'premises, determine the', $SPACE, colored ('needed', $NEEDED_PREMISE_COLOR), $SPACE, 'ones.';
+    say colored ('Step 2', 'blue'), ': From the', $SPACE, scalar @axioms, $SPACE, colored ('used', $USED_PREMISE_COLOR), $SPACE, 'premise(s) of the initial proof, determine the', $SPACE, colored ('needed', $NEEDED_PREMISE_COLOR), $SPACE, 'ones.';
 
     print 'PREMISES (', colored ('needed', $NEEDED_PREMISE_COLOR), $SPACE, $SLASH, $SPACE, colored ('unneeded', $UNNEEDED_PREMISE_COLOR), $SPACE, $SLASH, $SPACE, colored ('unknown', $UNKNOWN_COLOR), ')', "\N{LF}";
 
