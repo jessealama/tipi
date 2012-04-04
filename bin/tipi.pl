@@ -46,6 +46,7 @@ Readonly my %COMMANDS => (
     'model' => ModelCommand->new (),
     'symbols' => SymbolsCommand->new (),
     'independence' => IndependenceCommand->new (),
+    'minimize' => MinimizeCommand->new (),
 );
 
 my $opt_man       = 0;
@@ -58,7 +59,7 @@ sub summarize_commands {
 
     my $summary = $EMPTY_STRING;
 
-    foreach my $command_name (keys %COMMANDS) {
+    foreach my $command_name (sort keys %COMMANDS) {
 	my $command = $COMMANDS{$command_name};
 	my $description = $command->describe ();
 	$summary .= message ('  * ', colored ($command_name, 'blue'), ' -- ', $description);
