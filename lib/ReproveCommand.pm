@@ -59,8 +59,7 @@ my $opt_solution_szs_status = 'Theorem';
 my $opt_method = 'syntactically';
 my $opt_model_finder_timeout = 5;
 my $opt_proof_finder_timeout = 30;
-my $opt_force = 0;
-my $opt_semantically_use_all_axioms = 0;
+my $opt_skip_initial_proof = 0;
 my $opt_show_only_final_used_premises = 0;
 my $opt_show_only_final_unused_premises = 0;
 
@@ -119,8 +118,7 @@ around 'execute' => sub {
 	'solution-szs-status=s' => \$opt_solution_szs_status,
 	'model-finder-timeout=i' => \$opt_model_finder_timeout,
 	'proof-finder-timeout=i' => \$opt_proof_finder_timeout,
-	'use-all-axioms' => \$opt_semantically_use_all_axioms,
-	'force' => \$opt_force,
+	'skip-initial-proof' => \$opt_skip_initial_proof,
 	'only-used' => \$opt_show_only_final_used_premises,
 	'only-unused' => \$opt_show_only_final_unused_premises,
     ) or pod2usage (2);
@@ -167,8 +165,8 @@ around 'execute' => sub {
 		   -exitval => 2);
     }
 
-    if ($opt_method ne 'semantically' && $opt_semantically_use_all_axioms) {
-	pod2usage (-msg => error_message ('The --use-all-axioms option is applicable only when reproving semantically.'),
+    if ($opt_method ne 'semantically' && $opt_skip_initial_proof) {
+	pod2usage (-msg => error_message ('The --skip-initial-proof option is applicable only when reproving semantically.'),
 		   -exitval => 2);
     }
 
@@ -312,8 +310,8 @@ sub reprove_semantically {
     my $initial_proof_result = undef;
     my $initial_proof_szs_status = undef;
 
-    if ($opt_semantically_use_all_axioms) {
-	say $SPACE, colored ('OK', 'green'), $SPACE, '(no proof was attempted because you requested that all axioms are to be treated as used)';
+    if ($opt_skip_initial_proof) {
+	say $SPACE, colored ('OK', 'green'), $SPACE, '(No proof was attempted because you requested that we skip it.)';
 	$initial_proof_szs_status = $opt_solution_szs_status;
     } else {
 
@@ -326,40 +324,20 @@ sub reprove_semantically {
 	    say $SPACE, colored ('OK', 'green');
 	} else {
 	    say $SPACE, colored ('Not OK', 'red'), ' (SZS status ', $initial_proof_szs_status, ')';
-	}
-
-
-    }
-
-    if ($initial_proof_szs_status ne $opt_solution_szs_status && $opt_force) {
-	if (scalar @axioms == 0) {
-	    say 'Even though we were requested to proceed, it does not make sense';
-	    say 'to do so because there are no axioms in the background theory.';
+	    say 'Use --skip-initial-proof to skip the initial proof and treat all';
+	    say 'the axioms of the theory as "used".';
 	    return 1;
-	} else {
-	    say 'Continuing anyway, as requested; the results that follow may not be meaningful.';
-	    if (scalar @axioms == 1) {
-		my $axiom = $axioms[0];
-		my $axiom_name = $axiom->get_name ();
-		say 'Since we did not find a derivation, we will now inspect ', $axiom_name, ', treating each as potentially needed.';
-	    } else {
-		say 'Since we did not find a derivation, we will now inspect all ', scalar @axioms, ' axioms, treating each as potentially needed.';
-	    }
-
 	}
+
+
     }
 
-    if ($initial_proof_szs_status ne $opt_solution_szs_status && ! $opt_force) {
-	say '(Use --force to continue, even when the initial proof attempt is unsuccessful.';
-	say '(Use --use-all-axioms to treat all of the axioms of the theory as "used" in the initial proof attempt.)';
-	return 1;
-    }
-
-    if ($opt_semantically_use_all_axioms) {
+    if ($opt_skip_initial_proof) {
 	say 'PREMISES', $SPACE, '(', colored ('used', $USED_PREMISE_COLOR), $SPACE, '/', $SPACE, colored ('unused', $UNUSED_PREMISE_COLOR), ')';
 	print_formula_names_with_color (\@axioms, $USED_PREMISE_COLOR);
-	say '(As requested, we are regarding all the theory\'s axioms as used,';
-	say 'even if only some of them were actually used in a successful derivation.)';
+	say '(As requested, we skipped the initial proof.  This means that we will now regard';
+	say 'all the theory\'s axioms as', $SPACE, colored ('used', $USED_PREMISE_COLOR), ', even if';
+	say 'a derivation is available that uses only some of them.)';
     } else {
 	my $derivation = $initial_proof_result->output_as_derivation ();
 	my @used_premises = $derivation->get_used_premises ();
