@@ -715,7 +715,7 @@ sub is_satisfiable {
 
 	# carp 'Failed to determine satisfiability using a model finder (SZS status ', $model_szs_status, '); going for a theorem prover';
 
-	my $prover_result = TPTP::prove ($self, \%parameters);
+	my $prover_result = TPTP::prove ($self, 'eprover', \%parameters);
 
 	# carp 'Prover result:', Dumper ($prover_result);
 
