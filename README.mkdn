@@ -69,6 +69,8 @@ n
 * At least one model finder, e.g., **Paradox** (it should be in your
   path as 'paradox')
 
+* **GetSymbols** and **TPTP4X** from the [TPTP World](http://www.tptp.org/TPTPWorld.tgz "TPTP World") distributution.
+
 Concerning the perl modules: for certain **Tipi** commands you may be
 able to get by without all the dependencies, but for safety I
 recommend you install all of them.  If a needed dependency is missing,
@@ -90,6 +92,11 @@ downloaded and installed.  There is an issue about where CPAN installs
 the modules.  Do you want the modules installed just for you, or for
 other people on your machine?  I can't really help you answer that
 question.
+
+Concerning the dependency on the TPTP World: I am aware that this is a
+rather heavy dependency.  It is all the more embarrassing when one realizes that in this giant package, **Tipi** requires only two tools, one of which (**GetSymbols**) is actually very small.  One can find **TPTP4X** in the leaner
+[TPTP distribution](http://www.cs.miami.edu/~tptp/TPTP/Distribution/TPTP-v5.3.0.tgz "TPTP, version 5.3.0"), but if you're not running the exact same
+architecture as [Geoff Sutcliffe](http://www.cs.miami.edu/~geoff/ "Geoff Sutcliffe") you're out of luck.  In any case **GetSymbols** is not in the official TPTP distribution.  So I am afraid the TPTP World really is required.  It is important for me that eventually the dependency on these tools is removed.  I know how to do it, but it will take some time (the problem is simply writing a parser for the TPTP language).
 
 # Go! #
 
