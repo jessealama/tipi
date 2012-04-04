@@ -120,7 +120,6 @@ around 'execute' => sub {
 	'solution-szs-status=s' => \$opt_solution_szs_status,
 	'model-finder-timeout=i' => \$opt_model_finder_timeout,
 	'proof-finder-timeout=i' => \$opt_proof_finder_timeout,
-	'skip-initial-proof' => \$opt_skip_initial_proof,
 	'only-used' => \$opt_show_only_final_used_premises,
 	'only-unused' => \$opt_show_only_final_unused_premises,
     ) or pod2usage (2);
@@ -164,21 +163,6 @@ around 'execute' => sub {
 
     if ($opt_syntactically && $opt_semantically) {
 	pod2usage (-msg => error_message ('Please choose which reprove procedure you would like to use (the two options are --syntactically and --semantically).'),
-		   -exitval => 2);
-    }
-
-    # default is syntactic reproof
-    if (! $opt_semantically) {
-	$opt_syntactically = 1;
-    }
-
-    if ($opt_syntactically && $opt_skip_initial_proof) {
-	pod2usage (-msg => error_message ('The --skip-initial-proof option is applicable only when reproving semantically.'),
-		   -exitval => 2);
-    }
-
-    if ($opt_show_only_final_used_premises && $opt_show_only_final_unused_premises) {
-	pod2usage (-msg => error_message ('One cannot choose to show only the used and unused premises.'),
 		   -exitval => 2);
     }
 
@@ -294,99 +278,19 @@ sub reprove_semantically {
 	$conjecture = $theory->get_conjecture ();
     }
 
-    if (scalar @axioms == 0) {
-	if (defined $conjecture) {
-	    print colored ('Step 1', 'blue'), ': Derive the conjecture:';
-	} else {
-	    print colored ('Step 1', 'blue'), ': Solve the problem:';
-	}
-    } elsif (scalar @axioms == 1) {
-	if (defined $conjecture) {
-	    print colored ('Step 1', 'blue'), ': Derive the conjecture the sole available premises:';
-	} else {
-	    print colored ('Step 1', 'blue'), ': Solve the problem from the sole available premise:';
-	}
-    } else {
-	if (defined $conjecture) {
-	    print colored ('Step 1', 'blue'), ': Derive the conjecture from all ', scalar @axioms, ' available premises:';
-	} else {
-	    print colored ('Step 1', 'blue'), ': Solve the problem from all ', scalar @axioms, ' available premises:';
-	}
-    }
-
-    my $initial_proof_result = undef;
-    my $initial_proof_szs_status = undef;
-
-    if ($opt_skip_initial_proof) {
-	say $SPACE, colored ('OK', 'green'), $SPACE, '(No proof was attempted because you requested that we skip it.)';
-	$initial_proof_szs_status = $opt_solution_szs_status;
-    } else {
-
-	$initial_proof_result = TPTP::prove ($theory);
-	$initial_proof_szs_status
-	    = $initial_proof_result->has_szs_status ? $initial_proof_result->get_szs_status ()
-		: 'Unknown';
-
-	if ($initial_proof_szs_status eq $opt_solution_szs_status) {
-	    say $SPACE, colored ('OK', 'green');
-	} else {
-	    say $SPACE, colored ('Not OK', 'red'), ' (SZS status ', $initial_proof_szs_status, ')';
-	    say 'Use --skip-initial-proof to skip the initial proof and treat all';
-	    say 'the axioms of the theory as "used".';
-	    return 1;
-	}
-
-
-    }
-
-    if ($opt_skip_initial_proof) {
-	say 'PREMISES', $SPACE, '(', colored ('used', $USED_PREMISE_COLOR), $SPACE, '/', $SPACE, colored ('unused', $UNUSED_PREMISE_COLOR), ')';
-	print_formula_names_with_color (\@axioms, $USED_PREMISE_COLOR);
-	say '(As requested, we skipped the initial proof.  This means that we will now regard';
-	say 'all the theory\'s axioms as', $SPACE, colored ('used', $USED_PREMISE_COLOR), ', even if';
-	say 'a derivation is available that uses only some of them.)';
-    } else {
-	my $derivation = $initial_proof_result->output_as_derivation ();
-	my @used_premises = $derivation->get_used_premises ();
-	my @unused_premises = $derivation->get_unused_premises ();
-
-	say 'PREMISES', $SPACE, '(', colored ('used', $USED_PREMISE_COLOR), $SPACE, '/', $SPACE, colored ('unused', $UNUSED_PREMISE_COLOR), ')';
-
-	if (scalar @used_premises > 0) {
-	    print_formula_names_with_color (\@used_premises,
-					    $USED_PREMISE_COLOR,
-					    { 'sorted' => 1 });
-	}
-	if (scalar @unused_premises > 0) {
-	    print_formula_names_with_color (\@unused_premises,
-					    $UNUSED_PREMISE_COLOR,
-					    { 'sorted' => 1 });
-	}
-
-	$theory = $theory->remove_formulas (@unused_premises);
-
-	if ($opt_debug) {
-	    say {*STDERR} 'After removing', "\N{LF}", join ("\N{LF}", @unused_premises), "\N{LF}", 'the theory now looks like this:', "\N{LF}", Dumper ($theory);
-	}
-
-	@axioms = @used_premises;
-    }
-
     if ($theory->has_conjecture_formula ()) {
 	$theory = $theory->promote_conjecture_to_false_axiom ();
     }
-
-    my @axiom_names = map { $_->get_name () } @axioms;
 
     my %needed = ();
     my %unneeded = ();
     my %unknown = ();
 
-    say colored ('Step 2', 'blue'), ': From the', $SPACE, scalar @axioms, $SPACE, colored ('used', $USED_PREMISE_COLOR), $SPACE, 'premise(s) of the initial proof, determine the', $SPACE, colored ('needed', $NEEDED_PREMISE_COLOR), $SPACE, 'ones.';
-
     print 'PREMISES (', colored ('needed', $NEEDED_PREMISE_COLOR), $SPACE, $SLASH, $SPACE, colored ('unneeded', $UNNEEDED_PREMISE_COLOR), $SPACE, $SLASH, $SPACE, colored ('unknown', $UNKNOWN_COLOR), ')', "\N{LF}";
 
-    foreach my $axiom (@axioms) {
+    my @sorted_axioms = sort { $a->get_name() cmp $b->get_name () } @axioms;
+
+    foreach my $axiom (@sorted_axioms) {
 	my $axiom_name = $axiom->get_name ();
 	my $trimmed_theory = $theory->remove_formula ($axiom);
 	my $satisfiable = $trimmed_theory->is_satisfiable ({'timeout' => $opt_model_finder_timeout});
@@ -405,9 +309,9 @@ sub reprove_semantically {
     }
 
     if (defined $conjecture) {
-	print colored ('Step 3', 'blue'), ': Derive the conjecture from only the', $SPACE, scalar keys %needed, $SPACE, colored ('needed', $NEEDED_PREMISE_COLOR), ' premise(s):';
+	print 'Now try deriving the conjecture from only the', $SPACE, scalar keys %needed, $SPACE, colored ('needed', $NEEDED_PREMISE_COLOR), ' premise(s):';
     } else {
-	print colored ('Step 3', 'blue'), ': Solve the problem from only the', $SPACE, scalar keys %needed, $SPACE, colored ('needed', $NEEDED_PREMISE_COLOR), ' premise(s):';
+	print 'Now try solving the problem from only the', $SPACE, scalar keys %needed, $SPACE, colored ('needed', $NEEDED_PREMISE_COLOR), ' premise(s):';
     }
 
     # Dump everything that is not known to be needed
@@ -433,15 +337,6 @@ sub reprove_semantically {
 	$small_theory = $small_theory->add_formula ($conjecture);
     }
 
-    if ($opt_debug) {
-	warn 'The minimal theory is', "\N{LF}", Dumper ($small_theory);
-    }
-
-    if (defined $conjecture && ! $small_theory->has_conjecture_formula ()) {
-	my $small_theory_path = $small_theory->get_path ();
-	croak 'The theory ', $small_theory_path, ' has no conjecture formula!';
-    }
-
     my $new_result = TPTP::prove ($small_theory,
 				  { 'timeout' => $opt_proof_finder_timeout });
     my $new_result_szs_status
@@ -455,195 +350,23 @@ sub reprove_semantically {
 
     if ($new_result_szs_status eq $opt_solution_szs_status) {
 	if (defined $conjecture) {
-	    say 'The', $SPACE, colored ('needed', $NEEDED_PREMISE_COLOR), $SPACE, 'formulas alone suffice to prove the conjecture; we are done.';
+	    say 'The', $SPACE, colored ('needed', $NEEDED_PREMISE_COLOR), $SPACE, 'formulas alone suffice to prove the conjecture.';
 	} else {
-	    say 'The', $SPACE, colored ('needed', $NEEDED_PREMISE_COLOR), $SPACE, 'formulas alone suffice to solve the problem; we are done.';
+	    say 'The', $SPACE, colored ('needed', $NEEDED_PREMISE_COLOR), $SPACE, 'formulas alone suffice to solve the problem.';
 	}
     } else {
 	if (defined $conjecture) {
-	    say 'The needed formulas alone do not suffice to prove the conjecture.';
+	    say 'The', $SPACE, colored ('needed', $NEEDED_PREMISE_COLOR), $SPACE, 'formulas alone do not suffice to prove the conjecture.';
 	} else {
-	    say 'The needed formulas alone do not suffice to solve the problem.';
+	    say 'The', $SPACE, colored ('needed', $NEEDED_PREMISE_COLOR), $SPACE, 'formulas alone do not suffice to solve the problem.';
 	}
-
-	if (defined $conjecture) {
-	    say colored ('Step 4', 'blue'), ': Find combinations of', $SPACE, colored ('unknown', $UNKNOWN_COLOR), $SPACE, 'and', $SPACE, colored ('unneeded', $UNNEEDED_PREMISE_COLOR), $SPACE, 'premises that, together with the', $SPACE, colored ('needed', $NEEDED_PREMISE_COLOR), ' premises, suffice to derive the conjecture.';
-	} else {
-	    say colored ('Step 4', 'blue'), ': Find combinations of', $SPACE, colored ('unknown', $UNKNOWN_COLOR), $SPACE, 'and', $SPACE, colored ('unneeded', $UNNEEDED_PREMISE_COLOR), $SPACE, 'premises that, together with the', $SPACE, colored ('needed', $NEEDED_PREMISE_COLOR), ' premises, suffice to solve the problem.';
-	}
-
-	my @unknown_formulas = keys %unknown;
-	my @unneeded_formulas = keys %unneeded;
-
-	my %candidates = ();
-	foreach my $formula (@unknown_formulas, @unneeded_formulas) {
-	    $candidates{$formula} = 0;
-	}
-	my @candidate_formulas = keys %candidates;
-
-	my @solved_so_far_positively = ();
-	my @solved_so_far_negatively = ();
-
-	my $num_combinations = 2 ** scalar @candidate_formulas;
-	my $estimate_seconds = $opt_proof_finder_timeout * $num_combinations;
-	my $estimate_minutes = ceil ($estimate_seconds / 60);
-	my $estimate_minutes_at_least_one
-	    = $estimate_minutes < 1 ? 1 : $estimate_minutes;
-
-	say 'There are', $SPACE, $num_combinations, $SPACE, 'combinations to check.';
-	say 'Be patient; in the worst case, evaluating all of them will take', $SPACE, $estimate_minutes_at_least_one, $SPACE, 'minute(s).';
-
-	my $progress = Term::ProgressBar->new ({ count => $num_combinations });
-	my $num_tuples_handled = 0;
-	my $num_candidates_unknown = 0;
-	my $num_already_known_good = 0;
-	$progress->update (0);
-
-	foreach my $k (0 .. scalar @candidate_formulas) {
-
-	    if ($opt_debug) {
-		carp 'Iterating combinations of size', $SPACE, $k;
-	    }
-
-	    my $candidate_iterator = combinations (\@candidate_formulas, $k);
-
-	    while (defined (my $tuple_ref = $candidate_iterator->next)) {
-
-		$num_tuples_handled++;
-		$progress->update ($num_tuples_handled);
-
-		my @tuple = @{$tuple_ref};
-
-		if (scalar @tuple == 0) {
-		    $progress->update ($num_tuples_handled);
-		    next;
-		}
-
-		my $already_known_good
-		    = any { subtuple ($_, \@tuple); } @solved_so_far_positively;
-
-		if ($already_known_good) {
-		    $num_already_known_good++;
-		    next;
-		}
-
-		my @formulas = map { $theory->formula_with_name ($_) } @tuple;
-		my $bigger_theory = $small_theory->postulate (\@formulas);
-
-		my $bigger_theory_conjecture_false
-		    = $bigger_theory->promote_conjecture_to_false_axiom ();
-		my $conjecture_false_satisfiable
-		    = $bigger_theory_conjecture_false->is_satisfiable ({ 'timeout' => $opt_model_finder_timeout });
-
-		if ($conjecture_false_satisfiable == -1) {
-
-		    # model finder did not give an answer; let's use a proof finder
-		    my $bigger_result = TPTP::prove ($bigger_theory,
-						     { 'timeout' => $opt_proof_finder_timeout });
-		    my $bigger_result_szs_status
-			= $bigger_result->has_szs_status () ?
-			    $bigger_result->get_szs_status ()
-				: 'Unknown';
-		    if ($bigger_result_szs_status eq $opt_solution_szs_status) {
-			say 'Solution found:', "\N{LF}", join ("\N{LF}", @tuple), "\N{LF}";
-			if ($opt_debug) {
-			    say {*STDERR} 'The theory where this was proved is:', "\N{LF}", Dumper ($bigger_theory);
-			}
-			push (@solved_so_far_positively, \@tuple);
-		    } else {
-			$num_candidates_unknown++;
-		    }
-
-		} elsif ($conjecture_false_satisfiable == 0) {
-		    push (@solved_so_far_positively, \@tuple);
-		} else {
-		    push (@solved_so_far_negatively, \@tuple);
-		}
-
-	    }
-
-	}
-
-	$progress->update ($num_combinations);
-
-	if (scalar @solved_so_far_positively == 0) {
-	    say 'Unfortunately, we found no proper subtheories of the original theory';
-	    say 'that contain all', $SPACE, colored ('needed', $NEEDED_PREMISE_COLOR), $SPACE, 'premises';
-	    say 'and which derive the conjecture.';
-	} else {
-
-	    say 'We found', $SPACE, scalar @solved_so_far_positively, $SPACE, 'solution(s).';
-
-	    my @solved_sorted = sort { subtuple ($a, $b) } @solved_so_far_positively;
-
-	    my %sufficient_additional_axioms;
-	    foreach my $tuple_ref (@solved_so_far_positively) {
-		my @tuple = @{$tuple_ref};
-		foreach my $formula_name (@tuple) {
-		    $sufficient_additional_axioms{$formula_name} = 0;
-		}
-	    }
-
-	    my @sufficient_additional_axioms = keys %sufficient_additional_axioms;
-	    my @sorted_sufficient_additional_axioms
-		= sort @sufficient_additional_axioms;
-
-
-	    print_solvable_supertheories (\@solved_sorted,
-					  \@sorted_sufficient_additional_axioms);
-
-	    say 'Along the way, we found', $SPACE, $num_candidates_unknown, $SPACE, 'combinations of premises';
-	    say 'for which we could not determine whether they constitute a solution.';
-	    say 'There were', $SPACE, $num_already_known_good, $SPACE, 'combinations that properly extend known good combinations,';
-	    say 'so they were not printed.';
-	}
+	say 'Consider the minimize command to search for combinations of', $SPACE, colored ('unknown', $UNKNOWN_COLOR), $SPACE, 'and', $SPACE, colored ('unneeded', $UNNEEDED_PREMISE_COLOR), $SPACE, 'formulas';
+	say 'that suffice to solve the problem.';
 
     }
 
     return 1;
 
-}
-
-sub print_solvable_supertheories {
-
-    my $solutions_ref = shift;
-    my $axioms_ref = shift;
-
-    my @solutions = @{$solutions_ref};
-    my @axioms = @{$axioms_ref};
-
-    my $num_solutions = scalar @solutions;
-
-    if ($num_solutions == 0) {
-	return;
-    }
-
-    my @axiom_lengths = map { length $_ } @axioms;
-    my $length_of_longest_axiom = max @axiom_lengths;
-
-    print fill_up_to_column ('PREMISE', $length_of_longest_axiom), $SPACE;
-    foreach my $i (1 .. $num_solutions) {
-	print '|', $SPACE, 'Solution', $SPACE, $i, $SPACE;
-    }
-
-    say '|';
-
-    foreach my $axiom (@axioms) {
-	print fill_up_to_column ($axiom, $length_of_longest_axiom), $SPACE;
-	foreach my $solution_ref (@solutions) {
-	    my @solution = @{$solution_ref};
-	    if (any { $_ eq $axiom } @solution) {
-		print '|', $SPACE x 5, 'x', $SPACE x 6;
-	    } else {
-		print '|', $SPACE x 12;
-	    }
-	}
-
-	print '|', "\N{LF}";
-
-    }
-
-    return;
 }
 
 1;
