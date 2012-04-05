@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 
 use strict;
 use warnings;
@@ -97,10 +97,10 @@ sub process_commandline {
     }
 
     if (scalar @ARGV == 0) {
-	my $message = message_with_extra_padding ('Please supply a tipi command.  The available commands are:');
+	my $message = message_with_extra_linefeed ('Please supply a tipi command.  The available commands are:');
 	$message .= message (summarize_commands ());
 	$message .= message ('See the man page for more information.  (Invoke this program with the option \'--man\'.)');
-	pod2usage (-message => error_message ($message),
+	pod2usage (-message => $message,
 		   -exitstatus => 2);
     }
 
@@ -141,8 +141,12 @@ if (defined $eval_command) {
 	say STDERR (' with the arguments', "\N{LF}");
 	say STDERR ($TWO_SPACES, $argument_list, "\N{LF}");
     }
-    say STDERR ('The error was:', "\N{LF}");
-    say STDERR $eval_message;
+    if ($eval_message eq $EMPTY_STRING) {
+	say 'Somehow we have no error output to report.';
+    } else {
+	say STDERR ('The error was:', "\N{LF}");
+	say STDERR $eval_message;
+    }
     say STDERR 'Please inform the maintainers.';
     exit 1;
 } else {

@@ -1,16 +1,237 @@
-TPTP theory development just got a whole lot less suckier.
+TPTP theory development emphasizing proof analysis
 ==========
 
-The [TPTP language] [tptp-home] for writing formal logical theories is an important
-step forward for the automated theorem proving (ATP) community.  It
-gives us a common language for expressing theorem proving problems.
-Since the formal logic community tends to be fragmented, efforts like
-the TPTP project should be applauded and supported.
+# Overview #
 
-The TPTP language is fine for expressing one-off ATP problems; to
-develop a substantial *theory*, though, goes beyond what TPTP
-provides.  Sure, the TPTP language has an `include` directive that
-allows one to import other stuff.  But there is so much more to
-real-world theory development than that.
+In some theory development tasks, a problem is satisfactorily solved
+once it is shown that a theorem (conjecture) is derivable from the
+background theory (premises).  Depending on one's motivations, the
+details of the derivation of the conjecture from the premises may or
+may not be important.  In some contexts, though, one wants more from
+theory development than simply derivability of the target theorems
+from the background theory.  One may want to know which premises of
+the background theory were used in the course of a proof output by an
+automated theorem prover (when a proof is available), whether they are
+all, in suitable senses, necessary (and why), whether alternative
+proofs can be found, and so forth.  The problem, then, is to support
+proof analysis in theory development; **Tipi** aims to provide precisely
+that.
+
+# Ready? #
+
+Download a release of **Tipi** by going to
+
+> [https://github.com/jessealama/tipi/tags](https://github.com/jessealama/tipi/tags)
+
+This will give you a list of so-called tags that I've attached to
+stages of **Tipi** development.  They are ordered by date.  I
+recommend getting the newest release.
+
+# Set? #
+
+To run **Tipi** you will need:
+
+* perl 5.10 or newer and several modules:
+
+    * [Algorithm::Combinatorics](http://search.cpan.org/~fxn/Algorithm-Combinatorics-0.27/Combinatorics.pm "Algorithm::Combinatorics") version 0.27 or newer
+
+	* [File::Basename](http://search.cpan.org/~flora/perl-5.14.2/lib/File/Basename.pm "File::Basename") version 2.82 or newer
+
+	* [File::Temp](http://search.cpan.org/~tjenness/File-Temp-0.22/Temp.pm "File::Temp") version 0.22 or newer
+
+	* [FindBin](http://search.cpan.org/~flora/perl-5.14.2/lib/FindBin.pm "FindBin") version 1.50 or newer
+n
+	* [Getopt::Long](http://search.cpan.org/~jv/Getopt-Long-2.38/lib/Getopt/Long.pm "Getopt::Long") version 2.38 or newer
+
+	* [IPC::Cmd](http://search.cpan.org/~bingos/IPC-Cmd-0.76/lib/IPC/Cmd.pm "IPC::Cmd") version 0.76 or newer
+
+	* [IPC::Run](http://search.cpan.org/~toddr/IPC-Run-0.91/lib/IPC/Run.pm "IPC::Run") version 0.91 or newer
+
+	* [List::Util](http://search.cpan.org/~pevans/Scalar-List-Utils-1.25/lib/List/Util.pm "List::Util") version 1.25 or newer
+
+	* [List::MoreUtils](http://search.cpan.org/~adamk/List-MoreUtils-0.33/lib/List/MoreUtils.pm "List::MoreUtils") version 0.33 or newer
+
+	* [Moose](http://search.cpan.org/~doy/Moose-2.0403/lib/Moose.pm "Moose") version 2.0403 or newer
+
+	* [POSIX](http://search.cpan.org/~flora/perl-5.14.2/ext/POSIX/lib/POSIX.pod "POSIX") version 1.24 or newer
+
+	* [Pod::Usage](http://search.cpan.org/~marekr/Pod-Parser-1.51/lib/Pod/Usage.pm "Pod::Usage") version 1.51 or newer
+
+	* [Regexp::DefaultFlags](http://search.cpan.org/~autrijus/Regexp-DefaultFlags-0.01/lib/Regexp/DefaultFlags.pm "Regexp::DefaultFlags") version 0.01 or newer
+
+	* [Term::ANSIColor](http://search.cpan.org/~rra/Term-ANSIColor-3.02/ANSIColor.pm "Term::ANSIColor") version 3.02 or newer
+
+	* [Term::ProgressBar](http://search.cpan.org/~szabgab/Term-ProgressBar-2.11/lib/Term/ProgressBar.pm "Term::ProgressBar") version 2.11 or newer
+
+* At least one theorem prover, e.g., **E** (it should be in your PATH
+  as 'eprover')
+
+* At least one model finder, e.g., **Paradox** (it should be in your
+  path as 'paradox')
+
+* **GetSymbols** and **TPTP4X** from the [TPTP World](http://www.tptp.org/TPTPWorld.tgz "TPTP World") distributution.
+
+Concerning the perl modules: for certain **Tipi** commands you may be
+able to get by without all the dependencies, but for safety I
+recommend you install all of them.  If a needed dependency is missing,
+your perl will quickly complain loudly and die.  It's possible that
+earlier versions of the required modules may work, but that is not
+tested.  To install perl modules, I recommend using either the package
+system that comes with your operating system (probably all of the
+packages are available in a recent release of Ubuntu GNU/Linux) or the
+CPAN module.  Get started by doing:
+
+    $ perl -MCPAN -e shell
+
+and then installing packages using commands such as
+
+    install Algorithm::Combinatorics
+
+and then watch it fly.  Any needed but missing dependencies will be
+downloaded and installed.  There is an issue about where CPAN installs
+the modules.  Do you want the modules installed just for you, or for
+other people on your machine?  I can't really help you answer that
+question.
+
+Concerning the dependency on the TPTP World: I am aware that this is a
+rather heavy dependency.  It is all the more embarrassing when one realizes that in this giant package, **Tipi** requires only two tools, one of which (**GetSymbols**) is actually very small.  One can find **TPTP4X** in the leaner
+[TPTP distribution](http://www.cs.miami.edu/~tptp/TPTP/Distribution/TPTP-v5.3.0.tgz "TPTP, version 5.3.0"), but if you're not running the exact same
+architecture as [Geoff Sutcliffe](http://www.cs.miami.edu/~geoff/ "Geoff Sutcliffe") you're out of luck.  In any case **GetSymbols** is not in the official TPTP distribution.  So I am afraid the TPTP World really is required.  It is important for me that eventually the dependency on these tools is removed.  I know how to do it, but it will take some time (the problem is simply writing a parser for the TPTP language).
+
+# Go! #
+
+**Tipi** is a traditional commandline UNIX-y tool.  To get started, if
+you've got a TPTP theory file `problem.p` and you know that its
+conjecture is a consequence of its axioms, try running, e.g., **Tipi**'s
+`reprove` command, as follows:
+
+    $ tipi reprove problem.p
+
+**Tipi** comes with many commands for doing all sorts of proof
+analysis tasks.  To get started, try doing
+
+    $ tipi --man
+
+to start reading the manual pages.  This command will give you the man
+page for **Tipi** as a whole.  Every command has its own man page.
+For the `reprove` command, for example, you can access the man page
+via:
+
+    $ tipi reprove --man
+
+Yes, I know man pages can be pretty bad.  But I've really tried
+to make them attractive and usable for the newcomer and expert alike.
+If you spot any gaps, infelicities, ambiguities, etc., please let me
+know.
+
+# Contact #
+
+I welcome all sorts of feedback: bug reports, feature requests,
+documentation gaps or errors, discussion of algorithms, efficiency,
+complexity, etc.  Contact me at:
+
+> [jesse.alama@gmail.com](mailto:jesse.alama@gmail.com "Email the maintainer")
+
+You are also welcome to submit bug reports or other issues by using
+the [**Tipi** issue tracking system](https://github.com/jessealama/tipi/issues "Report an issue with Tipi") provided by GitHub.
+
+# Introduction #
+
+A characteristic feature of theorem proving problems arising in theory
+development is that we often do not know which premises of our
+background theory are needed for a proof until we find one.  If we are
+working in a stable background theory in which the axioms are fixed,
+we naturally include all premises of the background theory because it
+a safe estimate (perhaps an overestimate) of what is needed to solve
+the problem.  We may add lemmas on top of the background theory to
+help a theorem prover find a solution or to make our theory more
+comprehensible.  Since computer-assisted theorem proving is beset on
+all sides by intractability, any path through a formal theory
+development task is constantly threatened by limitations both
+practical (time, memory, patience, willpower) and theoretical
+(undecidability of first-order validity).  Finding even one solution
+(proof, model, etc.) is often no small feat, so declaring victory once
+the first solution is found is thus quite understandable and may be
+all that is wanted.
+
+In some theory development tasks, though, we want to learn more about
+our problem beyond its solvability.  This paper announces \tipi, a
+tool that helps us to go beyond mere solvability of a reasoning
+problem by providing support for answer such questions as:
+
+* What premises of the problem were used in the solution?
+
+* Do other automated reasoning systems derive the conclusion from
+  the same premises?
+
+* Are my premises consistent?  Do they admit unintended models?
+
+* What premises are truly needed for the conclusion?  Can we find
+  multiple sets of such premises?  Is there a a ``minimal'' theory
+  that derives the conclusion?
+
+* Are my axioms independent of one another?
+
+Let us loosely call the investigation of these and related questions
+*proof analysis*.
+
+**Tipi** is useful for theory exploration both in the context of
+discovery and in the convex of justification.  In the context of
+discovery, one crafts lemmas, adds or deletes axioms, changes existing
+axioms, modifies the problem statement, etc., with the aim of
+eventually showing that the theory adequate for one's purposes (it
+derives a certain conjecture, is satisfiable, is unsatisfiable, etc.).
+In the context of discovery, the set of one's axioms is in flux, and
+one needs tools to help ensure that the development is not veering too
+far off course into the unexpected countersatisfiability, admitting
+`nonsense' models, being inconsistent, etc.  In the context of
+justification, after the initial work is done and a solution is found,
+one wants to know more about the relationship between the theory and
+the conjecture than simply that the latter is derivable from the
+former.  What is the proof like?  Are there other proofs?  \tipi{} is
+designed to facilitate answering questions such as these.
+
+The theorem provers and model finders that make up **Tipi** include
+**E**, **Vampire**, **Prover9**, **Mace4**, and **Paradox**.  The system
+is extensible; adding support for new automated reasoning systems is
+straightforward because we rely only on the SZS ontology to make
+judgments about theorem proving problems.
+
+**Tipi** uses a variety of automated reasoning technology to carry out
+its analysis.  It uses theorem provers and model finders and is based
+on the [TPTP syntax for expressing reasoning problems] [sutcliffe2009]
+and
+the [SZS problem status ontology] [sutcliffe2008]
+so it can thereby can flexibly use of a variety
+of automated reasoning tools that support this syntax.
+
+# Motivation (you needn't care about this) #
+
+The philosophical background of **Tipi** is a classic problem in the
+philosophy of logic known as the proof identity problem:
+
+> *When are two proofs the same?*
+
+Standard approaches to the proof identity problem work with natural
+deduction derivations or category theory.  One well-known proposal is
+to identify 'proof' with a natural deduction derivation, define a
+class of conversion operations on natural deduction derivations, and
+declare that two proofs are the same if one can be converted to the
+other.  See [this survey paper] [dosen2003] for a discussion of this approach
+to the proof identity problem.  The inspiration for **Tipi** is to take
+on the proof identity problem with the assistance of modern automated
+reasoning tools.  From this perspective, the TPTP
+library can be seen as a useful resource on
+which to carry out experiments about 'practical' proof identity.
+TPTP problems typically don't contain proofs in the usual sense of the
+term, but they do contain hints of proofs in the sense that they
+specify axioms and perhaps some intermediate lemmas.
+
+One does not need to share the philosophical background (or even care
+about it) to start using **Tipi**, which in any case was designed to
+facilitate TPTP-based theory development.
 
 [tptp-home]: http://www.tptp.org/ "TPTP"
+[sutcliffe2009]: http://www.springerlink.com/content/2g263588337ku424/ "Sutcliffe 2009"
+[sutcliffe2008]: http://ceur-ws.org/Vol-418/paper3.pdf "Sutcliffe 2008"
+[dosen2003]: http://arxiv.org/abs/math/0208094 "Dosen 2003"

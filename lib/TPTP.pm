@@ -27,6 +27,7 @@ our @EXPORT_OK = qw(ensure_tptp4x_available
 use Result;
 use Utils qw(ensure_readable_file
 	     message
+	     message_with_extra_linefeed
 	     error_message);
 
 Readonly my $TPTP4X => 'tptp4X';
@@ -170,12 +171,13 @@ sub prove {
 
 sub prove_if_possible {
     my $theory = shift;
+    my $prover = shift;
     my $parameters_ref = shift;
 
     my %parameters = defined $parameters_ref ? %{$parameters_ref} : ();
 
     my $theory_path = $theory->get_path ();
-    my $tptp_result = eval { prove ($theory, \%parameters) };
+    my $tptp_result = eval { prove ($theory, $prover, \%parameters) };
     my $tptp_message = $@;
 
     if (! defined $tptp_result) {

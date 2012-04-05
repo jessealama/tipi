@@ -166,8 +166,6 @@ sub execute {
     my $err_output = $result->get_error_output ();
     my $std_output = $result->get_output ();
 
-    carp 'Standard output:', $std_output;
-
     my $szs_status = $result->has_szs_status () ? $result->get_szs_status () : 'Unknown';
 
 
