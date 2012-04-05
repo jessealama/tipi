@@ -139,8 +139,12 @@ if (defined $eval_command) {
 	say STDERR (' with the arguments', "\N{LF}");
 	say STDERR ($TWO_SPACES, $argument_list, "\N{LF}");
     }
-    say STDERR ('The error was:', "\N{LF}");
-    say STDERR $eval_message;
+    if ($eval_message eq $EMPTY_STRING) {
+	say 'Somehow we have no error output to report.';
+    } else {
+	say STDERR ('The error was:', "\N{LF}");
+	say STDERR $eval_message;
+    }
     say STDERR 'Please inform the maintainers.';
     exit 1;
 } else {
