@@ -55,7 +55,7 @@ __DATA__
  #     [@item];
  # } >
 
-tptp_file: tptp_input(s?) eofile
+tptp_file: tptp_input(s?) /\Z/
 
 tptp_input: annotated_formula | include
 
@@ -65,83 +65,43 @@ fof_annotated:
     'fof' '(' name ',' formula_role ',' fof_formula ')' '.'
   | <error>
 
-variable: upper_word
+variable: /[A-Z][a-zA-Z0-9_]*/
 
-number: integer | rational | real
+number: integer
 
 integer: signed_integer | unsigned_integer
 
-signed_integer: sign unsigned_integer
+signed_integer: ('+' | '-') unsigned_integer
 
 unsigned_integer: decimal
 
-decimal: zero_numeric | positive_decimal
+decimal: '0' | positive_decimal
 
-zero_numeric: '0'
-
-positive_decimal: non_zero_number numeric(s?)
-
-non_zero_number: /[1-9]/
-
-non_zero_numeric: /[1-9]/
-
-rational: signed_rational | unsigned_rational
-
-signed_rational: sign unsigned_rational
-
-unsigned_rational: decimal slash positive_decimal
-
-slash: '/'
-
-positive_decimal: non_zero_numeric numeric(s?)
-
-real: signed_real | unsigned_real
-
-signed_real: sign unsigned_real
-
-unsigned_real: decimal_fraction | decimal_exponent
-
-decimal_fraction: decimal dot_decimal
-
-dot_decimal: dot numeric numeric(s?)
-
-dot: '.'
-
-decimal_exponent: (decimal | decimal_fraction) exponent integer
-
-exponent: /[Ee]/
-
-sign: /[+-]/
-
-distinct_object: double_quote do_char '*' double_quote
-
-double_quote: /["]/
-
-do_char: /[a-z]/
-
-formula_data: '$' 'fof' '(' fof_formula ')'
+positive_decimal: /[1-9]/ /[0-9]*/
 
 atomic_word: lower_word | single_quoted
 
-single_quoted: single_quote sq_char sq_char(s?) single_quote
-
-single_quote: /[']/
-
-sq_char: /[a-z]/
+single_quoted: "'" /[a-z]+/ "'"
 
 formula_role: lower_word
 
-null: ''
+# The official presentation:
+#
+# lower_word: lower_alpha alpha_numeric(s?)
+#
+# Simplified:
+lower_word: /[a-z][a-zA-Z0-9_]*/
 
-lower_word: lower_alpha alpha_numeric(s?)
-
-upper_word: upper_alpha alpha_numeric(s?)
+# The official presentation:
+#
+# upper_word: upper_alpha alpha_numeric(s?)
+#
+# Simplified:
+upper_word: /[A-Z]/ /[a-zA-Z0-9_]*/
 
 lower_alpha: /[a-z]/
 
 upper_alpha: /[A-Z]/
-
-numeric: /[0-9]/
 
 alpha_numeric: /[a-zA-Z0-9_]/
 
@@ -179,7 +139,7 @@ fof_unitary_formula:
   | '(' fof_logic_formula ')'
 
 fof_quantified_formula:
-    fol_quantifier
+    ('!' | '?')
     '[' fof_variable_list ']'
     ':'
     fof_unitary_formula
@@ -188,17 +148,17 @@ fof_variable_list:
     variable ',' <commit> fof_variable_list
   | variable
 
-fof_unary_formula: unary_connective fof_unitary_formula | fol_infix_unary
+fof_unary_formula: '~' fof_unitary_formula | fol_infix_unary
 
-fol_infix_unary: term infix_equality term
-
-fol_quantifier: '!' | '?'
+fol_infix_unary: term '=' term
 
 atomic_formula:
     plain_atomic_formula
   | defined_atomic_formula
 
-plain_atomic_formula: plain_term
+plain_atomic_formula:
+    functor '(' <commit> arguments ')'
+  | constant
 
 plain_term:
     functor '(' <commit> arguments ')'
@@ -206,13 +166,15 @@ plain_term:
 constant: functor
 functor: atomic_word
 arguments:
-    term ',' arguments
+    term ',' <commit> arguments
   | term
 term: functor_term | variable
 functor_term: plain_term | defined_term
 defined_term: defined_atom | defined_atomic_term
 defined_atom: number | distinct_object
 defined_atomic_term: defined_plain_term
+
+distinct_object: /["]/ alpha_numeric(s?) /["]/
 
 defined_plain_term:
     defined_functor '(' <commit> arguments ')'
@@ -229,23 +191,17 @@ dollar_dollar_word: '$$' lower_word
 
 defined_atomic_formula: defined_plain_formula | defined_infix_formula
 
-unary_connective: '~'
-
 name: atomic_word | integer
 infix_equality: '='
 file_name: single_quoted
-formula_selection: ',' '[' name_list ']' | null
 name_list: name | name ',' name_list
 defined_plain_formula: defined_plain_term
 defined_plain_term: defined_constant | defined_functor '(' arguments ')'
 defined_infix_formula: term defined_infix_pred term
 defined_infix_pred: infix_equality
-fof_sequent: fof_tuple gentzen_arrow fof_tuple | '(' fof_sequent ')'
+fof_sequent: fof_tuple '-->' fof_tuple | '(' fof_sequent ')'
 fof_tuple: '[' ']' | '[' fof_tuple_list ']'
 fof_tuple_list: fof_logic_formula | fof_logic_formula ',' fof_tuple_list
-gentzen_arrow: '-->'
-
-eofile: /\Z/
 
 comment: comment_line
 comment_line: /[%].*/
