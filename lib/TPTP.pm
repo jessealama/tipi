@@ -156,7 +156,8 @@ sub prove {
 			    exit_code => undef,
 			    output => $output,
 			    error_output => $error,
-			    background_theory => $theory);
+			    background_theory => $theory,
+			    tool => $prover);
 
     } else {
 	my @results = $harness->full_results ();
@@ -165,7 +166,8 @@ sub prove {
 			    exit_code => $exit_code,
 			    output => $output,
 			    error_output => $error,
-			    background_theory => $theory);
+			    background_theory => $theory,
+			    tool => $prover);
     }
 
 }
