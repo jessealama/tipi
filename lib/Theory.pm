@@ -389,8 +389,15 @@ sub remove_formula {
 
     my $name_of_formula_to_remove = $formula_to_remove->get_name ();
 
-    my $path = $self->get_path ();
+    return $self->remove_formula_by_name ($name_of_formula_to_remove);
+}
+
+sub remove_formula_by_name {
+    my $self = shift;
+    my $name_of_formula_to_remove = shift;
+
     my @formulas = $self->get_formulas (1);
+    my $path = $self->get_path ();
 
     (my $new_fh, my $new_path) = tempfile ();
 
