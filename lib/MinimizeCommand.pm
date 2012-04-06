@@ -429,7 +429,12 @@ sub execute {
 	my $estimate_minutes_at_least_one
 	    = $estimate_minutes < 1 ? 1 : $estimate_minutes;
 
-	say 'There are', $SPACE, $num_combinations, $SPACE, 'combinations to check.';
+	if ($num_combinations == 1) {
+	    say 'There is only 1 combination to check.';
+	} else {
+	    say 'There are', $SPACE, $num_combinations, $SPACE, 'combinations to check.';
+	}
+
 	say 'Be patient; in the worst case, evaluating all of them will take', $SPACE, $estimate_minutes_at_least_one, $SPACE, 'minute(s).';
 
 	my $progress = Term::ProgressBar->new ({ count => $num_combinations });
