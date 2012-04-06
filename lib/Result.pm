@@ -5,8 +5,20 @@ use Carp qw(croak);
 use charnames qw(:full);
 use Regexp::DefaultFlags;
 use Carp qw(croak carp);
+use Readonly;
+
 use EproverDerivation;
+use VampireDerivation;
 use ParadoxInterpretation;
+
+
+Readonly my $SPACE => q{ };
+
+has 'tool' => (
+    isa => 'Str',
+    is => 'ro',
+    reader => 'get_tool',
+);
 
 has 'derivation' => (
     isa => 'Derivation',
@@ -58,6 +70,7 @@ sub exited_cleanly {
 sub output_as_derivation {
     my $self = shift;
 
+    my $tool = $self->get_tool ();
     my $output = $self->get_output ();
     my $background = $self->get_background_theory ();
 
@@ -65,8 +78,17 @@ sub output_as_derivation {
 	croak 'Error: the output slot of this Result object is undefined.';
     }
 
-    return EproverDerivation->new (raw_text => $output,
-			           background_theory => $background);
+    if ($tool eq 'eprover') {
+	return EproverDerivation->new (raw_text => $output,
+				       background_theory => $background);
+    } elsif ($tool eq 'vampire') {
+	return VampireDerivation->new (raw_text => $output,
+				       background_theory => $background);
+    } else {
+	croak 'Unable to interpret the output of', $SPACE, $tool, $SPACE, 'as a derivation';
+    }
+
+
 }
 
 sub has_szs_status {
