@@ -22,7 +22,8 @@ our @EXPORT_OK = qw(ensure_tptp4x_available
 		    prove_if_possible
 		    ensure_sensible_tptp_theory
 		    ensure_getsymbols_available
-		    known_prover);
+		    known_prover
+		    incompatible_szs_statuses);
 
 use Result;
 use Utils qw(ensure_readable_file
@@ -296,6 +297,16 @@ sub ensure_sensible_tptp_theory {
 sub known_prover {
     my $prover = shift;
     return any { $_ eq $prover } @PROVERS;
+}
+
+sub incompatible_szs_statuses {
+    my $status_1 = shift;
+    my $status_2 = shift;
+
+    # we should use the table in Geoff's paper for this
+
+    return 0;
+
 }
 
 __END__
