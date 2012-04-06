@@ -312,7 +312,7 @@ sub execute {
     say colored ('Step 2', 'blue'), ': From the', $SPACE, scalar @axioms, $SPACE, colored ('used', $USED_PREMISE_COLOR), $SPACE, 'premise(s) of the initial proof, determine the', $SPACE, colored ('needed', $NEEDED_PREMISE_COLOR), $SPACE, 'ones.';
 
     if (scalar @axioms == 0) {
-	say 'We are immediately done, because the set of', $SPACE, colored ('used', $USED_PREMISE_COLOR), $SPACE, 'premises is empty';
+	say 'We are immediately done, because the set of', $SPACE, colored ('used', $USED_PREMISE_COLOR), $SPACE, 'premises is empty.';
     } else {
 
 	print 'PREMISES (', colored ('needed', $NEEDED_PREMISE_COLOR), $SPACE, $SLASH, $SPACE, colored ('unneeded', $UNNEEDED_PREMISE_COLOR), $SPACE, $SLASH, $SPACE, colored ('unknown', $UNKNOWN_COLOR), ')', "\N{LF}";
