@@ -113,15 +113,22 @@ sub execute {
     $theory = $theory->promote_conjecture_to_false_axiom ();
 
     my $result = eval { TPTP::find_model ($theory,
-					       { 'timeout' => $opt_timeout }) };
+					  { 'timeout' => $opt_timeout }) };
     if ($result->timed_out ()) {
 	say colored ('Timeout', $UNKNOWN_COLOR);
+	return 1;
     }
 
     my $szs_status = $result->has_szs_status () ? $result->get_szs_status () : 'Unknown';
+    my $exit_code = $result->get_exit_code ();
 
     if ($szs_status eq 'Satisfiable') {
 	say colored ('CounterSatisfiable', $BAD_COLOR);
+    } elsif ($exit_code == 0) {
+	say colored ($szs_status, $UNKNOWN_COLOR);
+    } else {
+	say colored ('Error', $BAD_COLOR), $SPACE, '(The model finder did not terminate cleanly; the exit code was', $SPACE, $exit_code, '.)';
+	return 1;
     }
 
     if ($opt_show_model) {
