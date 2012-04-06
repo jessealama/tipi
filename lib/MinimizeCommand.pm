@@ -378,6 +378,11 @@ sub execute {
     my $new_result = TPTP::prove ($small_theory,
 				  $opt_proof_finder,
 				  { 'timeout' => $opt_proof_finder_timeout });
+
+    if ($opt_debug) {
+	carp 'The proof result was:', "\N{LF}", Dumper ($new_result);
+    }
+
     my $new_result_szs_status
 	= $new_result->has_szs_status () ? $new_result->get_szs_status () : 'Unknown';
 
