@@ -355,8 +355,15 @@ sub execute {
     # Remove the old conjecture, which was promoted to a false axiom,
     # and put it back as the conjecture.
     if (defined $conjecture) {
-	$small_theory = $small_theory->strip_conjecture ($conjecture);
+	my $conjecture_name = $conjecture->get_name ();
+	$small_theory = $small_theory->remove_formula_by_name ($conjecture_name);
 	$small_theory = $small_theory->add_formula ($conjecture);
+    }
+
+    if (defined $conjecture) {
+	print colored ('Step 3', 'blue'), ': Derive the conjecture from only the', $SPACE, scalar keys %needed, $SPACE, colored ('needed', $NEEDED_PREMISE_COLOR), ' premise(s):';
+    } else {
+	print colored ('Step 3', 'blue'), ': Solve the problem from only the', $SPACE, scalar keys %needed, $SPACE, colored ('needed', $NEEDED_PREMISE_COLOR), ' premise(s):';
     }
 
     if ($opt_debug) {
