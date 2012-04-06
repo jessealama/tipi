@@ -28,6 +28,7 @@ use TPTP qw(ensure_tptp4x_available
 	    ensure_sensible_tptp_theory
 	    );
 use Utils qw(error_message
+	     warning_message
 	     all_sublists
 	     all_nonempty_sublists
 	     remove_duplicate_lists
@@ -271,6 +272,11 @@ sub execute {
 	my @used_premises = $derivation->get_used_premises ();
 	my @unused_premises = $derivation->get_unused_premises ();
 
+	if (scalar @used_premises == 0) {
+	    say warning_message ('It appears that no premises were used to derive the conjecture.');
+	    say 'While that is quite possible, it is more likely that there is an error somewhere.';
+	}
+
 	say 'PREMISES', $SPACE, '(', colored ('used', $USED_PREMISE_COLOR), $SPACE, '/', $SPACE, colored ('unused', $UNUSED_PREMISE_COLOR), ')';
 
 	if (scalar @used_premises > 0) {
@@ -305,30 +311,29 @@ sub execute {
 
     say colored ('Step 2', 'blue'), ': From the', $SPACE, scalar @axioms, $SPACE, colored ('used', $USED_PREMISE_COLOR), $SPACE, 'premise(s) of the initial proof, determine the', $SPACE, colored ('needed', $NEEDED_PREMISE_COLOR), $SPACE, 'ones.';
 
-    print 'PREMISES (', colored ('needed', $NEEDED_PREMISE_COLOR), $SPACE, $SLASH, $SPACE, colored ('unneeded', $UNNEEDED_PREMISE_COLOR), $SPACE, $SLASH, $SPACE, colored ('unknown', $UNKNOWN_COLOR), ')', "\N{LF}";
-
-    foreach my $axiom (@axioms) {
-	my $axiom_name = $axiom->get_name ();
-	my $trimmed_theory = $theory->remove_formula ($axiom);
-	my $satisfiable = $trimmed_theory->is_satisfiable ({'timeout' => $opt_model_finder_timeout});
-
-	if ($satisfiable == -1) {
-	    say colored ($axiom_name, $UNKNOWN_COLOR);
-	    $unknown{$axiom_name} = 0;
-	} elsif ($satisfiable == 0) {
-	    say colored ($axiom_name, $UNNEEDED_PREMISE_COLOR);
-	    $unneeded{$axiom_name} = 0;
-	} else {
-	    say colored ($axiom_name, $NEEDED_PREMISE_COLOR);
-	    $needed{$axiom_name} = 0;
-	}
-
-    }
-
-    if (defined $conjecture) {
-	print colored ('Step 3', 'blue'), ': Derive the conjecture from only the', $SPACE, scalar keys %needed, $SPACE, colored ('needed', $NEEDED_PREMISE_COLOR), ' premise(s):';
+    if (scalar @axioms == 0) {
+	say 'We are immediately done, because the set of', $SPACE, colored ('used', $USED_PREMISE_COLOR), $SPACE, 'premises is empty';
     } else {
-	print colored ('Step 3', 'blue'), ': Solve the problem from only the', $SPACE, scalar keys %needed, $SPACE, colored ('needed', $NEEDED_PREMISE_COLOR), ' premise(s):';
+
+	print 'PREMISES (', colored ('needed', $NEEDED_PREMISE_COLOR), $SPACE, $SLASH, $SPACE, colored ('unneeded', $UNNEEDED_PREMISE_COLOR), $SPACE, $SLASH, $SPACE, colored ('unknown', $UNKNOWN_COLOR), ')', "\N{LF}";
+
+	foreach my $axiom (@axioms) {
+	    my $axiom_name = $axiom->get_name ();
+	    my $trimmed_theory = $theory->remove_formula ($axiom);
+	    my $satisfiable = $trimmed_theory->is_satisfiable ({'timeout' => $opt_model_finder_timeout});
+
+	    if ($satisfiable == -1) {
+		say colored ($axiom_name, $UNKNOWN_COLOR);
+		$unknown{$axiom_name} = 0;
+	    } elsif ($satisfiable == 0) {
+		say colored ($axiom_name, $UNNEEDED_PREMISE_COLOR);
+		$unneeded{$axiom_name} = 0;
+	    } else {
+		say colored ($axiom_name, $NEEDED_PREMISE_COLOR);
+		$needed{$axiom_name} = 0;
+	    }
+
+	}
     }
 
     # Dump everything that is not known to be needed
