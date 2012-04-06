@@ -21,7 +21,8 @@ use TPTP qw(ensure_tptp4x_available
 	    ensure_valid_tptp_file
 	    prove_if_possible
 	    ensure_sensible_tptp_theory
-	    known_prover);
+	    known_prover
+	    incompatible_szs_statuses);
 use Utils qw(error_message
 	     ensure_readable_file);
 
@@ -35,7 +36,7 @@ Readonly my $GOOD_COLOR => 'green';
 Readonly my $BAD_COLOR => 'red';
 Readonly my $USED_PREMISE_COLOR => 'blue';
 Readonly my $UNUSED_PREMISE_COLOR => 'yellow';
-Readonly my $UNKNOWN_COLOR => 'yellow';
+Readonly my $UNKNOWN_PREMISE_COLOR => 'yellow';
 Readonly my $NEEDED_PREMISE_COLOR => 'red';
 Readonly my $UNNEEDED_PREMISE_COLOR => 'cyan';
 
@@ -49,6 +50,8 @@ my $opt_solution_szs_status = 'Theorem';
 my $opt_timeout = 30;
 my $opt_prover = 'eprover';
 my $opt_model_finder = 'paradox';
+my $opt_syntactically = 0;
+my $opt_semantically = 0;
 
 sub BUILD {
     my $self = shift;
@@ -71,6 +74,8 @@ around 'execute' => sub {
 	'solution-szs-status=s' => \$opt_solution_szs_status,
 	'prover=s' => \$opt_prover,
 	'timeout=i' => \$opt_timeout,
+	'semantically' => \$opt_semantically,
+	'syntactically' => \$opt_syntactically,
     ) or pod2usage (2);
 
     if ($opt_help) {
@@ -101,6 +106,13 @@ around 'execute' => sub {
 
     if ($opt_timeout < 0) {
 	say {*STDERR} error_message ('Unacceptable value for the timeout option:', $SPACE, $opt_timeout, $FULL_STOP);
+    }
+
+    # if both --semantically and --syntactically are unspecified, set
+    # both true
+    if (! $opt_semantically && ! $opt_syntactically) {
+	$opt_semantically = 1;
+	$opt_syntactically = 1;
     }
 
     if (! known_prover ($opt_prover)) {
@@ -166,22 +178,47 @@ sub execute {
 
     $theory = $theory->remove_formula_by_name ($premise_name);
 
-    my $prover_result = TPTP::prove ($theory,
-				     $opt_prover,
-				     { 'timeout' => $opt_timeout });
+    if ($opt_syntactically) {
+
+	my $prover_result = TPTP::prove ($theory,
+					 $opt_prover,
+					 { 'timeout' => $opt_timeout });
 
 
-    my $prover_szs_status
-	= $prover_result->has_szs_status () ? $prover_result->get_szs_status () : 'Unknown';
+	my $prover_szs_status
+	    = $prover_result->has_szs_status () ? $prover_result->get_szs_status () : 'Unknown';
 
-    if ($prover_szs_status eq 'Unknown') {
+	if ($prover_szs_status eq 'Unknown') {
 
-	if ($opt_verbose) {
-	    say 'Unable to determine with a proof finder whether the premise is needed;';
-	    say 'trying now with a model finder...';
+	    if ($opt_semantically) {
+		my $model_result = TPTP::find_model ($theory,
+						     { 'timeout' => $opt_timeout });
+
+		my $model_szs_status = $model_result->has_szs_status () ?
+		    $model_result->get_szs_status ()
+			: 'Unknown';
+
+		if ($model_szs_status eq 'Unknown') {
+		    say colored ('Unknown', $UNKNOWN_PREMISE_COLOR), $SPACE, '(SZS status ', $model_szs_status, ')';
+		} elsif ($model_szs_status eq $opt_solution_szs_status) {
+		    say colored ('Unneeded', $UNNEEDED_PREMISE_COLOR), $SPACE, '(SZS status ', $model_szs_status, ')';
+		} else {
+		    say colored ('Needed', $NEEDED_PREMISE_COLOR), $SPACE, '(SZS status ', $model_szs_status, ')';
+		}
+	    } else {
+		say colored ('Unknown', $UNKNOWN_PREMISE_COLOR), $SPACE, '(SZS status ', $prover_szs_status, ')';
+	    }
+
+	} elsif ($prover_szs_status eq $opt_solution_szs_status) {
+	    say colored ('Unneeded', $UNNEEDED_PREMISE_COLOR), $SPACE, '(SZS status ', $prover_szs_status, ')';
+	} elsif (incompatible_szs_statuses ($prover_szs_status,
+					    $opt_solution_szs_status)) {
+	    say colored ('Needed', $NEEDED_PREMISE_COLOR), $SPACE, '(SZS status ', $prover_szs_status, ')';
+	} else {
+	    say colored ('Unknown', $UNKNOWN_PREMISE_COLOR), $SPACE, '(SZS status ', $prover_szs_status, ')';
 	}
+    } else {
 
-	# Try using a model finder
 	my $model_result = TPTP::find_model ($theory,
 					     { 'timeout' => $opt_timeout });
 
@@ -190,17 +227,13 @@ sub execute {
 		: 'Unknown';
 
 	if ($model_szs_status eq 'Unknown') {
-	    say colored ('Unknown', $UNKNOWN_COLOR), $SPACE, '(SZS status ', $model_szs_status, ')';
+	    say colored ('Unknown', $UNKNOWN_PREMISE_COLOR), $SPACE, '(SZS status ', $model_szs_status, ')';
 	} elsif ($model_szs_status eq $opt_solution_szs_status) {
 	    say colored ('Unneeded', $UNNEEDED_PREMISE_COLOR), $SPACE, '(SZS status ', $model_szs_status, ')';
 	} else {
 	    say colored ('Needed', $NEEDED_PREMISE_COLOR), $SPACE, '(SZS status ', $model_szs_status, ')';
 	}
 
-    } elsif ($prover_szs_status eq $opt_solution_szs_status) {
-	say colored ('Unneeded', $UNNEEDED_PREMISE_COLOR), $SPACE, '(SZS status ', $prover_szs_status, ')';
-    } else {
-	say colored ('Needed', $NEEDED_PREMISE_COLOR), $SPACE, '(SZS status ', $prover_szs_status, ')';
     }
 
     return 1;
