@@ -32,6 +32,7 @@ use SymbolsCommand;
 use IndependenceCommand;
 use MinimizeCommand;
 use NeededCommand;
+use CountermodelCommand;
 
 Readonly my $VERSION => qv('1.0');
 
@@ -50,6 +51,7 @@ Readonly my %COMMANDS => (
     'independence' => IndependenceCommand->new (),
     'minimize' => MinimizeCommand->new (),
     'needed' => NeededCommand->new (),
+    'countermodel' => CountermodelCommand->new (),
 );
 
 my $opt_man       = 0;
