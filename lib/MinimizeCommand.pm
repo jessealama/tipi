@@ -28,6 +28,7 @@ use TPTP qw(ensure_tptp4x_available
 	    ensure_sensible_tptp_theory
 	    );
 use Utils qw(error_message
+	     warning_message
 	     all_sublists
 	     all_nonempty_sublists
 	     remove_duplicate_lists
@@ -271,6 +272,11 @@ sub execute {
 	my @used_premises = $derivation->get_used_premises ();
 	my @unused_premises = $derivation->get_unused_premises ();
 
+	if (scalar @used_premises == 0) {
+	    say warning_message ('It appears that no premises were used to derive the conjecture.');
+	    say 'While that is quite possible, it is more likely that there is an error somewhere.';
+	}
+
 	say 'PREMISES', $SPACE, '(', colored ('used', $USED_PREMISE_COLOR), $SPACE, '/', $SPACE, colored ('unused', $UNUSED_PREMISE_COLOR), ')';
 
 	if (scalar @used_premises > 0) {
@@ -305,30 +311,29 @@ sub execute {
 
     say colored ('Step 2', 'blue'), ': From the', $SPACE, scalar @axioms, $SPACE, colored ('used', $USED_PREMISE_COLOR), $SPACE, 'premise(s) of the initial proof, determine the', $SPACE, colored ('needed', $NEEDED_PREMISE_COLOR), $SPACE, 'ones.';
 
-    print 'PREMISES (', colored ('needed', $NEEDED_PREMISE_COLOR), $SPACE, $SLASH, $SPACE, colored ('unneeded', $UNNEEDED_PREMISE_COLOR), $SPACE, $SLASH, $SPACE, colored ('unknown', $UNKNOWN_COLOR), ')', "\N{LF}";
-
-    foreach my $axiom (@axioms) {
-	my $axiom_name = $axiom->get_name ();
-	my $trimmed_theory = $theory->remove_formula ($axiom);
-	my $satisfiable = $trimmed_theory->is_satisfiable ({'timeout' => $opt_model_finder_timeout});
-
-	if ($satisfiable == -1) {
-	    say colored ($axiom_name, $UNKNOWN_COLOR);
-	    $unknown{$axiom_name} = 0;
-	} elsif ($satisfiable == 0) {
-	    say colored ($axiom_name, $UNNEEDED_PREMISE_COLOR);
-	    $unneeded{$axiom_name} = 0;
-	} else {
-	    say colored ($axiom_name, $NEEDED_PREMISE_COLOR);
-	    $needed{$axiom_name} = 0;
-	}
-
-    }
-
-    if (defined $conjecture) {
-	print colored ('Step 3', 'blue'), ': Derive the conjecture from only the', $SPACE, scalar keys %needed, $SPACE, colored ('needed', $NEEDED_PREMISE_COLOR), ' premise(s):';
+    if (scalar @axioms == 0) {
+	say 'We are immediately done, because the set of', $SPACE, colored ('used', $USED_PREMISE_COLOR), $SPACE, 'premises is empty.';
     } else {
-	print colored ('Step 3', 'blue'), ': Solve the problem from only the', $SPACE, scalar keys %needed, $SPACE, colored ('needed', $NEEDED_PREMISE_COLOR), ' premise(s):';
+
+	print 'PREMISES (', colored ('needed', $NEEDED_PREMISE_COLOR), $SPACE, $SLASH, $SPACE, colored ('unneeded', $UNNEEDED_PREMISE_COLOR), $SPACE, $SLASH, $SPACE, colored ('unknown', $UNKNOWN_COLOR), ')', "\N{LF}";
+
+	foreach my $axiom (@axioms) {
+	    my $axiom_name = $axiom->get_name ();
+	    my $trimmed_theory = $theory->remove_formula ($axiom);
+	    my $satisfiable = $trimmed_theory->is_satisfiable ({'timeout' => $opt_model_finder_timeout});
+
+	    if ($satisfiable == -1) {
+		say colored ($axiom_name, $UNKNOWN_COLOR);
+		$unknown{$axiom_name} = 0;
+	    } elsif ($satisfiable == 0) {
+		say colored ($axiom_name, $UNNEEDED_PREMISE_COLOR);
+		$unneeded{$axiom_name} = 0;
+	    } else {
+		say colored ($axiom_name, $NEEDED_PREMISE_COLOR);
+		$needed{$axiom_name} = 0;
+	    }
+
+	}
     }
 
     # Dump everything that is not known to be needed
@@ -350,8 +355,15 @@ sub execute {
     # Remove the old conjecture, which was promoted to a false axiom,
     # and put it back as the conjecture.
     if (defined $conjecture) {
-	$small_theory = $small_theory->strip_conjecture ($conjecture);
+	my $conjecture_name = $conjecture->get_name ();
+	$small_theory = $small_theory->remove_formula_by_name ($conjecture_name);
 	$small_theory = $small_theory->add_formula ($conjecture);
+    }
+
+    if (defined $conjecture) {
+	print colored ('Step 3', 'blue'), ': Derive the conjecture from only the', $SPACE, scalar keys %needed, $SPACE, colored ('needed', $NEEDED_PREMISE_COLOR), ' premise(s):';
+    } else {
+	print colored ('Step 3', 'blue'), ': Solve the problem from only the', $SPACE, scalar keys %needed, $SPACE, colored ('needed', $NEEDED_PREMISE_COLOR), ' premise(s):';
     }
 
     if ($opt_debug) {
@@ -366,6 +378,11 @@ sub execute {
     my $new_result = TPTP::prove ($small_theory,
 				  $opt_proof_finder,
 				  { 'timeout' => $opt_proof_finder_timeout });
+
+    if ($opt_debug) {
+	carp 'The proof result was:', "\N{LF}", Dumper ($new_result);
+    }
+
     my $new_result_szs_status
 	= $new_result->has_szs_status () ? $new_result->get_szs_status () : 'Unknown';
 
@@ -412,8 +429,13 @@ sub execute {
 	my $estimate_minutes_at_least_one
 	    = $estimate_minutes < 1 ? 1 : $estimate_minutes;
 
-	say 'There are', $SPACE, $num_combinations, $SPACE, 'combinations to check.';
-	say 'Be patient; in the worst case, evaluating all of them will take', $SPACE, $estimate_minutes_at_least_one, $SPACE, 'minute(s).';
+	if ($num_combinations == 1) {
+	    say 'There is only 1 combination to check.';
+	    say 'Be patient; in the worst case, evaluating it will take', $SPACE, $estimate_minutes_at_least_one, $SPACE, 'minute(s).';
+	} else {
+	    say 'There are', $SPACE, $num_combinations, $SPACE, 'combinations to check.';
+	    say 'Be patient; in the worst case, evaluating all of them will take', $SPACE, $estimate_minutes_at_least_one, $SPACE, 'minute(s).';
+	}
 
 	my $progress = Term::ProgressBar->new ({ count => $num_combinations });
 	my $num_tuples_handled = 0;

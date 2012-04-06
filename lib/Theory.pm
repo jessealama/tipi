@@ -386,11 +386,16 @@ sub promote_conjecture_to_false_axiom {
 sub remove_formula {
     my $self = shift;
     my $formula_to_remove = shift;
-
     my $name_of_formula_to_remove = $formula_to_remove->get_name ();
+    return $self->remove_formula_by_name ($name_of_formula_to_remove);
+}
 
-    my $path = $self->get_path ();
+sub remove_formula_by_name {
+    my $self = shift;
+    my $name_of_formula_to_remove = shift;
+
     my @formulas = $self->get_formulas (1);
+    my $path = $self->get_path ();
 
     (my $new_fh, my $new_path) = tempfile ();
 
@@ -788,6 +793,17 @@ sub has_axiom {
     } else {
 	return 0;
     }
+
+}
+
+sub has_premise_with_name {
+    my $self = shift;
+    my $premise_name = shift;
+
+    my @axioms = $self->get_axioms (1);
+    my @axiom_names = map { $_->get_name () } @axioms;
+
+    return (any { $_ eq $premise_name } @axiom_names);
 
 }
 
