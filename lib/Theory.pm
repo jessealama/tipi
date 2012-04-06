@@ -386,9 +386,7 @@ sub promote_conjecture_to_false_axiom {
 sub remove_formula {
     my $self = shift;
     my $formula_to_remove = shift;
-
     my $name_of_formula_to_remove = $formula_to_remove->get_name ();
-
     return $self->remove_formula_by_name ($name_of_formula_to_remove);
 }
 
