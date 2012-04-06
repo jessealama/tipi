@@ -798,6 +798,17 @@ sub has_axiom {
 
 }
 
+sub has_premise_with_name {
+    my $self = shift;
+    my $premise_name = shift;
+
+    my @axioms = $self->get_axioms (1);
+    my @axiom_names = map { $_->get_name () } @axioms;
+
+    return (any { $_ eq $premise_name } @axiom_names);
+
+}
+
 sub fofify {
     my $self = shift;
 
