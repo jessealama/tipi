@@ -342,36 +342,12 @@ sub one_model_finder_countersolves {
 				       'timeout' => $opt_model_finder_timeout });
 }
 
-sub minimize_with_prover {
+sub minimize {
     my $theory = shift;
     my $prover = shift;
-
-    my $theory_to_minimize = $theory->copy ();
-
-    my $result = TPTP::prove ($theory_to_minimize,
-			      $prover,
-			      { 'timeout' => $opt_proof_finder_timeout });
-    my $last_known_good_result = undef;
-    my $szs_status = $result->get_szs_status ();
-    my $derivation = $result->output_as_derivation ();
-
-    my @unused_premises = $derivation->get_unused_premises ();
-
-    while (is_szs_success ($szs_status) && scalar @unused_premises > 0) {
-	$last_known_good_result = $result;
-	$theory_to_minimize = $derivation->theory_from_used_premises ();
-	$result = TPTP::prove ($theory_to_minimize,
-			       $prover,
-			       { 'timeout' => $opt_proof_finder_timeout });
-	$szs_status = $result->get_szs_status ();
-	$derivation = is_szs_success ($szs_status) ? $result->output_as_derivation ()
-	    : undef;
-	@unused_premises = defined $derivation ? $derivation->get_unused_premises ()
-	    : ();
-    }
-
-    return (is_szs_success ($szs_status) ? $result : $last_known_good_result);
-
+    return $theory->minimize ($prover,
+			      $opt_solution_szs_status,
+			      { 'timeout' => $opt_proof_finder_timeout })
 }
 
 sub execute {
@@ -426,7 +402,7 @@ sub execute {
 	    $initial_proof_szs_status{$prover} = $SZS_NOT_TRIED;
 	} else {
 
-	    my $initial_proof_result = minimize_with_prover ($theory, $prover);
+	    my $initial_proof_result = minimize ($theory, $prover);
 	    $initial_proof_szs_status = $initial_proof_result->get_szs_status ();
 	    $initial_proof_szs_status{$prover} = $initial_proof_szs_status;
 

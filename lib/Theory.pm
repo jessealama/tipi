@@ -940,5 +940,39 @@ sub copy {
     return Theory->new (path => $path);
 }
 
+sub minimize {
+    my $self = shift;
+    my $prover = shift;
+    my $intended_szs_status = shift;
+    my $parameters_ref = shift;
+
+    my %parameters = defined $parameters_ref ? %{$parameters_ref} : ();
+
+    my $theory_to_minimize = $self->copy ();
+
+    my $result = TPTP::prove ($theory_to_minimize, $prover, \%parameters);
+    my $last_known_good_result = undef;
+    my $szs_status = $result->get_szs_status ();
+    my $derivation = $result->output_as_derivation ();
+
+    my @unused_premises = $derivation->get_unused_premises ();
+
+    while (is_szs_success ($szs_status)
+	       && szs_implies ($szs_status, $intended_szs_status)
+		   && scalar @unused_premises > 0) {
+	$last_known_good_result = $result;
+	$theory_to_minimize = $derivation->theory_from_used_premises ();
+	$result = TPTP::prove ($theory_to_minimize, $prover, \%parameters);
+	$szs_status = $result->get_szs_status ();
+	$derivation = is_szs_success ($szs_status) ? $result->output_as_derivation ()
+	    : undef;
+	@unused_premises = defined $derivation ? $derivation->get_unused_premises ()
+	    : ();
+    }
+
+    return (is_szs_success ($szs_status) ? $result : $last_known_good_result);
+
+}
+
 1;
 __END__
