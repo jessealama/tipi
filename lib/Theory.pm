@@ -9,9 +9,12 @@ use charnames qw(:full);
 use List::MoreUtils qw(firstidx any);
 use File::Temp qw(tempfile);
 use Regexp::DefaultFlags;
-use Formula;
 use Utils qw(ensure_readable_file slurp);
 use Data::Dumper;
+
+# Our modules
+use Formula;
+use SZS;
 
 Readonly my $TPTP4X => 'tptp4X';
 Readonly my $EMPTY_STRING => q{};
@@ -751,6 +754,20 @@ sub is_satisfiable {
 	# Can't figure this out
 	return -1;
     }
+
+}
+
+sub solvable_with {
+    my $self = shift;
+    my $prover = shift;
+    my $intended_szs_status = shift;
+    my $parameters_ref = shift;
+
+    my %parameters = defined $parameters_ref ? %{$parameters_ref} : ();
+
+    my $result = TPTP::prove ($self, $prover, \%parameters);
+    my $szs_status = $result->get_szs_status ();
+    return szs_implies ($szs_status, $intended_szs_status);
 
 }
 
