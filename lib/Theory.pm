@@ -14,7 +14,7 @@ use Data::Dumper;
 
 # Our modules
 use Formula;
-use SZS;
+use SZS qw(szs_implies);
 
 Readonly my $TPTP4X => 'tptp4X';
 Readonly my $EMPTY_STRING => q{};
