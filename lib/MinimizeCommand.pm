@@ -542,18 +542,30 @@ sub execute {
     my @used_premises = keys %appearing_in_a_minimal_set;
 
     my @unused_premises = ();
-    foreach my $premise (@axioms) {
-	my $premise_name = $premise->get_name ();
-	if (defined $appearing_in_a_minimal_set{$premise_name}) {
-	    # ignore
-	} else {
-	    push (@unused_premises, $premise_name);
+
+    if (! $opt_skip_initial_proof) {
+	foreach my $premise (@axioms) {
+	    my $premise_name = $premise->get_name ();
+	    if (defined $appearing_in_a_minimal_set{$premise_name}) {
+		# ignore
+	    } else {
+		push (@unused_premises, $premise_name);
+	    }
 	}
     }
 
     $theory = $theory->remove_formulas_by_name (@unused_premises);
 
-    @axioms = @used_premises;
+    if ($opt_skip_initial_proof) {
+	@axioms = map { $_->get_name () } @axioms;
+	@used_premises = @axioms;
+    } else {
+	@axioms = @used_premises;
+    }
+
+    @used_premises = sort @used_premises;
+    @unused_premises = sort @unused_premises;
+    @axioms = sort @axioms;
 
     # carp 'Axioms now:', Dumper (@axioms);
 
