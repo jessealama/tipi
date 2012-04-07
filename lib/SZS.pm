@@ -382,7 +382,7 @@ sub szs_implies {
     } elsif (! defined $szs_code_for{$szs_code_or_camelword_2}) {
 	croak 'Unable to make sense of the SZS code/camelword \'', $szs_code_or_camelword_2, '\'.';
     } else {
-	croak 'Unable to determine whether SZS code/camelword \'', $szs_code_or_camelword_1, '\' implies SZS code/camelword \'', $szs_code_or_camelword_2, '\'.;
+	croak 'Unable to determine whether SZS code/camelword \'', $szs_code_or_camelword_1, '\' implies SZS code/camelword \'', $szs_code_or_camelword_2, '\'.';
     }
 
 }
