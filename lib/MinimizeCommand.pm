@@ -13,7 +13,7 @@ use Data::Dumper;
 use Term::ANSIColor qw(colored);
 use feature 'say';
 use List::Util qw(max);
-use List::MoreUtils qw(any first_index);
+use List::MoreUtils qw(any first_index all);
 use Term::ProgressBar;
 use Regexp::DefaultFlags;
 use POSIX qw(ceil);
@@ -383,7 +383,7 @@ sub execute {
     my %used_by_prover = ();
     my %unused_by_prover = ();
 
-    my $at_least_one_prover_succeeded = 0;
+    my $num_initial_proofs_found = 0;
 
     foreach my $prover (@opt_proof_finders) {
 
@@ -406,7 +406,7 @@ sub execute {
 		if (szs_implies ($initial_proof_szs_status,
 				 $opt_solution_szs_status)) {
 
-		    $at_least_one_prover_succeeded = 1;
+		    $num_initial_proofs_found++;
 
 		    my $derivation = eval { $initial_proof_result->output_as_derivation (); };
 		    my $derivation_message = $@;
@@ -448,7 +448,7 @@ sub execute {
 	}
     }
 
-    if ($at_least_one_prover_succeeded) {
+    if ($num_initial_proofs_found > 0) {
 	say colored ('OK', $GOOD_COLOR);
     } else {
 	say colored ('Not OK', $BAD_COLOR);
@@ -468,8 +468,8 @@ sub execute {
     foreach my $prover (@opt_proof_finders) {
 
 	my $szs_status = $initial_proof_szs_status{$prover};
-	my @used_premises = defined $used_by_prover{$prover} ? @{$used_by_prover{$prover}} : ();
-	my @unused_premises = defined $unused_by_prover{$prover}? @{$unused_by_prover{$prover}} : ();
+	my @used_premises = @{$used_by_prover{$prover}};
+	my @unused_premises = @{$unused_by_prover{$prover}};
 
 	say 'PREMISES (', $prover, ')', $SPACE, '(', colored ('used', $USED_PREMISE_COLOR), $SPACE, '/', $SPACE, colored ('unused', $UNUSED_PREMISE_COLOR), ')';
 
@@ -492,23 +492,47 @@ sub execute {
 	}
     }
 
-    my %used_by_any_prover = ();
-
+    # Find the minimal sets of used premises
+    my @minimal_used_premise_sets = ();
     foreach my $prover (@opt_proof_finders) {
-	my @used_premises
-	    = defined $used_by_prover{$prover} ? @{$used_by_prover{$prover}} : ();
-	foreach my $premise (@used_premises) {
-	    my $premise_name = $premise->get_name ();
-	    $used_by_any_prover{$premise_name} = 0;
+	my @used_premises = @{$used_by_prover{$prover}};
+	my @used_premises_names = map { $_->get_name () } @used_premises;
+	my @used_premises_names_sorted = sort @used_premises_names;
+	if (all { my $other_prover = $_;
+		  $other_prover eq $prover
+		      || eval { my @other_used_premises
+				    = @{$used_by_prover{$other_prover}};
+				my @other_used_premises_names
+				    = map { $_->get_name () } @other_used_premises;
+				my @other_used_premises_names_sorted
+				    = sort @other_used_premises_names;
+				subtuple (\@used_premises_names_sorted,
+					  \@other_used_premises_names_sorted)
+				    || ! subtuple (\@other_used_premises_names_sorted,
+						   \@used_premises_names_sorted) } }
+		@opt_proof_finders) {
+	    push (@minimal_used_premise_sets, \@used_premises_names_sorted);
+	}
+
+    }
+
+    # carp 'Minimal used premise sets:', "\N{LF}", Dumper (@minimal_used_premise_sets);
+
+    my %appearing_in_a_minimal_set = ();
+
+    foreach my $tuple_ref (@minimal_used_premise_sets) {
+	my @tuple = @{$tuple_ref};
+	foreach my $premise (@tuple) {
+	    $appearing_in_a_minimal_set{$premise} = 0;
 	}
     }
 
-    my @used_premises = keys %used_by_any_prover;
+    my @used_premises = keys %appearing_in_a_minimal_set;
 
     my @unused_premises = ();
     foreach my $premise (@axioms) {
 	my $premise_name = $premise->get_name ();
-	if (defined $used_by_any_prover{$premise_name}) {
+	if (defined $appearing_in_a_minimal_set{$premise_name}) {
 	    # ignore
 	} else {
 	    push (@unused_premises, $premise_name);
@@ -525,7 +549,13 @@ sub execute {
     my %unneeded = ();
     my %unknown = ();
 
-    say colored ('Step 2', 'blue'), ': From the', $SPACE, scalar @axioms, $SPACE, colored ('used', $USED_PREMISE_COLOR), $SPACE, 'premise(s) of the initial proof, determine the', $SPACE, colored ('needed', $NEEDED_PREMISE_COLOR), $SPACE, 'ones.';
+    if ($num_initial_proofs_found == 1) {
+	say colored ('Step 2', 'blue'), ': From the', $SPACE, scalar @axioms, $SPACE, colored ('used', $USED_PREMISE_COLOR), $SPACE, 'premise(s) of the initial proof, determine the', $SPACE, colored ('needed', $NEEDED_PREMISE_COLOR), $SPACE, 'ones.';
+    } else {
+	say colored ('Step 2', 'blue'), ': From the', $SPACE, scalar @axioms, $SPACE, colored ('used', $USED_PREMISE_COLOR), $SPACE, 'premise(s) of the initial proofs, determine the', $SPACE, colored ('needed', $NEEDED_PREMISE_COLOR), $SPACE, 'ones.';
+	say '(We count as', $SPACE, colored ('used', $USED_PREMISE_COLOR), $SPACE, 'those premises that appear in a minimal element';
+	say 'of the partial order of sets of used premises, ordered by inclusion.)'
+    }
 
     if (scalar @axioms == 0) {
 	say 'We are immediately done, because the set of', $SPACE, colored ('used', $USED_PREMISE_COLOR), $SPACE, 'premises is empty.';
