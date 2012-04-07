@@ -6,15 +6,19 @@ use charnames qw(:full);
 use Regexp::DefaultFlags;
 use Carp qw(croak carp);
 use Readonly;
+use Data::Dumper;
 
 # Our modules
 use EproverDerivation;
 use VampireDerivation;
+use Prover9Derivation;
 use ParadoxInterpretation;
 use SZS qw(known_szs_status);
 
+Readonly my $LF => "\N{LF}";
 Readonly my $SPACE => q{ };
 Readonly my $SZS_UNKNOWN => 'Unknown';
+Readonly my $SZS_ERROR => 'Error';
 
 has 'tool' => (
     isa => 'Str',
@@ -42,6 +46,12 @@ sub timed_out {
 has 'exit_code' => (
     is => 'ro',
     reader => 'get_exit_code',
+);
+
+has intended_szs_status => (
+    is => 'ro',
+    isa => 'Str',
+    reader => 'get_intended_szs_status',
 );
 
 has 'error_output' => (
@@ -86,6 +96,9 @@ sub output_as_derivation {
     } elsif ($tool eq 'vampire') {
 	return VampireDerivation->new (raw_text => $output,
 				       background_theory => $background);
+    } elsif ($tool eq 'prover9') {
+	return Prover9Derivation->new (raw_text => $output,
+				       background_theory => $background);
     } else {
 	croak 'Unable to interpret the output of', $SPACE, $tool, $SPACE, 'as a derivation';
     }
@@ -106,11 +119,26 @@ sub has_szs_status {
     }
 }
 
+Readonly my $PROVER9_PROOF_TOKEN
+    => '============================== PROOF =================================';
+
 sub get_szs_status {
     my $self = shift;
+
+    my $tool = $self->get_tool ();
     my $output = $self->get_output ();
 
-    if ($output =~ / SZS \N{SPACE} status \N{SPACE} ([a-zA-Z]+) /m) {
+    if (! $self->exited_cleanly ()) {
+	# carp 'Whoops, I did not exit cleanly:', $LF, Dumper ($self);
+	return $SZS_ERROR;
+    } elsif ($tool eq 'prover9') { # ugh
+	my $intended_szs_status = $self->get_intended_szs_status ();
+	if (index $output, $PROVER9_PROOF_TOKEN) {
+	    return $intended_szs_status;
+	} else {
+	    return $SZS_UNKNOWN;
+	}
+    } elsif ($output =~ / SZS \N{SPACE} status \N{SPACE} ([a-zA-Z]+) /m) {
 	my $status = $1;
 	if (known_szs_status ($status)) {
 	    return $status;
