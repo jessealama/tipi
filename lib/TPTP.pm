@@ -43,7 +43,9 @@ Readonly my $UNUSED_PREMISE_COLOR => 'bright_black';
 Readonly my $GOOD_COLOR => 'green';
 Readonly my $BAD_COLOR => 'red';
 Readonly my $GETSYMBOLS => 'GetSymbols';
-Readonly my @PROVERS => ('eprover', 'vampire');
+Readonly my @PROVERS => ('eprover',
+			 'vampire',
+			 'paradox',);
 
 sub ensure_tptp4x_available {
     return can_run ($TPTP4X);
