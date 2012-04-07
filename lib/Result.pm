@@ -7,10 +7,11 @@ use Regexp::DefaultFlags;
 use Carp qw(croak carp);
 use Readonly;
 
+# Our modules
 use EproverDerivation;
 use VampireDerivation;
 use ParadoxInterpretation;
-
+use SZS qw(known_szs_status);
 
 Readonly my $SPACE => q{ };
 Readonly my $SZS_UNKNOWN => 'Unknown';
@@ -110,7 +111,13 @@ sub get_szs_status {
     my $output = $self->get_output ();
 
     if ($output =~ / SZS \N{SPACE} status \N{SPACE} ([a-zA-Z]+) /m) {
-	return $1;
+	my $status = $1;
+	if (known_szs_status ($status)) {
+	    return $status;
+	} else {
+	    carp 'Unknown SZS status \'', $status, '\'; defaulting to \'Unknown\'.';
+	    return $SZS_UNKNOWN;
+	}
     } else {
 	return $SZS_UNKNOWN;
     }
