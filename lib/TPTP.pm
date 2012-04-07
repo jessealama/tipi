@@ -141,6 +141,13 @@ sub prove {
 			    '>', \$output,
 			    '2>', \$error,
 			    $timer);
+    } elsif ($prover eq 'paradox') {
+	my @paradox_call = ('paradox', '--tstp', $theory_path);
+	$harness = harness (\@paradox_call,
+			    '>', \$output,
+			    '2>', \$error,
+			    $timer);
+
     } else {
 	croak 'Unknown prover', $SPACE, $prover, $FULL_STOP;
     }
