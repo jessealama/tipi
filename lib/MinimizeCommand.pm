@@ -311,8 +311,7 @@ sub one_prover_solves {
     my $theory = shift;
     return one_tool_solves ($theory,
 			    \@opt_proof_finders,
-			    {
-				'timeout' => $opt_proof_finder_timeout });
+			    { 'timeout' => $opt_proof_finder_timeout });
 }
 
 sub one_prover_countersolves {
@@ -320,8 +319,7 @@ sub one_prover_countersolves {
     my $parameters_ref = shift;
     return one_tool_countersolves ($theory,
 				   \@opt_proof_finders,
-				   {
-				       'timeout' => $opt_proof_finder_timeout });
+				   { 'timeout' => $opt_proof_finder_timeout });
 }
 
 sub one_model_finder_solves {
@@ -329,8 +327,7 @@ sub one_model_finder_solves {
     my $parameters_ref = shift;
     return one_tool_solves ($theory,
 			    \@opt_model_finders,
-			    {
-				'timeout' => $opt_model_finder_timeout });
+			    { 'timeout' => $opt_model_finder_timeout });
 }
 
 sub one_model_finder_countersolves {
@@ -338,8 +335,7 @@ sub one_model_finder_countersolves {
     my $parameters_ref = shift;
     return one_tool_countersolves ($theory,
 				   \@opt_model_finders,
-				   {
-				       'timeout' => $opt_model_finder_timeout });
+				   { 'timeout' => $opt_model_finder_timeout });
 }
 
 sub minimize {
