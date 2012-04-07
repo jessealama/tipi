@@ -38,6 +38,7 @@ Readonly my $DEFAULT_PROVER_TIMEOUT => 30;
 Readonly my $TWO_SPACES => q{  };
 Readonly my $SPACE => q{ };
 Readonly my $FULL_STOP => q{.};
+Readonly my $COLON => q{:};
 Readonly my $USED_PREMISE_COLOR => 'blue';
 Readonly my $UNUSED_PREMISE_COLOR => 'bright_black';
 Readonly my $GOOD_COLOR => 'green';
@@ -45,7 +46,8 @@ Readonly my $BAD_COLOR => 'red';
 Readonly my $GETSYMBOLS => 'GetSymbols';
 Readonly my @PROVERS => ('eprover',
 			 'vampire',
-			 'paradox',);
+			 'paradox',
+			 'prover9',);
 
 sub ensure_tptp4x_available {
     return can_run ($TPTP4X);
@@ -97,6 +99,7 @@ sub ensure_sensible_prover_parameters {
 sub prove {
     my $theory = shift;
     my $prover = shift;
+    my $intended_szs_status = shift;
     my $parameters_ref = shift;
 
     my %parameters = defined $parameters_ref ? %{$parameters_ref} : ();
@@ -150,6 +153,16 @@ sub prove {
 			    '2>', \$error,
 			    $timer);
 
+    } elsif ($prover eq 'prover9') {
+	my @tptp2X_call = ('tptp2X', '-tstdfof', '-fprover9', '-d-', '-q2', $theory_path);
+	my @prover9_call = ('prover9', '-x');
+	my @prooftrans_call = ('prooftrans');
+	$harness = harness (\@tptp2X_call,
+			    '|', \@prover9_call,
+			    '|', \@prooftrans_call,
+			    '>', \$output,
+			    '2>', \$error,
+			    $timer);
     } else {
 	croak 'Unknown prover', $SPACE, $prover, $FULL_STOP;
     }
@@ -167,17 +180,19 @@ sub prove {
 			    output => $output,
 			    error_output => $error,
 			    background_theory => $theory,
-			    tool => $prover);
+			    tool => $prover,
+			    intended_szs_status => $intended_szs_status);
 
     } else {
 	my @results = $harness->full_results ();
-	my $exit_code = scalar @results == 0 ? 1 : $results[0];
+	my $exit_code = scalar @results == 0 ? 1 : $results[scalar @results - 1];
 	return Result->new (timed_out => 0,
 			    exit_code => $exit_code,
 			    output => $output,
 			    error_output => $error,
 			    background_theory => $theory,
-			    tool => $prover);
+			    tool => $prover,
+			    intended_szs_status => $intended_szs_status);
     }
 
 }
@@ -231,11 +246,6 @@ sub prove_if_possible {
 	print {*STDERR} message ('The prover output was:', "\N{LF}", "\N{LF}", $output);
 	exit 1;
     }
-
-    # if ($szs_status ne 'Theorem') {
-    # 	print {*STDERR} message (error_message ('We expected to obtain a theorem, but the SZS status for a proof attempt for ', $theory_path, ' was', "\N{LF}", "\N{LF}", $TWO_SPACES, colored ($szs_status, $BAD_COLOR)));
-    # 	exit 1;
-    # }
 
     my $derivation = $tptp_result->output_as_derivation ();
 

@@ -138,7 +138,7 @@ sub print_formula_names_with_color {
 	    'help|?' => \$opt_help,
 	    'debug' => \$opt_debug,
 	    'proof-finder=s' => \@opt_proof_finders,
-	    'model-finders=s' => \@opt_model_finders,
+	    'model-finder=s' => \@opt_model_finders,
 	    'solution-szs-status=s' => \$opt_solution_szs_status,
 	    'model-finder-timeout=i' => \$opt_model_finder_timeout,
 	    'proof-finder-timeout=i' => \$opt_proof_finder_timeout,
@@ -311,8 +311,7 @@ sub one_prover_solves {
     my $theory = shift;
     return one_tool_solves ($theory,
 			    \@opt_proof_finders,
-			    {
-				'timeout' => $opt_proof_finder_timeout });
+			    { 'timeout' => $opt_proof_finder_timeout });
 }
 
 sub one_prover_countersolves {
@@ -320,8 +319,7 @@ sub one_prover_countersolves {
     my $parameters_ref = shift;
     return one_tool_countersolves ($theory,
 				   \@opt_proof_finders,
-				   {
-				       'timeout' => $opt_proof_finder_timeout });
+				   { 'timeout' => $opt_proof_finder_timeout });
 }
 
 sub one_model_finder_solves {
@@ -329,8 +327,7 @@ sub one_model_finder_solves {
     my $parameters_ref = shift;
     return one_tool_solves ($theory,
 			    \@opt_model_finders,
-			    {
-				'timeout' => $opt_model_finder_timeout });
+			    { 'timeout' => $opt_model_finder_timeout });
 }
 
 sub one_model_finder_countersolves {
@@ -338,8 +335,7 @@ sub one_model_finder_countersolves {
     my $parameters_ref = shift;
     return one_tool_countersolves ($theory,
 				   \@opt_model_finders,
-				   {
-				       'timeout' => $opt_model_finder_timeout });
+				   { 'timeout' => $opt_model_finder_timeout });
 }
 
 sub minimize {
@@ -458,6 +454,8 @@ sub execute {
 
     if ($num_initial_proofs_found > 0) {
 	say colored ('OK', $GOOD_COLOR);
+    } elsif ($opt_skip_initial_proof) {
+	say colored ('Skipped', $UNKNOWN_COLOR);
     } else {
 	say colored ('Not OK', $BAD_COLOR);
 	my @supported_provers = supported_provers ();
@@ -544,18 +542,30 @@ sub execute {
     my @used_premises = keys %appearing_in_a_minimal_set;
 
     my @unused_premises = ();
-    foreach my $premise (@axioms) {
-	my $premise_name = $premise->get_name ();
-	if (defined $appearing_in_a_minimal_set{$premise_name}) {
-	    # ignore
-	} else {
-	    push (@unused_premises, $premise_name);
+
+    if (! $opt_skip_initial_proof) {
+	foreach my $premise (@axioms) {
+	    my $premise_name = $premise->get_name ();
+	    if (defined $appearing_in_a_minimal_set{$premise_name}) {
+		# ignore
+	    } else {
+		push (@unused_premises, $premise_name);
+	    }
 	}
     }
 
     $theory = $theory->remove_formulas_by_name (@unused_premises);
 
-    @axioms = @used_premises;
+    if ($opt_skip_initial_proof) {
+	@axioms = map { $_->get_name () } @axioms;
+	@used_premises = @axioms;
+    } else {
+	@axioms = @used_premises;
+    }
+
+    @used_premises = sort @used_premises;
+    @unused_premises = sort @unused_premises;
+    @axioms = sort @axioms;
 
     # carp 'Axioms now:', Dumper (@axioms);
 

@@ -4,6 +4,11 @@ use Moose;
 use Data::Dumper;
 use Carp qw(croak carp);
 use File::Temp qw(tempfile);
+use Readonly;
+use Regexp::DefaultFlags;
+use charnames qw(:full);
+
+Readonly my $LF => "\N{LF}";
 
 has 'background_theory' => (
     isa => 'Theory',
@@ -73,10 +78,8 @@ sub theory_from_used_premises {
     (my $tmp_theory_fh, my $tmp_theory_path) = tempfile ()
 	or croak 'Failed to create a temporary file.';
 
-    my @tptp_used_premises = map { $_->tptpify () } @used_premises;
-
-    foreach my $tptp_formula (@tptp_used_premises) {
-	print {$tmp_theory_fh} $tptp_formula, "\n";
+    foreach my $formula (@used_premises) {
+	print {$tmp_theory_fh} $formula->tptpify (), "\n";
     }
 
     close $tmp_theory_fh
