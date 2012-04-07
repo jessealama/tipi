@@ -762,11 +762,15 @@ sub is_satisfiable {
 sub solve {
     my $self = shift;
     my $prover = shift;
+    my $intended_szs_status = shift;
     my $parameters_ref = shift;
 
     my %parameters = defined $parameters_ref ? %{$parameters_ref} : ();
 
-    my $result = TPTP::prove ($self, $prover, \%parameters);
+    my $result = TPTP::prove ($self,
+			      $prover,
+			      $intended_szs_status,
+			      \%parameters);
 
     if (defined $parameters{'debug'} && $parameters{'debug'}) {
 	carp 'Result of calling ', $prover, $COLON, "\N{LF}", Dumper ($result);
@@ -787,7 +791,7 @@ sub solvable_with {
 
     my %parameters = defined $parameters_ref ? %{$parameters_ref} : ();
 
-    my $szs_status = $self->solve ($prover, \%parameters);
+    my $szs_status = $self->solve ($prover, $intended_szs_status, \%parameters);
 
     if (is_szs_success ($szs_status)) {
 	return szs_implies ($szs_status, $intended_szs_status);
@@ -809,7 +813,7 @@ sub countersolvable_with {
 
     my %parameters = defined $parameters_ref ? %{$parameters_ref} : ();
 
-    my $szs_status = $self->solve ($prover, \%parameters);
+    my $szs_status = $self->solve ($prover, $intended_szs_status, \%parameters);
 
     if (is_szs_success ($szs_status)) {
 	return szs_contradicts ($szs_status, $intended_szs_status);
@@ -950,8 +954,11 @@ sub minimize {
 
     my $theory_to_minimize = $self->copy ();
 
-    my $result = TPTP::prove ($theory_to_minimize, $prover, \%parameters);
-    my $last_known_good_result = undef;
+    my $result = TPTP::prove ($theory_to_minimize,
+			      $prover,
+			      $intended_szs_status,
+			      \%parameters);
+    my $last_known_good_result = $result;
     my $szs_status = $result->get_szs_status ();
     my $derivation = $result->output_as_derivation ();
 
@@ -962,7 +969,10 @@ sub minimize {
 		   && scalar @unused_premises > 0) {
 	$last_known_good_result = $result;
 	$theory_to_minimize = $derivation->theory_from_used_premises ();
-	$result = TPTP::prove ($theory_to_minimize, $prover, \%parameters);
+	$result = TPTP::prove ($theory_to_minimize,
+			       $prover,
+			       $intended_szs_status,
+			       \%parameters);
 	$szs_status = $result->get_szs_status ();
 	$derivation = is_szs_success ($szs_status) ? $result->output_as_derivation ()
 	    : undef;
