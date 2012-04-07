@@ -161,7 +161,9 @@ sub execute {
 
     my $theory_path = $arguments[0];
     my $theory = Theory->new (path => $theory_path);
-    my $result = TPTP::prove ($theory, $opt_prover);
+    my $result = TPTP::prove ($theory,
+			      $opt_solution_szs_status,
+			      $opt_prover);
 
     my $err_output = $result->get_error_output ();
     my $std_output = $result->get_output ();
