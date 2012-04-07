@@ -138,7 +138,7 @@ sub print_formula_names_with_color {
 	    'help|?' => \$opt_help,
 	    'debug' => \$opt_debug,
 	    'proof-finder=s' => \@opt_proof_finders,
-	    'model-finders=s' => \@opt_model_finders,
+	    'model-finder=s' => \@opt_model_finders,
 	    'solution-szs-status=s' => \$opt_solution_szs_status,
 	    'model-finder-timeout=i' => \$opt_model_finder_timeout,
 	    'proof-finder-timeout=i' => \$opt_proof_finder_timeout,
