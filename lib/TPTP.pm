@@ -23,6 +23,7 @@ our @EXPORT_OK = qw(ensure_tptp4x_available
 		    ensure_sensible_tptp_theory
 		    ensure_getsymbols_available
 		    known_prover
+		    supported_provers
 		    incompatible_szs_statuses);
 
 use Result;
@@ -299,6 +300,15 @@ sub ensure_sensible_tptp_theory {
 sub known_prover {
     my $prover = shift;
     return any { $_ eq $prover } @PROVERS;
+}
+
+sub supported_provers {
+    my @sorted_provers = sort @PROVERS;
+    if (wantarray) {
+	return @sorted_provers;
+    } else {
+	return \@sorted_provers;
+    }
 }
 
 sub incompatible_szs_statuses {
