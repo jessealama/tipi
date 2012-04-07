@@ -14,13 +14,15 @@ use Data::Dumper;
 
 # Our modules
 use Formula;
-use SZS qw(szs_implies);
+use SZS qw(szs_implies is_szs_success szs_contradicts);
 
 Readonly my $TPTP4X => 'tptp4X';
 Readonly my $EMPTY_STRING => q{};
 Readonly my $TWO_SPACES => q{  };
 Readonly my $SPACE => q{ };
+Readonly my $COLON => q{:};
 Readonly my $FULL_STOP => q{.};
+Readonly my $DEBUG => q{DEBUG};
 
 has 'path' => (
     is => 'rw',
@@ -757,17 +759,63 @@ sub is_satisfiable {
 
 }
 
+sub solve {
+    my $self = shift;
+    my $prover = shift;
+    my $parameters_ref = shift;
+
+    my %parameters = defined $parameters_ref ? %{$parameters_ref} : ();
+
+    my $result = TPTP::prove ($self, $prover, \%parameters);
+
+    if (defined $parameters{'debug'} && $parameters{'debug'}) {
+	carp 'Result of calling ', $prover, $COLON, "\N{LF}", Dumper ($result);
+    }
+
+    return $result->get_szs_status ();
+}
+
 sub solvable_with {
     my $self = shift;
     my $prover = shift;
     my $intended_szs_status = shift;
     my $parameters_ref = shift;
 
+    if (! defined $intended_szs_status) {
+	confess 'An intended SZS status is required to know whether a theory is solvable.';
+    }
+
     my %parameters = defined $parameters_ref ? %{$parameters_ref} : ();
 
-    my $result = TPTP::prove ($self, $prover, \%parameters);
-    my $szs_status = $result->get_szs_status ();
-    return szs_implies ($szs_status, $intended_szs_status);
+    my $szs_status = $self->solve ($prover, \%parameters);
+
+    if (is_szs_success ($szs_status)) {
+	return szs_implies ($szs_status, $intended_szs_status);
+    } else {
+	return 0;
+    }
+
+}
+
+sub countersolvable_with {
+    my $self = shift;
+    my $prover = shift;
+    my $intended_szs_status = shift;
+    my $parameters_ref = shift;
+
+    if (! defined $intended_szs_status) {
+	confess 'An intended SZS status is required to know whether a theory is countersolvable.';
+    }
+
+    my %parameters = defined $parameters_ref ? %{$parameters_ref} : ();
+
+    my $szs_status = $self->solve ($prover, \%parameters);
+
+    if (is_szs_success ($szs_status)) {
+	return szs_contradicts ($szs_status, $intended_szs_status);
+    } else {
+	return 0;
+    }
 
 }
 
