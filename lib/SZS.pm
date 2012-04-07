@@ -2,13 +2,14 @@ package SZS;
 
 use base 'Exporter';
 use Readonly;
-use Carp qw(carp croak);
+use Carp qw(carp croak confess);
 use List::MoreUtils qw(any);
 
 our @EXPORT_OK = qw(szs_camelword_for
-		    is_szs_success_code
-		    is_szs_success_camelword
-		    szs_implies);
+		    known_szs_status
+		    is_szs_success
+		    szs_implies
+		    szs_contradicts);
 
 Readonly my $SPACE => q{ };
 Readonly my $FULL_STOP => q{.};
@@ -326,6 +327,18 @@ sub is_szs_success_camelword {
     }
 }
 
+sub is_szs_success {
+    my $code_or_camelword = shift;
+    if (defined $SUCCESS_CODES{$code_or_camelword}) {
+	return 1;
+    } elsif (defined $code_for{$code_or_camelword}) {
+	my $code = $code_for{$code_or_camelword};
+	return defined $SUCCESS_CODES{$code};
+    } else {
+	croak 'Could not determine whether \'', $code_or_camelword, '\' is a known SZS code or CamelWord.';
+    }
+}
+
 sub is_szs_non_success_code {
     my $code = shift;
     return (defined $NON_SUCCESS_CODES{$code});
@@ -362,6 +375,49 @@ sub szs_camelword_implies {
     }
 }
 
+sub szs_camelword_contradicts {
+    my $camelword_1 = shift;
+    my $camelword_2 = shift;
+    if (szs_camelword_implies ($camelword_1, $camelword_2)) {
+	return 0;
+    } elsif (defined $nevera{$camelword_1}) {
+	my @nevera = @{$nevera{$camelword_1}};
+	if (any { $_ eq $camelword_2 } @nevera) {
+	    return 1;
+	} elsif (defined $xora{$camelword_1}) {
+	    my @xora = @{$xora{$camelword_1}};
+	    return (any { $_ eq $camelword_2 } @xora);
+	} else {
+	    croak 'Unable to look up the SZS CamelWord \'', $camelword_1, '\' in the "xora" table.';
+	}
+    } else {
+	croak 'Unable to look up the SZS CamelWord \'', $camelword_1, '\' in the "nevera" table.';
+    }
+}
+
+sub szs_contradicts {
+    my $szs_code_or_camelword_1 = shift;
+    my $szs_code_or_camelword_2 = shift;
+
+    if (defined $camelword_for{$szs_code_or_camelword_1}) {
+	my $camelword_1 = $camelword_for{$szs_code_or_camelword_1};
+	return szs_contradicts ($camelword_1, $szs_code_or_camelword_2);
+    } elsif (defined $camelword_for{$szs_code_or_camelword_2}) {
+	my $camelword_2 = $camelword_for{$szs_code_or_camelword_2};
+	return szs_contracits ($szs_code_or_camelword_1, $camelword_2);
+    } elsif (defined $code_for{$szs_code_or_camelword_1}
+		 && defined $code_for{$szs_code_or_camelword_2}) {
+	return szs_camelword_contradicts ($szs_code_or_camelword_1,
+					  $szs_code_or_camelword_2);
+    } elsif (! defined $code_for{$szs_code_or_camelword_1}) {
+	confess 'Unable to make sense of the SZS code/camelword \'', $szs_code_or_camelword_1, '\'.';
+    } elsif (! defined $code_for{$szs_code_or_camelword_2}) {
+	confess 'Unable to make sense of the SZS code/camelword \'', $szs_code_or_camelword_2, '\'.';
+    } else {
+	confess 'Unable to determine whether SZS code/camelword \'', $szs_code_or_camelword_1, '\' contradicts SZS code/camelword \'', $szs_code_or_camelword_2, '\'.';
+    }
+}
+
 sub szs_implies {
     my $szs_code_or_camelword_1 = shift;
     my $szs_code_or_camelword_2 = shift;
@@ -372,18 +428,25 @@ sub szs_implies {
     } elsif (defined $camelword_for{$szs_code_or_camelword_2}) {
 	my $camelword_2 = $camelword_for{$szs_code_or_camelword_2};
 	return szs_implies ($szs_code_or_camelword_1, $camelword_2);
-    } elsif (defined $szs_code_for{$szs_code_or_camelword_1}
-		 && defined $szs_code_for{$szs_code_or_camelword_2}) {
+    } elsif (defined $code_for{$szs_code_or_camelword_1}
+		 && defined $code_for{$szs_code_or_camelword_2}) {
 	return szs_camelword_implies ($szs_code_or_camelword_1,
 				      $szs_code_or_camelword_2);
-    } elsif (! defined $szs_code_for{$szs_code_or_camelword_1}) {
-	croak 'Unable to make sense of the SZS code/camelword \'', $szs_code_or_camelword_1, '\'.';
-    } elsif (! defined $szs_code_for{$szs_code_or_camelword_2}) {
-	croak 'Unable to make sense of the SZS code/camelword \'', $szs_code_or_camelword_2, '\'.';
+    } elsif (! defined $code_for{$szs_code_or_camelword_1}) {
+	confess 'Unable to make sense of the SZS code/camelword \'', $szs_code_or_camelword_1, '\'.';
+    } elsif (! defined $code_for{$szs_code_or_camelword_2}) {
+	confess 'Unable to make sense of the SZS code/camelword \'', $szs_code_or_camelword_2, '\'.';
     } else {
-	croak 'Unable to determine whether SZS code/camelword \'', $szs_code_or_camelword_1, '\' implies SZS code/camelword \'', $szs_code_or_camelword_2, '\'.';
+	confess 'Unable to determine whether SZS code/camelword \'', $szs_code_or_camelword_1, '\' implies SZS code/camelword \'', $szs_code_or_camelword_2, '\'.';
     }
 
+}
+
+sub known_szs_status {
+    my $status = shift;
+    return (defined $SUCCESS_CODES{$status}
+		|| defined $NON_SUCCESS_CODES{$status}
+		    || defined $code_for{$status});
 }
 
 1;
