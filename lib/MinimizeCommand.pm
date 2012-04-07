@@ -465,7 +465,6 @@ sub execute {
 			}
 
 			@used_premises = @axioms;
-			@unused_premises = ();
 		    }
 
 		    $used_by_prover{$prover} = \@used_premises;
@@ -500,13 +499,13 @@ sub execute {
 
     foreach my $prover (@opt_proof_finders) {
 
-	my $szs_status = $initial_proof_szs_status{$prover};
-	my @used_premises = @{$used_by_prover{$prover}};
-	my @unused_premises = @{$unused_by_prover{$prover}};
-
 	say 'PREMISES (', $prover, ')', $SPACE, '(', colored ('used', $USED_PREMISE_COLOR), $SPACE, '/', $SPACE, colored ('unused', $UNUSED_PREMISE_COLOR), ')';
 
+	my $szs_status = $initial_proof_szs_status{$prover};
+
 	if (is_szs_success ($szs_status)) {
+	    my @used_premises = @{$used_by_prover{$prover}};
+	    my @unused_premises = @{$unused_by_prover{$prover}};
 
 	    if (scalar @used_premises > 0) {
 		print_formula_names_with_color (\@used_premises,
@@ -528,25 +527,31 @@ sub execute {
     # Find the minimal sets of used premises
     my @minimal_used_premise_sets = ();
     foreach my $prover (@opt_proof_finders) {
-	my @used_premises = @{$used_by_prover{$prover}};
-	my @used_premises_names = map { $_->get_name () } @used_premises;
-	my @used_premises_names_sorted = sort @used_premises_names;
-	if (all { my $other_prover = $_;
-		  $other_prover eq $prover
-		      || eval { my @other_used_premises
-				    = @{$used_by_prover{$other_prover}};
-				my @other_used_premises_names
-				    = map { $_->get_name () } @other_used_premises;
-				my @other_used_premises_names_sorted
-				    = sort @other_used_premises_names;
-				subtuple (\@used_premises_names_sorted,
-					  \@other_used_premises_names_sorted)
-				    || ! subtuple (\@other_used_premises_names_sorted,
-						   \@used_premises_names_sorted) } }
-		@opt_proof_finders) {
-	    push (@minimal_used_premise_sets, \@used_premises_names_sorted);
-	}
+	my $szs_status = $initial_proof_szs_status{$prover};
+	if (is_szs_success ($szs_status)) {
+	    my @used_premises = @{$used_by_prover{$prover}};
+	    my @used_premises_names = map { $_->get_name () } @used_premises;
+	    my @used_premises_names_sorted = sort @used_premises_names;
+	    if (all { my $other_prover = $_;
+		      my $other_prover_szs_status
+			  = $initial_proof_szs_status{$other_prover};
+		      $other_prover eq $prover
+			  || ! (is_szs_success ($other_prover_szs_status))
+			  || eval { my @other_used_premises
+					= @{$used_by_prover{$other_prover}};
+				    my @other_used_premises_names
+					= map { $_->get_name () } @other_used_premises;
+				    my @other_used_premises_names_sorted
+					= sort @other_used_premises_names;
+				    subtuple (\@used_premises_names_sorted,
+					      \@other_used_premises_names_sorted)
+					|| ! subtuple (\@other_used_premises_names_sorted,
+						       \@used_premises_names_sorted) } }
+		    @opt_proof_finders) {
+		push (@minimal_used_premise_sets, \@used_premises_names_sorted);
+	    }
 
+	}
     }
 
     # carp 'Minimal used premise sets:', "\N{LF}", Dumper (@minimal_used_premise_sets);
@@ -736,25 +741,13 @@ sub execute {
 		my @formulas = map { $theory->formula_with_name ($_) } @tuple;
 		my $bigger_theory = $small_theory->postulate (\@formulas);
 
-		my $bigger_theory_conjecture_false
-		    = $bigger_theory->promote_conjecture_to_false_axiom ();
-		my $conjecture_false_satisfiable
-		    = $bigger_theory_conjecture_false->is_satisfiable ({ 'timeout' => $opt_model_finder_timeout });
-
-		if ($conjecture_false_satisfiable == -1) {
-
-		    # model finder did not give an answer; let's use a proof finder
-
-		    if (one_prover_solves ($bigger_theory)) {
-			push (@solved_so_far_positively, \@tuple);
-		    } else {
-			$num_candidates_unknown++;
-		    }
-
-		} elsif ($conjecture_false_satisfiable == 0) {
+		if (one_model_finder_countersolves ($bigger_theory)) {
+		    push (@solved_so_far_negatively, \@tuple);
+		} elsif (one_prover_solves ($bigger_theory)) {
 		    push (@solved_so_far_positively, \@tuple);
 		} else {
-		    push (@solved_so_far_negatively, \@tuple);
+		    # Don't know what to do
+		    $num_candidates_unknown++;
 		}
 
 	    }
