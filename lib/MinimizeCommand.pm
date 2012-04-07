@@ -454,6 +454,8 @@ sub execute {
 
     if ($num_initial_proofs_found > 0) {
 	say colored ('OK', $GOOD_COLOR);
+    } elsif ($opt_skip_initial_proof) {
+	say colored ('Skipped', $UNKNOWN_COLOR);
     } else {
 	say colored ('Not OK', $BAD_COLOR);
 	my @supported_provers = supported_provers ();
