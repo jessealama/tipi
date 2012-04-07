@@ -23,6 +23,7 @@ our @EXPORT_OK = qw(ensure_tptp4x_available
 		    ensure_sensible_tptp_theory
 		    ensure_getsymbols_available
 		    known_prover
+		    supported_provers
 		    incompatible_szs_statuses);
 
 use Result;
@@ -42,7 +43,9 @@ Readonly my $UNUSED_PREMISE_COLOR => 'bright_black';
 Readonly my $GOOD_COLOR => 'green';
 Readonly my $BAD_COLOR => 'red';
 Readonly my $GETSYMBOLS => 'GetSymbols';
-Readonly my @PROVERS => ('eprover', 'vampire');
+Readonly my @PROVERS => ('eprover',
+			 'vampire',
+			 'paradox',);
 
 sub ensure_tptp4x_available {
     return can_run ($TPTP4X);
@@ -140,6 +143,13 @@ sub prove {
 			    '>', \$output,
 			    '2>', \$error,
 			    $timer);
+    } elsif ($prover eq 'paradox') {
+	my @paradox_call = ('paradox', '--tstp', $theory_path);
+	$harness = harness (\@paradox_call,
+			    '>', \$output,
+			    '2>', \$error,
+			    $timer);
+
     } else {
 	croak 'Unknown prover', $SPACE, $prover, $FULL_STOP;
     }
@@ -299,6 +309,15 @@ sub ensure_sensible_tptp_theory {
 sub known_prover {
     my $prover = shift;
     return any { $_ eq $prover } @PROVERS;
+}
+
+sub supported_provers {
+    my @sorted_provers = sort @PROVERS;
+    if (wantarray) {
+	return @sorted_provers;
+    } else {
+	return \@sorted_provers;
+    }
 }
 
 sub incompatible_szs_statuses {

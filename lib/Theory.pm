@@ -9,15 +9,20 @@ use charnames qw(:full);
 use List::MoreUtils qw(firstidx any);
 use File::Temp qw(tempfile);
 use Regexp::DefaultFlags;
-use Formula;
 use Utils qw(ensure_readable_file slurp);
 use Data::Dumper;
+
+# Our modules
+use Formula;
+use SZS qw(szs_implies is_szs_success szs_contradicts);
 
 Readonly my $TPTP4X => 'tptp4X';
 Readonly my $EMPTY_STRING => q{};
 Readonly my $TWO_SPACES => q{  };
 Readonly my $SPACE => q{ };
+Readonly my $COLON => q{:};
 Readonly my $FULL_STOP => q{.};
+Readonly my $DEBUG => q{DEBUG};
 
 has 'path' => (
     is => 'rw',
@@ -416,10 +421,16 @@ sub remove_formula_by_name {
 sub remove_formulas {
     my $self = shift;
     my @formulas_to_remove = @_;
+    my @names_of_formulas_to_remove = map { $_->get_name () } @formulas_to_remove;
+    return $self->remove_formulas_by_name (@names_of_formulas_to_remove);
+}
+
+sub remove_formulas_by_name {
+    my $self = shift;
+    my @names_of_formulas_to_remove = @_;
 
     my $path = $self->get_path ();
     my @formulas = $self->get_formulas (1);
-    my @names_of_formulas_to_remove = map { $_->get_name () } @formulas_to_remove;
     (my $new_fh, my $new_path) = tempfile ();
 
     foreach my $formula (@formulas) {
@@ -744,6 +755,66 @@ sub is_satisfiable {
     } else {
 	# Can't figure this out
 	return -1;
+    }
+
+}
+
+sub solve {
+    my $self = shift;
+    my $prover = shift;
+    my $parameters_ref = shift;
+
+    my %parameters = defined $parameters_ref ? %{$parameters_ref} : ();
+
+    my $result = TPTP::prove ($self, $prover, \%parameters);
+
+    if (defined $parameters{'debug'} && $parameters{'debug'}) {
+	carp 'Result of calling ', $prover, $COLON, "\N{LF}", Dumper ($result);
+    }
+
+    return $result->get_szs_status ();
+}
+
+sub solvable_with {
+    my $self = shift;
+    my $prover = shift;
+    my $intended_szs_status = shift;
+    my $parameters_ref = shift;
+
+    if (! defined $intended_szs_status) {
+	confess 'An intended SZS status is required to know whether a theory is solvable.';
+    }
+
+    my %parameters = defined $parameters_ref ? %{$parameters_ref} : ();
+
+    my $szs_status = $self->solve ($prover, \%parameters);
+
+    if (is_szs_success ($szs_status)) {
+	return szs_implies ($szs_status, $intended_szs_status);
+    } else {
+	return 0;
+    }
+
+}
+
+sub countersolvable_with {
+    my $self = shift;
+    my $prover = shift;
+    my $intended_szs_status = shift;
+    my $parameters_ref = shift;
+
+    if (! defined $intended_szs_status) {
+	confess 'An intended SZS status is required to know whether a theory is countersolvable.';
+    }
+
+    my %parameters = defined $parameters_ref ? %{$parameters_ref} : ();
+
+    my $szs_status = $self->solve ($prover, \%parameters);
+
+    if (is_szs_success ($szs_status)) {
+	return szs_contradicts ($szs_status, $intended_szs_status);
+    } else {
+	return 0;
     }
 
 }
