@@ -347,6 +347,7 @@ sub reprove_semantically {
 
     my $new_result = TPTP::prove ($small_theory,
 				  $opt_proof_finder,
+				  $opt_solution_szs_status,
 				  { 'timeout' => $opt_proof_finder_timeout });
     my $new_result_szs_status
 	= $new_result->has_szs_status () ? $new_result->get_szs_status () : 'Unknown';
