@@ -13,6 +13,7 @@ use ParadoxInterpretation;
 
 
 Readonly my $SPACE => q{ };
+Readonly my $SZS_UNKNOWN => 'Unknown';
 
 has 'tool' => (
     isa => 'Str',
@@ -111,7 +112,7 @@ sub get_szs_status {
     if ($output =~ / SZS \N{SPACE} status \N{SPACE} ([a-zA-Z]+) /m) {
 	return $1;
     } else {
-	croak 'Error: no SZS status could be extracted from the output', "\N{LF}", $output,
+	return $SZS_UNKNOWN;
     }
 }
 
