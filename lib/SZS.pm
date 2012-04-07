@@ -7,7 +7,9 @@ use List::MoreUtils qw(any);
 
 our @EXPORT_OK = qw(szs_camelword_for
 		    is_szs_success_code
-		    is_szs_success_camelword);
+		    is_szs_success_camelword
+		    szs_code_implies
+		    szs_camelword_implies);
 
 Readonly my $SPACE => q{ };
 Readonly my $FULL_STOP => q{.};
@@ -337,16 +339,7 @@ sub szs_code_implies {
     my $camelword_2 = $camelword_for{$code_2};
     if (defined $camelword_1) {
 	if (defined $camelword_2) {
-	    if ($camelword_1 eq $camelword_2) {
-		return 1;
-	    } else {
-		if (defined $isa{$camelword_1}) {
-		    my @isa = @{$isa{$camelword_1}};
-		    return (any { $_ eq $camelword_2 } @isa);
-		} else {
-		    croak 'Unable to determine the SZS ontology isa relation for', $SPACE, $camelword_1, $FULL_STOP;
-		}
-	    }
+	    return szs_camelword_implies ($camelword_1, $camelword_2);
 	} else {
 	    croak 'Unknown SZS code', $SPACE, $code_2;
 	}
@@ -358,6 +351,40 @@ sub szs_code_implies {
 sub szs_camelword_implies {
     my $camelword_1 = shift;
     my $camelword_2 = shift;
+    if ($camelword_1 eq $camelword_2) {
+	return 1;
+    } else {
+	if (defined $isa{$camelword_1}) {
+	    my @isa = @{$isa{$camelword_1}};
+	    return (any { $_ eq $camelword_2 } @isa);
+	} else {
+	    croak 'Unable to determine the SZS ontology isa relation for', $SPACE, $camelword_1, $FULL_STOP;
+	}
+    }
+}
+
+sub szs_implies {
+    my $szs_code_or_camelword_1 = shift;
+    my $szs_code_or_camelword_2 = shift;
+
+    if (defined $camelword_for{$szs_code_or_camelword_1}) {
+	my $camelword_1 = $camelword_for{$szs_code_or_camelword_1};
+	return szs_implies ($camelword_1, $szs_code_or_camelword_2);
+    } elsif (defined $camelword_for{$szs_code_or_camelword_2}) {
+	my $camelword_2 = $camelword_for{$szs_code_or_camelword_2};
+	return szs_implies ($szs_code_or_camelword_1, $camelword_2);
+    } elsif (defined $szs_code_for{$szs_code_or_camelword_1}
+		 && defined $szs_code_for{$szs_code_or_camelword_2}) {
+	return szs_camelword_implies ($szs_code_or_camelword_1,
+				      $szs_code_or_camelword_2);
+    } elsif (! defined $szs_code_for{$szs_code_or_camelword_1}) {
+	croak 'Unable to make sense of the SZS code/camelword \'', $szs_code_or_camelword_1, '\'.';
+    } elsif (! defined $szs_code_for{$szs_code_or_camelword_2}) {
+	croak 'Unable to make sense of the SZS code/camelword \'', $szs_code_or_camelword_2, '\'.';
+    } else {
+	croak 'Unable to determine whether SZS code/camelword \'', $szs_code_or_camelword_1, '\' implies SZS code/camelword \'', $szs_code_or_camelword_2, '\'.;
+    }
+
 }
 
 1;
