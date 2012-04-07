@@ -416,10 +416,16 @@ sub remove_formula_by_name {
 sub remove_formulas {
     my $self = shift;
     my @formulas_to_remove = @_;
+    my @names_of_formulas_to_remove = map { $_->get_name () } @formulas_to_remove;
+    return $self->remove_formulas_by_name (@names_of_formulas_to_remove);
+}
+
+sub remove_formulas_by_name {
+    my $self = shift;
+    my @names_of_formulas_to_remove = @_;
 
     my $path = $self->get_path ();
     my @formulas = $self->get_formulas (1);
-    my @names_of_formulas_to_remove = map { $_->get_name () } @formulas_to_remove;
     (my $new_fh, my $new_path) = tempfile ();
 
     foreach my $formula (@formulas) {
