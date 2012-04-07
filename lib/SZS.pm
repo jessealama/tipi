@@ -8,8 +8,7 @@ use List::MoreUtils qw(any);
 our @EXPORT_OK = qw(szs_camelword_for
 		    is_szs_success_code
 		    is_szs_success_camelword
-		    szs_code_implies
-		    szs_camelword_implies);
+		    szs_implies);
 
 Readonly my $SPACE => q{ };
 Readonly my $FULL_STOP => q{.};
