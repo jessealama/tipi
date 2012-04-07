@@ -28,7 +28,7 @@ use TPTP qw(ensure_tptp4x_available
 	    supported_provers
 	    prove_if_possible
 	    ensure_sensible_tptp_theory
-	    );
+       );
 use Utils qw(error_message
 	     warning_message
 	     all_sublists
@@ -47,6 +47,7 @@ Readonly my $SPACE => q{ };
 Readonly my $COMMA => q{,};
 Readonly my $COLON => q{:};
 Readonly my $SLASH => q{/};
+Readonly my $ASTERISK => q{*};
 Readonly my $USED_PREMISE_COLOR => 'blue';
 Readonly my $UNUSED_PREMISE_COLOR => 'yellow';
 Readonly my $DESCRIPTION => 'Find minimal subtheories.';
@@ -66,8 +67,8 @@ my $opt_man = 0;
 my $opt_verbose = 0;
 my $opt_debug = 0;
 my $opt_solution_szs_status = 'Theorem';
-my @opt_proof_finders = ('eprover');
-my @opt_model_finders = ('paradox');
+my @opt_proof_finders = ();
+my @opt_model_finders = ();
 my $opt_model_finder_timeout = 5;
 my $opt_proof_finder_timeout = 30;
 my $opt_skip_initial_proof = 0;
@@ -89,6 +90,17 @@ sub fill_up_to_column {
     return ($str . $padding);
 
 }
+
+sub asterisk_list {
+    my @items = @_;
+    my $list = $EMPTY_STRING;
+    foreach my $item (@items) {
+	$list .= $TWO_SPACES . $ASTERISK . $SPACE . $item . "\N{LF}";
+    }
+    return $list;
+}
+
+
 
 sub print_formula_names_with_color {
     my $formulas_ref = shift;
@@ -114,122 +126,139 @@ sub print_formula_names_with_color {
 
 }
 
-around 'execute' => sub {
-    my $orig = shift;
-    my $self = shift;
-    my @arguments = @_;
+    around 'execute' => sub {
+	my $orig = shift;
+	my $self = shift;
+	my @arguments = @_;
 
-    GetOptionsFromArray (
-	\@arguments,
-	'man' => \$opt_man,
-	'verbose' => \$opt_verbose,
-	'help|?' => \$opt_help,
-	'debug' => \$opt_debug,
-	'proof-finder=s' => \@opt_proof_finders,
-	'model-finders=s' => \@opt_model_finders,
-	'solution-szs-status=s' => \$opt_solution_szs_status,
-	'model-finder-timeout=i' => \$opt_model_finder_timeout,
-	'proof-finder-timeout=i' => \$opt_proof_finder_timeout,
-	'skip-initial-proof' => \$opt_skip_initial_proof,
-    ) or pod2usage (2);
+	GetOptionsFromArray (
+	    \@arguments,
+	    'man' => \$opt_man,
+	    'verbose' => \$opt_verbose,
+	    'help|?' => \$opt_help,
+	    'debug' => \$opt_debug,
+	    'proof-finder=s' => \@opt_proof_finders,
+	    'model-finders=s' => \@opt_model_finders,
+	    'solution-szs-status=s' => \$opt_solution_szs_status,
+	    'model-finder-timeout=i' => \$opt_model_finder_timeout,
+	    'proof-finder-timeout=i' => \$opt_proof_finder_timeout,
+	    'skip-initial-proof' => \$opt_skip_initial_proof,
+	) or pod2usage (2);
 
-    if ($opt_help) {
-        pod2usage(1);
-    }
+	if ($opt_help) {
+	    pod2usage(1);
+	}
 
-    if ($opt_man) {
-        pod2usage(
-            -exitstatus => 0,
-            -verbose    => 2
-        );
-    }
+	if ($opt_man) {
+	    pod2usage(
+		-exitstatus => 0,
+		-verbose    => 2
+	    );
+	}
 
-    # debug implies verbose
-    if ($opt_debug) {
-        $opt_verbose = 1;
-    }
+	# debug implies verbose
+	if ($opt_debug) {
+	    $opt_verbose = 1;
+	}
 
-    if (scalar @arguments == 0) {
-	pod2usage (-msg => error_message ('Please supply a TPTP theory file.'),
-		   -exitval => 2);
-    }
+	if (scalar @arguments == 0) {
+	    pod2usage (-msg => error_message ('Please supply a TPTP theory file.'),
+		       -exitval => 2);
+	}
 
-    if (scalar @arguments > 1) {
-	pod2usage (-msg => error_message ('Unable to make sense of the arguments', "\N{LF}", "\N{LF}", $TWO_SPACES, join ($SPACE, @arguments)),
-		   -exitval => 2);
-    }
+	if (scalar @arguments > 1) {
+	    pod2usage (-msg => error_message ('Unable to make sense of the arguments', "\N{LF}", "\N{LF}", $TWO_SPACES, join ($SPACE, @arguments)),
+		       -exitval => 2);
+	}
 
-    if ($opt_solution_szs_status eq $EMPTY_STRING) {
-	pod2usage (-msg => error_message ('The empty string is not an acceptable SZS problem status.'),
-		   -exitval => 2);
+	if ($opt_solution_szs_status eq $EMPTY_STRING) {
+	    pod2usage (-msg => error_message ('The empty string is not an acceptable SZS problem status.'),
+		       -exitval => 2);
 
-    }
+	}
 
-    if ($opt_solution_szs_status !~ /\A [A-Za-z]+ \z/) {
-	pod2usage (-msg => error_message ('Unacceptable SZS problem status', "\N{LF}", "\N{LF}", $TWO_SPACES, $opt_solution_szs_status),
-		   -exitval => 2);
-    }
+	if ($opt_solution_szs_status !~ /\A [A-Za-z]+ \z/) {
+	    pod2usage (-msg => error_message ('Unacceptable SZS problem status', "\N{LF}", "\N{LF}", $TWO_SPACES, $opt_solution_szs_status),
+		       -exitval => 2);
+	}
 
-    if ($opt_show_only_final_used_premises && $opt_show_only_final_unused_premises) {
-	pod2usage (-msg => error_message ('One cannot choose to show only the used and unused premises.'),
-		   -exitval => 2);
-    }
+	if ($opt_show_only_final_used_premises && $opt_show_only_final_unused_premises) {
+	    pod2usage (-msg => error_message ('One cannot choose to show only the used and unused premises.'),
+		       -exitval => 2);
+	}
 
-    if ($opt_model_finder_timeout < 0) {
-	pod2usage (-msg => error_message ('Invalid value ', $opt_model_finder_timeout, ' for the model-finder timeout option.'),
-		   -exitval => 2);
-    }
+	if ($opt_model_finder_timeout < 0) {
+	    pod2usage (-msg => error_message ('Invalid value ', $opt_model_finder_timeout, ' for the model-finder timeout option.'),
+		       -exitval => 2);
+	}
 
-    if ($opt_proof_finder_timeout < 0) {
-	pod2usage (-msg => error_message ('Invalid value ', $opt_proof_finder_timeout, ' for the proof-finder timeout option.'),
-		   -exitval => 2);
-    }
+	if ($opt_proof_finder_timeout < 0) {
+	    pod2usage (-msg => error_message ('Invalid value ', $opt_proof_finder_timeout, ' for the proof-finder timeout option.'),
+		       -exitval => 2);
+	}
 
-    if (scalar @opt_proof_finders == 0) {
-	pod2usage (-msg => error_message ('Please specify at least one proof finder.'),
-		   -exitval => 2);
-    }
+	if (scalar @opt_proof_finders == 0) {
+	    @opt_proof_finders = ('eprover');
+	}
 
-    foreach my $prover (@opt_proof_finders) {
-	if (! known_prover ($prover)) {
-	    my @supported_provers = supported_provers ();
-	    say {*STDERR} error_message ('The prover', $SPACE, $prover, $SPACE, 'is unknown.');
-	    say {*STDERR} 'The following provers are known:', "\N{LF}";
-	    if (scalar @supported_provers == 0) {
-		say {*STDERR} '(none)';
-	    } else {
-		say {*STDERR} join ("${TWO_SPACES}* ", @supported_provers);
+	if (scalar @opt_model_finders == 0) {
+	    @opt_model_finders = ('paradox');
+	}
+
+	my %proof_finders = ();
+	my %model_finders = ();
+
+	foreach my $tool (@opt_proof_finders) {
+	    $proof_finders{$tool} = 0;
+	}
+
+	foreach my $tool (@opt_model_finders) {
+	    $model_finders{$tool} = 0;
+	}
+
+	@opt_proof_finders = keys %proof_finders;
+	@opt_model_finders = keys %model_finders;
+
+	foreach my $prover (@opt_proof_finders, @opt_model_finders) {
+	    if (! known_prover ($prover)) {
+		my @supported_provers = supported_provers ();
+		say {*STDERR} error_message ('Unknown prover', $SPACE, $prover);
+		say {*STDERR} 'The following provers are known:', "\N{LF}";
+		if (scalar @supported_provers == 0) {
+		    say {*STDERR} '(none)';
+		} else {
+		    say {*STDERR} join ("${TWO_SPACES}* ", @supported_provers);
+		}
+		exit 1;
 	    }
+	}
+
+	if (! ensure_tptp4x_available ()) {
+	    say STDERR error_message ('Cannot run tptp4X');
 	    exit 1;
 	}
-    }
 
-    if (! ensure_tptp4x_available ()) {
-	say STDERR error_message ('Cannot run tptp4X');
-	exit 1;
-    }
+	my $theory_path = $arguments[0];
 
-    my $theory_path = $arguments[0];
+	if (! ensure_readable_file ($theory_path)) {
+	    say STDERR error_message ('There is no file at', $SPACE, $theory_path, $SPACE, '(or it is unreadable).');
+	    exit 1;
+	}
 
-    if (! ensure_readable_file ($theory_path)) {
-	say STDERR error_message ('There is no file at', $SPACE, $theory_path, $SPACE, '(or it is unreadable).');
-	exit 1;
-    }
+	if (! ensure_sensible_tptp_theory ($theory_path)) {
+	    say STDERR error_message ('The file at ', $theory_path, ' is not a valid TPTP file.');
+	    exit 1;
+	}
 
-    if (! ensure_sensible_tptp_theory ($theory_path)) {
-	say STDERR error_message ('The file at ', $theory_path, ' is not a valid TPTP file.');
-	exit 1;
-    }
+	my $theory = Theory->new (path => $theory_path);
 
-    my $theory = Theory->new (path => $theory_path);
+	if ($theory->is_first_order ()) {
+	    return $self->$orig (@arguments);
+	} else {
+	    say {*STDERR} error_message ('The theory at', $SPACE, $theory_path, $SPACE, 'seems to be a non-first-order theory.');
+	}
 
-    if ($theory->is_first_order ()) {
-	return $self->$orig (@arguments);
-    } else {
-	say {*STDERR} error_message ('The theory at', $SPACE, $theory_path, $SPACE, 'seems to be a non-first-order theory.');
-    }
-
-};
+    };
 
 sub one_tool_solves {
     my $theory = shift;
@@ -282,7 +311,8 @@ sub one_prover_solves {
     my $theory = shift;
     return one_tool_solves ($theory,
 			    \@opt_proof_finders,
-			    { 'timeout' => $opt_proof_finder_timeout });
+			    {
+				'timeout' => $opt_proof_finder_timeout });
 }
 
 sub one_prover_countersolves {
@@ -290,7 +320,8 @@ sub one_prover_countersolves {
     my $parameters_ref = shift;
     return one_tool_countersolves ($theory,
 				   \@opt_proof_finders,
-				   { 'timeout' => $opt_proof_finder_timeout });
+				   {
+				       'timeout' => $opt_proof_finder_timeout });
 }
 
 sub one_model_finder_solves {
@@ -298,7 +329,8 @@ sub one_model_finder_solves {
     my $parameters_ref = shift;
     return one_tool_solves ($theory,
 			    \@opt_model_finders,
-			    { 'timeout' => $opt_model_finder_timeout });
+			    {
+				'timeout' => $opt_model_finder_timeout });
 }
 
 sub one_model_finder_countersolves {
@@ -306,7 +338,8 @@ sub one_model_finder_countersolves {
     my $parameters_ref = shift;
     return one_tool_countersolves ($theory,
 				   \@opt_model_finders,
-				   { 'timeout' => $opt_model_finder_timeout });
+				   {
+				       'timeout' => $opt_model_finder_timeout });
 }
 
 sub execute {
@@ -328,27 +361,29 @@ sub execute {
 
     if (scalar @axioms == 0) {
 	if (defined $conjecture) {
-	    say colored ('Step 1', 'blue'), ': Derive the conjecture:';
+	    print colored ('Step 1', 'blue'), ': Derive the conjecture:', $SPACE;
 	} else {
-	    say colored ('Step 1', 'blue'), ': Solve the problem:';
+	    print colored ('Step 1', 'blue'), ': Solve the problem:', $SPACE;
 	}
     } elsif (scalar @axioms == 1) {
 	if (defined $conjecture) {
-	    say colored ('Step 1', 'blue'), ': Derive the conjecture the sole available premises:';
+	    print colored ('Step 1', 'blue'), ': Derive the conjecture the sole available premises:', $SPACE;
 	} else {
-	    say colored ('Step 1', 'blue'), ': Solve the problem from the sole available premise:';
+	    print colored ('Step 1', 'blue'), ': Solve the problem from the sole available premise:', $SPACE;
 	}
     } else {
 	if (defined $conjecture) {
-	    say colored ('Step 1', 'blue'), ': Derive the conjecture from all ', scalar @axioms, ' available premises:';
+	    print colored ('Step 1', 'blue'), ': Derive the conjecture from all ', scalar @axioms, ' available premises:', $SPACE;
 	} else {
-	    say colored ('Step 1', 'blue'), ': Solve the problem from all ', scalar @axioms, ' available premises:';
+	    print colored ('Step 1', 'blue'), ': Solve the problem from all ', scalar @axioms, ' available premises:', $SPACE;
 	}
     }
 
     my %initial_proof_szs_status = ();
     my %used_by_prover = ();
     my %unused_by_prover = ();
+
+    my $at_least_one_prover_succeeded = 0;
 
     foreach my $prover (@opt_proof_finders) {
 
@@ -358,50 +393,76 @@ sub execute {
 	if ($opt_skip_initial_proof) {
 	    $initial_proof_szs_status{$prover} = $SZS_NOT_TRIED;
 	} else {
-	    my $initial_proof_result = TPTP::prove ($theory,
-						    $prover,
-						    { 'timeout' => $opt_proof_finder_timeout });
+	    my $initial_proof_result
+		= TPTP::prove ($theory,
+			       $prover,
+			       { 'timeout' => $opt_proof_finder_timeout });
 
 	    $initial_proof_szs_status = $initial_proof_result->get_szs_status ();
 
 	    $initial_proof_szs_status{$prover} = $initial_proof_szs_status;
 
-	    if (is_szs_success ($initial_proof_szs_status)
-		    && szs_implies ($initial_proof_szs_status,
-				    $opt_solution_szs_status)) {
-		my $derivation = eval { $initial_proof_result->output_as_derivation (); };
-		my $derivation_message = $@;
+	    if (is_szs_success ($initial_proof_szs_status)) {
+		if (szs_implies ($initial_proof_szs_status,
+				 $opt_solution_szs_status)) {
 
-		my @used_premises = undef;
-		my @unused_premises = undef;
+		    $at_least_one_prover_succeeded = 1;
 
-		if (defined $derivation) {
-		    @used_premises = $derivation->get_used_premises ();
-		    @unused_premises = $derivation->get_unused_premises ();
-		} else {
-		    say warning_message ('Although the proof attempt with', $SPACE, $prover, $SPACE, 'succeeded (the SZS status was', $SPACE, $initial_proof_szs_status, '),');
-		    say 'we failed to extract a derivation, so we were unable to determine used premises.';
-		    say 'We will now proceed as though', $SPACE, $prover, $SPACE, 'used all available premises.';
+		    my $derivation = eval { $initial_proof_result->output_as_derivation (); };
+		    my $derivation_message = $@;
 
-		    if ($opt_debug) {
-			if ($derivation_message eq $EMPTY_STRING) {
-			    say 'We somehow have nothing to report.';
-			} else {
-			    say 'Here is the message we got when trying to interpret the', $SPACE, $prover, $SPACE, 'output as a derivation:',;
-			    say $derivation_message;
+		    my @used_premises = undef;
+		    my @unused_premises = undef;
+
+		    if (defined $derivation) {
+			@used_premises = $derivation->get_used_premises ();
+			@unused_premises = $derivation->get_unused_premises ();
+		    } else {
+			say warning_message ('Although the proof attempt with', $SPACE, $prover, $SPACE, 'succeeded (the SZS status was', $SPACE, $initial_proof_szs_status, '),');
+			say 'we failed to extract a derivation, so we were unable to determine used premises.';
+			say 'We will now proceed as though', $SPACE, $prover, $SPACE, 'used all available premises.';
+
+			if ($opt_debug) {
+			    if ($derivation_message eq $EMPTY_STRING) {
+				say 'We somehow have nothing to report.';
+			    } else {
+				say 'Here is the message we got when trying to interpret the', $SPACE, $prover, $SPACE, 'output as a derivation:',;
+				say $derivation_message;
+			    }
 			}
+
+			@used_premises = @axioms;
+			@unused_premises = ();
 		    }
 
-		    @used_premises = @axioms;
-		    @unused_premises = ();
+		    $used_by_prover{$prover} = \@used_premises;
+		    $unused_by_prover{$prover} = \@unused_premises;
+
+		} else {
+		    say error_message ('Prover', $SPACE, $prover, $SPACE, 'returned the SZS status', "\N{LF}", "\N{LF}", $TWO_SPACES, $initial_proof_szs_status, "\N{LF}", "\N{LF}", 'which does not imply the intended SZS status', "\N{LF}", "\N{LF}", $TWO_SPACES, $opt_solution_szs_status, "\N{LF}", "\N{LF}", 'We cannot proceed.  If you wish to skip the initial proof check, use the --skip-initial-proof option.');
+		    exit 1;
 		}
-
-		$used_by_prover{$prover} = \@used_premises;
-		$unused_by_prover{$prover} = \@unused_premises;
-
+	    } else {
+		$initial_proof_szs_status{$prover} = $SZS_UNKNOWN;
 	    }
-
 	}
+    }
+
+    if ($at_least_one_prover_succeeded) {
+	say colored ('OK', $GOOD_COLOR);
+    } else {
+	say colored ('Not OK', $BAD_COLOR);
+	my @supported_provers = supported_provers ();
+	say error_message ('No prover succeeded; we cannot proceed.');
+	say 'We tried to solve the problem using the following prover(s):', "\N{LF}";
+	say asterisk_list (@opt_proof_finders);
+	say 'If you wish to skip the initial proof check, use the --skip-initial-proof option.';
+	say 'If you want to use other provers, use the --proof-finder option.';
+
+	say 'Here are the supported provers:', "\N{LF}";
+	say asterisk_list (@supported_provers);
+	say 'One can supply multiple provers; just specify the ones you want to use using multiple --proof-finder options.';
+	exit 1;
     }
 
     foreach my $prover (@opt_proof_finders) {
@@ -412,15 +473,22 @@ sub execute {
 
 	say 'PREMISES (', $prover, ')', $SPACE, '(', colored ('used', $USED_PREMISE_COLOR), $SPACE, '/', $SPACE, colored ('unused', $UNUSED_PREMISE_COLOR), ')';
 
-	if (scalar @used_premises > 0) {
-	    print_formula_names_with_color (\@used_premises,
-					    $USED_PREMISE_COLOR,
-					    { 'sorted' => 1 });
-	}
-	if (scalar @unused_premises > 0) {
-	    print_formula_names_with_color (\@unused_premises,
-					    $UNUSED_PREMISE_COLOR,
-					    { 'sorted' => 1 });
+	if (is_szs_success ($szs_status)) {
+
+	    if (scalar @used_premises > 0) {
+		print_formula_names_with_color (\@used_premises,
+						$USED_PREMISE_COLOR,
+						{
+						    'sorted' => 1 });
+	    }
+	    if (scalar @unused_premises > 0) {
+		print_formula_names_with_color (\@unused_premises,
+						$UNUSED_PREMISE_COLOR,
+						{
+						    'sorted' => 1 });
+	    }
+	} else {
+	    say '(Nothing to report; the SZS status for', $SPACE, $prover, $SPACE, 'was', $SPACE, $szs_status, '.)';
 	}
     }
 
@@ -473,6 +541,9 @@ sub execute {
 		if (one_model_finder_countersolves ($trimmed_theory)) {
 		    say colored ($axiom, $NEEDED_PREMISE_COLOR);
 		    $needed{$axiom} = 0;
+		} elsif (one_prover_solves ($trimmed_theory)) {
+		    say colored ($axiom, $UNNEEDED_PREMISE_COLOR);
+		    $unneeded{$axiom} = 0;
 		} else {
 		    say colored ($axiom, $UNKNOWN_COLOR);
 		    $unknown{$axiom} = 0;
@@ -562,6 +633,8 @@ sub execute {
 	    say 'There are', $SPACE, $num_combinations, $SPACE, 'combinations to check.';
 	    say 'Be patient; in the worst case, evaluating all of them will take', $SPACE, $estimate_minutes_at_least_one, $SPACE, 'minute(s).';
 	}
+
+	say '(It will probably take much less.)';
 
 	my $progress = Term::ProgressBar->new ({ count => $num_combinations });
 	my $num_tuples_handled = 0;
@@ -707,5 +780,5 @@ sub print_solvable_supertheories {
     return;
 }
 
-1;
+    1;
 __END__
