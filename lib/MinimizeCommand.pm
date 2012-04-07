@@ -342,6 +342,38 @@ sub one_model_finder_countersolves {
 				       'timeout' => $opt_model_finder_timeout });
 }
 
+sub minimize_with_prover {
+    my $theory = shift;
+    my $prover = shift;
+
+    my $theory_to_minimize = $theory->copy ();
+
+    my $result = TPTP::prove ($theory_to_minimize,
+			      $prover,
+			      { 'timeout' => $opt_proof_finder_timeout });
+    my $last_known_good_result = undef;
+    my $szs_status = $result->get_szs_status ();
+    my $derivation = $result->output_as_derivation ();
+
+    my @unused_premises = $derivation->get_unused_premises ();
+
+    while (is_szs_success ($szs_status) && scalar @unused_premises > 0) {
+	$last_known_good_result = $result;
+	$theory_to_minimize = $derivation->theory_from_used_premises ();
+	$result = TPTP::prove ($theory_to_minimize,
+			       $prover,
+			       { 'timeout' => $opt_proof_finder_timeout });
+	$szs_status = $result->get_szs_status ();
+	$derivation = is_szs_success ($szs_status) ? $result->output_as_derivation ()
+	    : undef;
+	@unused_premises = defined $derivation ? $derivation->get_unused_premises ()
+	    : ();
+    }
+
+    return (is_szs_success ($szs_status) ? $result : $last_known_good_result);
+
+}
+
 sub execute {
     my $self = shift;
     my @arguments = @_;
@@ -393,13 +425,9 @@ sub execute {
 	if ($opt_skip_initial_proof) {
 	    $initial_proof_szs_status{$prover} = $SZS_NOT_TRIED;
 	} else {
-	    my $initial_proof_result
-		= TPTP::prove ($theory,
-			       $prover,
-			       { 'timeout' => $opt_proof_finder_timeout });
 
+	    my $initial_proof_result = minimize_with_prover ($theory, $prover);
 	    $initial_proof_szs_status = $initial_proof_result->get_szs_status ();
-
 	    $initial_proof_szs_status{$prover} = $initial_proof_szs_status;
 
 	    if (is_szs_success ($initial_proof_szs_status)) {
@@ -412,11 +440,16 @@ sub execute {
 		    my $derivation_message = $@;
 
 		    my @used_premises = undef;
-		    my @unused_premises = undef;
+		    my @unused_premises = ();
 
 		    if (defined $derivation) {
 			@used_premises = $derivation->get_used_premises ();
-			@unused_premises = $derivation->get_unused_premises ();
+			foreach my $axiom (@axioms) {
+			    my $axiom_name = $axiom->get_name ();
+			    if (none { $_->get_name eq $axiom_name } @used_premises) {
+				push (@unused_premises, $axiom);
+			    }
+			}
 		    } else {
 			say warning_message ('Although the proof attempt with', $SPACE, $prover, $SPACE, 'succeeded (the SZS status was', $SPACE, $initial_proof_szs_status, '),');
 			say 'we failed to extract a derivation, so we were unable to determine used premises.';
