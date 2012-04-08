@@ -48,6 +48,7 @@ Readonly my $COMMA => q{,};
 Readonly my $COLON => q{:};
 Readonly my $SLASH => q{/};
 Readonly my $ASTERISK => q{*};
+Readonly my $LF => "\N{LF}";
 Readonly my $USED_PREMISE_COLOR => 'blue';
 Readonly my $UNUSED_PREMISE_COLOR => 'yellow';
 Readonly my $DESCRIPTION => 'Find minimal subtheories.';
@@ -222,12 +223,12 @@ sub print_formula_names_with_color {
 	foreach my $prover (@opt_proof_finders, @opt_model_finders) {
 	    if (! known_prover ($prover)) {
 		my @supported_provers = supported_provers ();
-		say {*STDERR} error_message ('Unknown prover', $SPACE, $prover);
+		say {*STDERR} error_message ('Unknown prover', $SPACE, $prover), $LF;
 		say {*STDERR} 'The following provers are known:', "\N{LF}";
 		if (scalar @supported_provers == 0) {
 		    say {*STDERR} '(none)';
 		} else {
-		    say {*STDERR} join ("${TWO_SPACES}* ", @supported_provers);
+		    say asterisk_list (@supported_provers);
 		}
 		exit 1;
 	    }

@@ -15,7 +15,7 @@ use charnames qw(:full);
 use English qw(-no_match_vars);
 use Data::Dumper;
 use Term::ANSIColor;
-use List::MoreUtils qw(any);
+use List::MoreUtils qw(any first_value);
 
 our @EXPORT_OK = qw(ensure_tptp4x_available
 		    ensure_valid_tptp_file
@@ -47,7 +47,8 @@ Readonly my $GETSYMBOLS => 'GetSymbols';
 Readonly my @PROVERS => ('eprover',
 			 'vampire',
 			 'paradox',
-			 'prover9',);
+			 'prover9',
+			 'mace4');
 
 sub ensure_tptp4x_available {
     return can_run ($TPTP4X);
@@ -152,7 +153,6 @@ sub prove {
 			    '>', \$output,
 			    '2>', \$error,
 			    $timer);
-
     } elsif ($prover eq 'prover9') {
 	my @tptp2X_call = ('tptp2X', '-tstdfof', '-fprover9', '-d-', '-q2', $theory_path);
 	my @prover9_call = ('prover9', '-x');
@@ -160,6 +160,16 @@ sub prove {
 	$harness = harness (\@tptp2X_call,
 			    '|', \@prover9_call,
 			    '|', \@prooftrans_call,
+			    '>', \$output,
+			    '2>', \$error,
+			    $timer);
+    } elsif ($prover eq 'mace4') {
+	my @tptp2X_call = ('tptp2X', '-tstdfof', '-fprover9', '-d-', '-q2', $theory_path);
+	my @mace4_call = ('mace4', '-p', '0', '-P', '1');
+	my @interpformat_call = ('interpformat', 'cooked');
+	$harness = harness (\@tptp2X_call,
+			    '|', \@mace4_call,
+			    '|', \@interpformat_call,
 			    '>', \$output,
 			    '2>', \$error,
 			    $timer);
@@ -185,7 +195,10 @@ sub prove {
 
     } else {
 	my @results = $harness->full_results ();
-	my $exit_code = scalar @results == 0 ? 1 : $results[scalar @results - 1];
+	my $first_non_zero_exit_code = first_value { $_ != 0 } @results;
+	my $exit_code
+	    = scalar @results == 0 ? 1 : (defined $first_non_zero_exit_code ?
+					      $first_non_zero_exit_code : 0);
 	return Result->new (timed_out => 0,
 			    exit_code => $exit_code,
 			    output => $output,
