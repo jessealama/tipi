@@ -128,6 +128,7 @@ sub prove {
 			    '-tAuto',
 			    '-R',
 			    '--tptp3-in',
+			    "--cpu-limit=${timeout}",
 			    $theory_path);
 	my @epclextract_call
 	    = ('epclextract',
