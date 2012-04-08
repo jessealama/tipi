@@ -39,6 +39,7 @@ Readonly my $TWO_SPACES => q{  };
 Readonly my $FULL_STOP => q{.};
 Readonly my $SPACE => q{ };
 Readonly my $COLON => q{:};
+Readonly my $COMMA => q{,};
 Readonly my $LF => "\N{LF}";
 Readonly my $EMPTY_STRING => q{};
 Readonly my $DESCRIPTION => 'Randomly search for a solution.  Play to Win!';
@@ -96,6 +97,8 @@ sub BUILD {
     $self->_set_description ($DESCRIPTION);
     return $self;
 }
+
+my @axioms = ();
 
 around 'execute' => sub {
     my $orig = shift;
@@ -213,19 +216,23 @@ around 'execute' => sub {
     }
 
     my $theory = Theory->new (path => $theory_path);
-    my @axioms = $theory->get_axioms (1);
-    my @axiom_names = map { $_->get_name () } @axioms;
-    my @to_keep = ();
+    my @axioms_by_name = $theory->get_axioms_by_name (1);
+
+    @axioms = sort @axioms_by_name;
+
     foreach my $to_keep (@opt_keep) {
-	if (none { $_ eq $to_keep } @axiom_names) {
+	if (none { $_ eq $to_keep } @axioms_by_name) {
 	    say {*STDERR} error_message ($to_keep, $SPACE, 'is not the name of any axiom of ', $theory_path, $FULL_STOP);
 	    exit 1;
 	}
-	my $axiom = $theory->formula_with_name ($to_keep);
-	push (@to_keep, $axiom);
     }
 
-    @opt_keep = @to_keep;
+    # Remove duplicates
+    my %to_keep = ();
+    foreach my $formula (@opt_keep) {
+	$to_keep{$formula} = 0;
+    }
+    @opt_keep = keys %to_keep;
 
     return $self->$orig (@arguments);
 
@@ -278,6 +285,47 @@ sub random_subset {
 
 }
 
+sub random_subset_containing_keepers {
+    my @set = random_subset (@axioms);
+
+    foreach my $to_keep (@opt_keep) {
+	if (! list_member ($to_keep, \@set)) {
+	    push (@set, $to_keep);
+	}
+    }
+
+    if (wantarray) {
+	return @set;
+    } else {
+	return \@set;
+    }
+
+}
+
+my %encountered_subsets = ();
+
+sub next_random_subset {
+    my @set = random_subset_containing_keepers ();
+
+    @set = sort @set;
+    my $set_as_string = join ($COMMA, @set);
+
+    while (defined $encountered_subsets{$set_as_string}) {
+	@set = random_subset_containing_keepers ();
+	@set = sort @set;
+	$set_as_string = join ($COMMA, @set);
+    }
+
+    $encountered_subsets{$set_as_string} = 0;
+
+    if (wantarray) {
+	return @set;
+    } else {
+	return \@set;
+    }
+
+}
+
 sub summarize_single_result {
     my $tool = shift;
     my $szs_status = shift;
@@ -310,22 +358,15 @@ sub execute {
     my @axioms = $theory->get_axioms (1);
 
     my $num_trials = 0;
+    my $subset_ref = next_random_subset ();
 
-    while (1) {
+    while (defined $subset_ref) {
 
 	$num_trials++;
-
 	print 'Trial', $SPACE, $num_trials, $SPACE;
+	my @subset = @{$subset_ref};
 
-	my @subset = random_subset (@axioms);
-	my @subset_by_name = map { $_->get_name () } @subset;
-
-	foreach my $to_keep (@opt_keep) {
-	    my $to_keep_name = $to_keep->get_name ();
-	    if (! list_member ($to_keep_name, \@subset_by_name)) {
-		push (@subset, $to_keep);
-	    }
-	}
+	$subset_ref = next_random_subset ();
 
 	my %status = ();
 
@@ -339,7 +380,7 @@ sub execute {
 	    next;
 	}
 
-	my $restricted = $theory->restrict_to (@subset);
+	my $restricted = $theory->restrict_to_by_name (@subset);
 
 	%status = %{solve_greedily ($restricted)};
 
@@ -369,6 +410,8 @@ sub execute {
 	say summarize_trial (\%status);
 
     }
+
+    say 'It seems we have exhausted all possible subsets.';
 
 }
 
