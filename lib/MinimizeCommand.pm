@@ -29,7 +29,8 @@ use TPTP qw(ensure_tptp4x_available
 	    prove_if_possible
 	    ensure_sensible_tptp_theory
        );
-use Utils qw(error_message
+use Utils qw(asterisk_list
+	     error_message
 	     warning_message
 	     all_sublists
 	     all_nonempty_sublists
@@ -91,17 +92,6 @@ sub fill_up_to_column {
     return ($str . $padding);
 
 }
-
-sub asterisk_list {
-    my @items = @_;
-    my $list = $EMPTY_STRING;
-    foreach my $item (@items) {
-	$list .= $TWO_SPACES . $ASTERISK . $SPACE . $item . "\N{LF}";
-    }
-    return $list;
-}
-
-
 
 sub print_formula_names_with_color {
     my $formulas_ref = shift;

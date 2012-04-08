@@ -27,12 +27,17 @@ our @EXPORT_OK = qw(ensure_readable_file
 		    remove_duplicate_lists
 		    subtuple
 		    tuple_less_than_wrt_ordering
-	            message_with_extra_linefeed);
+	            message_with_extra_linefeed
+		    asterisk_list
+		    sublist
+		    list_member);
 
 Readonly my $EMPTY_STRING => q{};
 Readonly my $BAD_COLOR => 'red';
 Readonly my $SPACE => q{ };
+Readonly my $TWO_SPACES => q{  };
 Readonly my $FULL_STOP => q{.};
+Readonly my $ASTERISK => '*';
 Readonly my @EMPTY_LIST => ();
 
 sub ensure_readable_file {
@@ -323,7 +328,7 @@ sub sublist {
     if (scalar @list_1 == 0) {
 	return 1;
     } else {
-	my $result = all { list_member ($_, $list_ref_2) } @list_1;
+	my $result = (all { list_member ($_, $list_ref_2) } @list_1);
 	$result = $result ? 1 : 0;
 	return $result;
     }
@@ -369,6 +374,15 @@ sub remove_duplicate_lists {
     } else {
 	return \@final_list;
     }
+}
+
+sub asterisk_list {
+    my @items = @_;
+    my $list = $EMPTY_STRING;
+    foreach my $item (@items) {
+	$list .= $TWO_SPACES . $ASTERISK . $SPACE . $item . "\N{LF}";
+    }
+    return $list;
 }
 
 1;

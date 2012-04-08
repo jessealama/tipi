@@ -33,6 +33,7 @@ use IndependenceCommand;
 use MinimizeCommand;
 use NeededCommand;
 use CountermodelCommand;
+use VegasCommand;
 
 Readonly my $VERSION => qv('1.0');
 
@@ -52,6 +53,7 @@ Readonly my %COMMANDS => (
     'minimize' => MinimizeCommand->new (),
     'needed' => NeededCommand->new (),
     'countermodel' => CountermodelCommand->new (),
+    'vegas' => VegasCommand->new (),
 );
 
 my $opt_man       = 0;

@@ -24,11 +24,15 @@ use TPTP qw(ensure_tptp4x_available
 	    known_prover);
 use Utils qw(error_message
 	     ensure_readable_file);
+use SZS qw(is_szs_success
+	   szs_implies
+	   known_szs_status);
 
 Readonly my $STDIN_PATH => q{--};
 Readonly my $TWO_SPACES => q{  };
 Readonly my $FULL_STOP => q{.};
 Readonly my $SPACE => q{ };
+Readonly my $LF => "\N{LF}";
 Readonly my $EMPTY_STRING => q{};
 Readonly my $DESCRIPTION => 'Try proving a conjecture.';
 Readonly my $GOOD_COLOR => 'green';
@@ -44,6 +48,7 @@ my $opt_verbose = 0;
 my $opt_debug = 0;
 my $opt_solution_szs_status = 'Theorem';
 my $opt_prover = 'eprover';
+my $opt_timeout = 30; # seconds
 
 sub print_formula_names_with_color {
     my $formulas_ref = shift;
@@ -89,6 +94,7 @@ around 'execute' => sub {
 	'help|?' => \$opt_help,
 	'solution-szs-status=s' => \$opt_solution_szs_status,
 	'prover=s' => \$opt_prover,
+	'timeout=i' => \$opt_timeout,
     ) or pod2usage (2);
 
     if ($opt_help) {
@@ -105,6 +111,11 @@ around 'execute' => sub {
     # debug implies verbose
     if ($opt_debug) {
         $opt_verbose = 1;
+    }
+
+    if ($opt_timeout < 0) {
+	pod2usage (-msg => error_message ($opt_timeout, $SPACE, 'is an inappropriate value for the prover timeout.'),
+		   -exitval => 2);
     }
 
     if ($opt_solution_szs_status eq $EMPTY_STRING) {
@@ -137,6 +148,16 @@ around 'execute' => sub {
 	exit 1;
     }
 
+    if ($opt_solution_szs_status eq $EMPTY_STRING) {
+	say {*STDERR} error_message ('The empty string is not an acceptable value for the intended SZS status.');
+	exit 1;
+    }
+
+    if (! known_szs_status ($opt_solution_szs_status)) {
+	say {*STDERR} error_message ('\'', $opt_solution_szs_status, '\' is not a known SZS status.');
+	exit 1;
+    }
+
     my $theory_path = $arguments[0];
 
     if (! ensure_readable_file ($theory_path)) {
@@ -144,14 +165,12 @@ around 'execute' => sub {
 	exit 1;
     }
 
-    if (ensure_sensible_tptp_theory ($theory_path)) {
-	return $self->$orig (@arguments);
-    } else {
+    if (! ensure_sensible_tptp_theory ($theory_path)) {
 	say STDERR error_message ('The file at ', $theory_path, ' is not a valid TPTP file.');
 	exit 1;
     }
 
-    return;
+    return $self->$orig (@arguments);
 
 };
 
@@ -162,44 +181,44 @@ sub execute {
     my $theory_path = $arguments[0];
     my $theory = Theory->new (path => $theory_path);
     my $result = TPTP::prove ($theory,
+			      $opt_prover,
 			      $opt_solution_szs_status,
-			      $opt_prover);
+			      { 'timeout' => $opt_timeout });
 
     my $err_output = $result->get_error_output ();
     my $std_output = $result->get_output ();
 
-    my $szs_status = $result->has_szs_status () ? $result->get_szs_status () : 'Unknown';
+    my $szs_status = $result->get_szs_status ();
 
-
-
-    my $ok = ($szs_status eq $opt_solution_szs_status);
-    say colored ($szs_status, $ok ? $GOOD_COLOR : $BAD_COLOR);
-
-
-
-    if ($opt_debug) {
-	print "\N{LF}", 'The prover output was:', "\N{LF}";
-	print $result->get_output ();
-    }
-
-    if ($ok && $opt_show_premises) {
-	my $derivation = $result->output_as_derivation ();
-	my @used_premises = $derivation->get_used_premises ();
-	my @unused_premises = $derivation->get_unused_premises ();
-
-	say 'PREMISES', $SPACE, '(', colored ('used', $USED_PREMISE_COLOR), $SPACE, '/', $SPACE, colored ('unused', $UNUSED_PREMISE_COLOR), ')';
-
-	if (scalar @used_premises > 0) {
-	    print_formula_names_with_color (\@used_premises,
-					    $USED_PREMISE_COLOR,
-					    { 'sorted' => 1 });
-	}
-	if (scalar @unused_premises > 0) {
-	    print_formula_names_with_color (\@unused_premises,
-					    $UNUSED_PREMISE_COLOR,
-					    { 'sorted' => 1 });
+    if (is_szs_success ($szs_status)) {
+	if (szs_implies ($szs_status, $opt_solution_szs_status)) {
+	    say colored ($szs_status, $GOOD_COLOR);
+	} else {
+	    say colored ($szs_status, $BAD_COLOR);
 	}
 
+	if ($opt_show_premises) {
+	    my $derivation = $result->output_as_derivation ();
+	    my @used_premises = $derivation->get_used_premises ();
+	    my @unused_premises = $derivation->get_unused_premises ();
+
+	    say 'PREMISES', $SPACE, '(', colored ('used', $USED_PREMISE_COLOR), $SPACE, '/', $SPACE, colored ('unused', $UNUSED_PREMISE_COLOR), ')';
+
+	    if (scalar @used_premises > 0) {
+		print_formula_names_with_color (\@used_premises,
+						$USED_PREMISE_COLOR,
+						{ 'sorted' => 1 });
+	    }
+	    if (scalar @unused_premises > 0) {
+		print_formula_names_with_color (\@unused_premises,
+						$UNUSED_PREMISE_COLOR,
+						{ 'sorted' => 1 });
+	    }
+
+	}
+
+    } else {
+	say colored ($szs_status, $BAD_COLOR);
     }
 
     return 1;

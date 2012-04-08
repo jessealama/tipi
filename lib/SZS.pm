@@ -330,10 +330,10 @@ sub is_szs_success_camelword {
 sub is_szs_success {
     my $code_or_camelword = shift;
     if (defined $SUCCESS_CODES{$code_or_camelword}) {
-	return 1;
+	return $code_or_camelword;
     } elsif (defined $code_for{$code_or_camelword}) {
 	my $code = $code_for{$code_or_camelword};
-	return defined $SUCCESS_CODES{$code};
+	return (defined $SUCCESS_CODES{$code} ? $code : 0);
     } else {
 	croak 'Could not determine whether \'', $code_or_camelword, '\' is a known SZS code or CamelWord.';
     }

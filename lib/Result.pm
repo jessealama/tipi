@@ -21,6 +21,7 @@ Readonly my $SPACE => q{ };
 Readonly my $SZS_UNKNOWN => 'Unknown';
 Readonly my $SZS_ERROR => 'Error';
 Readonly my $SZS_SUCCESS => 'Success';
+Readonly my $SZS_TIMEOUT => 'Timeout';
 
 has 'tool' => (
     isa => 'Str',
@@ -132,10 +133,7 @@ sub get_szs_status {
     my $tool = $self->get_tool ();
     my $output = $self->get_output ();
 
-    if (! $self->exited_cleanly ()) {
-	# carp 'Whoops, I did not exit cleanly:', $LF, Dumper ($self);
-	return $SZS_ERROR;
-    } elsif ($tool eq 'prover9') { # ugh
+    if ($tool eq 'prover9') { # ugh
 	my $intended_szs_status = $self->get_intended_szs_status ();
 	if (index $output, $PROVER9_PROOF_TOKEN) {
 	    return $intended_szs_status;
@@ -157,6 +155,10 @@ sub get_szs_status {
 	    carp 'Unknown SZS status \'', $status, '\'; defaulting to \'Unknown\'.';
 	    return $SZS_UNKNOWN;
 	}
+    } elsif ($self->timed_out ()) {
+	return $SZS_TIMEOUT;
+    } elsif (! $self->exited_cleanly ()) {
+	return $SZS_ERROR;
     } else {
 	return $SZS_UNKNOWN;
     }
