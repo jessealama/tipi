@@ -7,6 +7,9 @@ use File::Temp qw(tempfile);
 use Readonly;
 use Regexp::DefaultFlags;
 use charnames qw(:full);
+use List::MoreUtils qw(none);
+
+use feature 'say';
 
 Readonly my $LF => "\N{LF}";
 
@@ -74,12 +77,21 @@ sub theory_from_used_premises {
 
     my $theory = $self->get_background_theory ();
     my @used_premises = @{$self->get_used_premises ()};
+    my @used_premise_names = map { $_->get_name () } @used_premises;
 
     (my $tmp_theory_fh, my $tmp_theory_path) = tempfile ()
 	or croak 'Failed to create a temporary file.';
 
     foreach my $formula (@used_premises) {
 	print {$tmp_theory_fh} $formula->tptpify (), "\n";
+    }
+
+    if ($theory->has_conjecture_formula ()) {
+	my $conjecture = $theory->get_conjecture ();
+	my $conjecture_name = $conjecture->get_name ();
+	if (none { $_->get_name () eq $conjecture_name } @used_premises) {
+	    say {$tmp_theory_fh} $conjecture->tptpify ();
+	}
     }
 
     close $tmp_theory_fh
