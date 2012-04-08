@@ -15,7 +15,7 @@ use charnames qw(:full);
 use English qw(-no_match_vars);
 use Data::Dumper;
 use Term::ANSIColor;
-use List::MoreUtils qw(any);
+use List::MoreUtils qw(any first_value);
 
 our @EXPORT_OK = qw(ensure_tptp4x_available
 		    ensure_valid_tptp_file
@@ -195,7 +195,10 @@ sub prove {
 
     } else {
 	my @results = $harness->full_results ();
-	my $exit_code = scalar @results == 0 ? 1 : $results[scalar @results - 1];
+	my $first_non_zero_exit_code = first_value { $_ != 0 } @results;
+	my $exit_code
+	    = scalar @results == 0 ? 1 : (defined $first_non_zero_exit_code ?
+					      $first_non_zero_exit_code : 0);
 	return Result->new (timed_out => 0,
 			    exit_code => $exit_code,
 			    output => $output,
