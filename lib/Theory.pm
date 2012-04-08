@@ -21,6 +21,7 @@ Readonly my $EMPTY_STRING => q{};
 Readonly my $TWO_SPACES => q{  };
 Readonly my $SPACE => q{ };
 Readonly my $COLON => q{:};
+Readonly my $LF => "\N{LF}";
 Readonly my $FULL_STOP => q{.};
 Readonly my $DEBUG => q{DEBUG};
 
@@ -98,6 +99,8 @@ sub BUILD {
 	my $status = $formula->get_status ();
 	$formula_table{$name} = $formula;
 	if ($status eq 'conjecture') {
+	    $self->_set_conjecture ($formula);
+	} elsif ($status eq 'negated_conjecture') {
 	    $self->_set_conjecture ($formula);
 	}
     }
@@ -205,7 +208,7 @@ sub formula_with_name {
 	return $formula_table{$name};
     } else {
 	my $path = $self->get_path ();
-	croak 'No such formula called \'', $name, '\' in the TPTP file ', $path, '.';
+	confess 'No such formula called \'', $name, '\' in the TPTP file ', $path, '.';
     }
 }
 
@@ -274,7 +277,7 @@ sub get_conjecture {
   CONJECTURE:
     foreach my $formula (@formulas) {
 	my $status = $formula->get_status ();
-	if ($status eq 'conjecture') {
+	if ($status eq 'conjecture' || $status eq 'negated_conjecture') {
 	    $conjecture = $formula;
 	    last CONJECTURE;
 	}
@@ -310,11 +313,27 @@ sub get_axioms {
 
 }
 
+sub get_axioms_by_name {
+    my $self = shift;
+    my $expand_includes = shift;
+
+    my @axioms = $self->get_axioms ($expand_includes);
+    my @axiom_names = map { $_->get_name () } @axioms;
+
+    if (wantarray) {
+	return @axiom_names;
+    } else {
+	return \@axiom_names;
+    }
+}
+
 sub has_conjecture_formula {
     my $self = shift;
     my @formulas = $self->get_formulas (1);
     my $conjecture_formula = undef;
-    my $conjecture_idx = firstidx { $_->get_status () eq 'conjecture' } @formulas;
+    my $conjecture_idx = firstidx { $_->get_status () eq 'conjecture'
+					|| $_->get_status () eq 'negated_conjecture' }
+	@formulas;
 
     return ($conjecture_idx >= 0);
 
@@ -348,13 +367,23 @@ sub promote_conjecture_to_true_axiom {
     (my $new_fh, my $new_path) = tempfile ();
 
     foreach my $axiom (@axioms) {
-	print {$new_fh} $axiom->tptpify (), "\N{LF}";
+	say {$new_fh} $axiom->tptpify ();
     }
 
     if ($self->has_conjecture_formula ()) {
 	my $conjecture = $self->get_conjecture ();
-	my $conjecture_as_axiom = $conjecture->change_status ('axiom');
-	print {$new_fh} $conjecture_as_axiom->tptpify (), "\N{LF}";
+	my $conjecture_status = $conjecture->get_status ();
+	if ($conjecture_status eq 'conjecture') {
+	    my $conjecture_as_axiom = $conjecture->change_status ('axiom');
+	    say {$new_fh} $conjecture_as_axiom->tptpify ();
+	} elsif ($conjecture_status eq 'negated_conjecture') {
+	    my $negated_conjecture = $conjecture->negate ();
+	    my $negated_conjecture_as_axiom
+		= $negated_conjecture->change_status ('axiom');
+	    say {$new_fh} $negated_conjecture_as_axiom->tptpify ();
+	} else {
+	    confess 'Unable to decide what to do with the conjecture', $LF, $TWO_SPACES, $conjecture->fofify ();
+	}
     }
 
     close $new_fh
@@ -372,14 +401,22 @@ sub promote_conjecture_to_false_axiom {
     (my $new_fh, my $new_path) = tempfile ();
 
     foreach my $axiom (@axioms) {
-	print {$new_fh} $axiom->tptpify (), "\N{LF}";
+	say {$new_fh} $axiom->tptpify ();
     }
 
     if ($self->has_conjecture_formula ()) {
 	my $conjecture = $self->get_conjecture ();
-	my $negated_conjecture = $conjecture->negate ();
-	my $conjecture_as_axiom = $negated_conjecture->change_status ('axiom');
-	print {$new_fh} $conjecture_as_axiom->tptpify (), "\N{LF}";
+	my $conjecture_status = $conjecture->get_status ();
+	if ($conjecture_status eq 'conjecture') {
+	    my $negated_conjecture = $conjecture->negate ();
+	    my $conjecture_as_axiom = $negated_conjecture->change_status ('axiom');
+	    say {$new_fh} $conjecture_as_axiom->tptpify ();
+	} elsif ($conjecture_status eq 'negated_conjecture') {
+	    my $conjecture_as_axiom = $conjecture->change_status ('axiom');
+	    say {$new_fh} $conjecture_as_axiom->tptpify ();
+	} else {
+	    confess 'Unable to decide what to do with the conjecture', $LF, $TWO_SPACES, $conjecture->fofify ();
+	}
     }
 
     close $new_fh
@@ -446,6 +483,15 @@ sub remove_formulas_by_name {
 	or croak 'Error: unable to close the output filehandle for the conjecture-free variant of ', $path, '.';
 
     return Theory->new (path => $new_path);
+
+}
+
+sub restrict_to_by_name {
+    my $self = shift;
+    my @names_of_formulas_to_keep = @_;
+    my @formulas_to_keep
+	= map { $self->formula_with_name ($_) } @names_of_formulas_to_keep;
+    return $self->restrict_to (@formulas_to_keep);
 
 }
 
@@ -993,6 +1039,7 @@ sub minimize {
 	       && szs_implies ($szs_status, $intended_szs_status)
 		   && scalar @unused_premises > 0) {
 	$last_known_good_result = $result;
+
 	$theory_to_minimize = $derivation->theory_from_used_premises ();
 	$result = TPTP::prove ($theory_to_minimize,
 			       $prover,
