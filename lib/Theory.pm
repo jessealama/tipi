@@ -6,7 +6,7 @@ use IPC::Run qw(run start timer harness);
 use Carp qw(croak confess carp);
 use Readonly;
 use charnames qw(:full);
-use List::MoreUtils qw(firstidx any);
+use List::MoreUtils qw(firstidx any none);
 use File::Temp qw(tempfile);
 use Regexp::DefaultFlags;
 use Utils qw(ensure_readable_file slurp);
@@ -297,7 +297,7 @@ sub get_axioms {
     my @axioms = ();
     foreach my $formula (@formulas) {
 	my $status = $formula->get_status ();
-	if ($status ne 'conjecture') {
+	if ($status ne 'conjecture' && $status ne 'negated_conjecture') {
 	    push (@axioms, $formula);
 	}
     }
