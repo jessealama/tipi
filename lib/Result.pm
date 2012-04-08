@@ -13,12 +13,14 @@ use EproverDerivation;
 use VampireDerivation;
 use Prover9Derivation;
 use ParadoxInterpretation;
+use Mace4Interpretation;
 use SZS qw(known_szs_status);
 
 Readonly my $LF => "\N{LF}";
 Readonly my $SPACE => q{ };
 Readonly my $SZS_UNKNOWN => 'Unknown';
 Readonly my $SZS_ERROR => 'Error';
+Readonly my $SZS_SUCCESS => 'Success';
 
 has 'tool' => (
     isa => 'Str',
@@ -121,6 +123,8 @@ sub has_szs_status {
 
 Readonly my $PROVER9_PROOF_TOKEN
     => '============================== PROOF =================================';
+Readonly my $INTERPFORMAT_MODEL_TOKEN
+    => '% Interpretation of size ';
 
 sub get_szs_status {
     my $self = shift;
@@ -135,6 +139,13 @@ sub get_szs_status {
 	my $intended_szs_status = $self->get_intended_szs_status ();
 	if (index $output, $PROVER9_PROOF_TOKEN) {
 	    return $intended_szs_status;
+	} else {
+	    return $SZS_UNKNOWN;
+	}
+    } elsif ($tool eq 'mace4') { # ugh
+	my $intended_szs_status = $self->get_intended_szs_status ();
+	if (index $output, $INTERPFORMAT_MODEL_TOKEN) {
+	    return $SZS_SUCCESS;
 	} else {
 	    return $SZS_UNKNOWN;
 	}
@@ -160,8 +171,16 @@ sub output_as_model {
 	croak 'Error: the output slot of this Result object is undefined.';
     }
 
-    return ParadoxInterpretation->new (raw_text => $output,
-				       background_theory => $background);
+    my $tool = $self->get_tool ();
+    if ($tool eq 'paradox') {
+	return ParadoxInterpretation->new (raw_text => $output,
+					   background_theory => $background);
+    } elsif ($tool eq 'mace4') {
+	return Mace4Interpretation->new (raw_text => $output,
+					 background_theory => $background);
+    } else {
+	confess 'Unable to make sense of the output of', $SPACE, $tool, $SPACE, 'as a model.';
+    }
 }
 
 1;

@@ -47,7 +47,8 @@ Readonly my $GETSYMBOLS => 'GetSymbols';
 Readonly my @PROVERS => ('eprover',
 			 'vampire',
 			 'paradox',
-			 'prover9',);
+			 'prover9',
+			 'mace4');
 
 sub ensure_tptp4x_available {
     return can_run ($TPTP4X);
@@ -152,7 +153,6 @@ sub prove {
 			    '>', \$output,
 			    '2>', \$error,
 			    $timer);
-
     } elsif ($prover eq 'prover9') {
 	my @tptp2X_call = ('tptp2X', '-tstdfof', '-fprover9', '-d-', '-q2', $theory_path);
 	my @prover9_call = ('prover9', '-x');
@@ -160,6 +160,16 @@ sub prove {
 	$harness = harness (\@tptp2X_call,
 			    '|', \@prover9_call,
 			    '|', \@prooftrans_call,
+			    '>', \$output,
+			    '2>', \$error,
+			    $timer);
+    } elsif ($prover eq 'mace4') {
+	my @tptp2X_call = ('tptp2X', '-tstdfof', '-fprover9', '-d-', '-q2', $theory_path);
+	my @mace4_call = ('mace4', '-p', '0', '-P', '1');
+	my @interpformat_call = ('interpformat', 'cooked');
+	$harness = harness (\@tptp2X_call,
+			    '|', \@mace4_call,
+			    '|', \@interpformat_call,
 			    '>', \$output,
 			    '2>', \$error,
 			    $timer);
