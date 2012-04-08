@@ -449,6 +449,31 @@ sub remove_formulas_by_name {
 
 }
 
+sub restrict_to {
+    my $self = shift;
+    my @formulas_to_keep = @_;
+
+    my @names_of_formulas_to_keep = map { $_->get_name () } @formulas_to_keep;
+
+    my $path = $self->get_path ();
+    my @formulas = $self->get_axioms (1);
+    (my $new_fh, my $new_path) = tempfile ();
+
+    foreach my $formula (@formulas_to_keep) {
+	say {$new_fh} $formula->tptpify (), "\N{LF}";
+    }
+
+    if ($self->has_conjecture_formula ()) {
+	my $conjecture = $self->get_conjecture ();
+	say {$new_fh} $conjecture->tptpify ();
+    }
+
+    close $new_fh
+	or croak 'Error: unable to close the output filehandle for the conjecture-free variant of ', $path, '.';
+
+    return Theory->new (path => $new_path);
+}
+
 sub add_formula {
     my $self = shift;
     my $formula = shift;
