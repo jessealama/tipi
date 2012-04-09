@@ -34,6 +34,7 @@ use MinimizeCommand;
 use NeededCommand;
 use CountermodelCommand;
 use VegasCommand;
+use SelfcheckCommand;
 
 Readonly my $VERSION => qv('1.0');
 
@@ -54,6 +55,7 @@ Readonly my %COMMANDS => (
     'needed' => NeededCommand->new (),
     'countermodel' => CountermodelCommand->new (),
     'vegas' => VegasCommand->new (),
+    'selfcheck' => SelfcheckCommand->new (),
 );
 
 my $opt_man       = 0;
