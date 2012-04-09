@@ -168,8 +168,6 @@ sub execute {
 
     say $prover_summary;
 
-    say $EMPTY_STRING;
-
     say 'Finally, here are the results of searching for various auxiliary programs';
     say 'that are used to help prepare input to the automated reasoners or to';
     say 'interpret their output.  Whether you truly need any of these depends on';
