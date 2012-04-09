@@ -100,8 +100,6 @@ sub BUILD {
 	$formula_table{$name} = $formula;
 	if ($status eq 'conjecture') {
 	    $self->_set_conjecture ($formula);
-	} elsif ($status eq 'negated_conjecture') {
-	    $self->_set_conjecture ($formula);
 	}
     }
 
@@ -277,7 +275,7 @@ sub get_conjecture {
   CONJECTURE:
     foreach my $formula (@formulas) {
 	my $status = $formula->get_status ();
-	if ($status eq 'conjecture' || $status eq 'negated_conjecture') {
+	if ($status eq 'conjecture') {
 	    $conjecture = $formula;
 	    last CONJECTURE;
 	}
@@ -300,7 +298,7 @@ sub get_axioms {
     my @axioms = ();
     foreach my $formula (@formulas) {
 	my $status = $formula->get_status ();
-	if ($status ne 'conjecture' && $status ne 'negated_conjecture') {
+	if ($status ne 'conjecture') {
 	    push (@axioms, $formula);
 	}
     }
@@ -331,9 +329,7 @@ sub has_conjecture_formula {
     my $self = shift;
     my @formulas = $self->get_formulas (1);
     my $conjecture_formula = undef;
-    my $conjecture_idx = firstidx { $_->get_status () eq 'conjecture'
-					|| $_->get_status () eq 'negated_conjecture' }
-	@formulas;
+    my $conjecture_idx = firstidx { $_->get_status () eq 'conjecture' } @formulas;
 
     return ($conjecture_idx >= 0);
 
@@ -376,11 +372,6 @@ sub promote_conjecture_to_true_axiom {
 	if ($conjecture_status eq 'conjecture') {
 	    my $conjecture_as_axiom = $conjecture->change_status ('axiom');
 	    say {$new_fh} $conjecture_as_axiom->tptpify ();
-	} elsif ($conjecture_status eq 'negated_conjecture') {
-	    my $negated_conjecture = $conjecture->negate ();
-	    my $negated_conjecture_as_axiom
-		= $negated_conjecture->change_status ('axiom');
-	    say {$new_fh} $negated_conjecture_as_axiom->tptpify ();
 	} else {
 	    confess 'Unable to decide what to do with the conjecture', $LF, $TWO_SPACES, $conjecture->fofify ();
 	}
@@ -410,9 +401,6 @@ sub promote_conjecture_to_false_axiom {
 	if ($conjecture_status eq 'conjecture') {
 	    my $negated_conjecture = $conjecture->negate ();
 	    my $conjecture_as_axiom = $negated_conjecture->change_status ('axiom');
-	    say {$new_fh} $conjecture_as_axiom->tptpify ();
-	} elsif ($conjecture_status eq 'negated_conjecture') {
-	    my $conjecture_as_axiom = $conjecture->change_status ('axiom');
 	    say {$new_fh} $conjecture_as_axiom->tptpify ();
 	} else {
 	    confess 'Unable to decide what to do with the conjecture', $LF, $TWO_SPACES, $conjecture->fofify ();
