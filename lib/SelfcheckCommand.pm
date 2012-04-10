@@ -92,7 +92,7 @@ sub summarize_availability_of_program {
 
     my $summary = $program . ($SPACE x $offset) . $SPACE . $MAPS_TO . $SPACE;
 
-    if (defined $can_run{$program}) {
+    if ($can_run{$program}) {
 	$summary .= colored ($can_run{$program}, $GOOD_COLOR);
     } else {
 	$summary .= colored ('Not Found', $BAD_COLOR);
@@ -132,7 +132,8 @@ sub execute {
 			      'prooftrans');
 
     foreach my $program (@infrastructure_programs, @provers, @auxiliary_programs) {
-	$can_run{$program} = can_run ($program);
+	my $path = can_run ($program);
+	$can_run{$program} = defined $path ? $path : 0;
     }
 
     my $infrastructure_summary
