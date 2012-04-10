@@ -18,6 +18,7 @@ use Term::ProgressBar;
 use Regexp::DefaultFlags;
 use POSIX qw(ceil);
 use Algorithm::Combinatorics qw(combinations);
+use IPC::Cmd qw(can_run);
 
 extends 'Command';
 
@@ -35,6 +36,7 @@ use Utils qw(error_message
 	     subtuple
 	     tuple_less_than_wrt_ordering
 	     ensure_readable_file);
+use SZS qw(szs_implies);
 
 Readonly my $EMPTY_STRING => q{};
 Readonly my $TWO_SPACES => q{  };
@@ -42,6 +44,7 @@ Readonly my $SPACE => q{ };
 Readonly my $COMMA => q{,};
 Readonly my $COLON => q{:};
 Readonly my $SLASH => q{/};
+Readonly my $FULL_STOP => q{.};
 Readonly my $USED_PREMISE_COLOR => 'blue';
 Readonly my $UNUSED_PREMISE_COLOR => 'yellow';
 Readonly my $DESCRIPTION => 'Prove a conjecture again, perhaps using different premises.';
@@ -58,6 +61,7 @@ my $opt_verbose = 0;
 my $opt_debug = 0;
 my $opt_solution_szs_status = 'Theorem';
 my $opt_proof_finder = 'eprover';
+my $opt_model_finder = 'paradox';
 my $opt_syntactically = 0;
 my $opt_semantically = 0;
 my $opt_model_finder_timeout = 5;
@@ -121,6 +125,7 @@ around 'execute' => sub {
 	'syntactically' => \$opt_syntactically,
 	'solution-szs-status=s' => \$opt_solution_szs_status,
 	'proof-finder' => \$opt_proof_finder,
+	'model-finder' => \$opt_model_finder,
 	'model-finder-timeout=i' => \$opt_model_finder_timeout,
 	'proof-finder-timeout=i' => \$opt_proof_finder_timeout,
 	'only-used' => \$opt_show_only_final_used_premises,
@@ -189,6 +194,26 @@ around 'execute' => sub {
 	exit 1;
     }
 
+    if ($opt_proof_finder eq $EMPTY_STRING) {
+	pod2usage (-msg => error_message ('The empty string is not an acceptable value for the --proof-finder option.'),
+		   -exitval => 2);
+    }
+
+    if (! can_run ($opt_proof_finder)) {
+	say {*STDERR} error_message ('Cannot run', $SPACE, $opt_proof_finder, $FULL_STOP);
+	exit 1;
+    }
+
+    if ($opt_model_finder eq $EMPTY_STRING) {
+	pod2usage (-msg => error_message ('The empty string is not an acceptable value for the --proof-finder option.'),
+		   -exitval => 2);
+    }
+
+    if (! can_run ($opt_model_finder)) {
+	say {*STDERR} error_message ('Cannot run', $SPACE, $opt_model_finder, $FULL_STOP);
+	exit 1;
+    }
+
     my $theory_path = $arguments[0];
 
     if (! ensure_readable_file ($theory_path)) {
@@ -232,46 +257,56 @@ sub execute {
 
 }
 
-sub reprove_syntactically {
-
+sub prove {
     my $theory = shift;
+    return TPTP::prove ($theory,
+			$opt_proof_finder,
+			$opt_solution_szs_status,
+			{ 'timeout' => $opt_proof_finder_timeout });
+}
 
-    my $derivation = prove_if_possible ($theory,
-					$opt_proof_finder,
-					$opt_solution_szs_status,
-					{ 'timeout' => $opt_proof_finder_timeout });
+sub reprove_syntactically {
+    my $theory = shift;
+    my @used_premises = ();
+    my @unused_premises = $theory->get_formulas (1);
+    my $result = prove ($theory);
+    my $derivation = $result->output_as_derivation ();
+    my $szs_status = $result->get_szs_status ();
 
-    if ($opt_debug) {
-	print {*STDERR} 'The derivation was just obtained:', "\N{LF}", Dumper ($derivation);
-    }
+    print 'PREMISES (', colored ('used', $USED_PREMISE_COLOR), $SPACE, $SLASH, $SPACE, colored ('unused', $UNUSED_PREMISE_COLOR), ')', "\N{LF}";
 
-    if (! $opt_show_only_final_used_premises
-	    && ! $opt_show_only_final_unused_premises) {
-	print 'PREMISES (', colored ('used', $USED_PREMISE_COLOR), ' / ', colored ('unused', $UNUSED_PREMISE_COLOR), ')', "\N{LF}";
-    }
-
-    my @unused_premises = $derivation->get_unused_premises ();
-
-    while (scalar @unused_premises > 0) {
+    while (defined $derivation
+	       && szs_implies ($szs_status, $opt_solution_szs_status)
+		   && scalar @unused_premises > 0) {
 
 	if (! $opt_show_only_final_used_premises) {
 	    print_formula_names_with_color (\@unused_premises, $UNUSED_PREMISE_COLOR);
 	}
 
 	$theory = $derivation->theory_from_used_premises ();
-	$derivation = prove_if_possible ($theory, $opt_proof_finder, $opt_solution_szs_status);
+	$result = prove ($theory);
+	$szs_status = $result->get_szs_status ();
+	$derivation = $result->output_as_derivation ();
+	@used_premises = $derivation->get_used_premises ();
 	@unused_premises = $derivation->get_unused_premises ();
 
     }
 
-    my @used_premises = $derivation->get_used_premises ();
-
-    if ($opt_show_only_final_used_premises) {
-	print_formula_names_with_color (\@used_premises);
-    } elsif ($opt_show_only_final_unused_premises) {
-	# nothing to do
+    if (defined $derivation) {
+	if (szs_implies ($szs_status, $opt_solution_szs_status)) {
+	    if ($opt_show_only_final_used_premises) {
+		print_formula_names_with_color (\@used_premises);
+	    } elsif ($opt_show_only_final_unused_premises) {
+		# nothing to do
+	    } else {
+		print_formula_names_with_color (\@used_premises, $USED_PREMISE_COLOR);
+	    }
+	} else {
+	    say 'We obtained the SZS status', $SPACE, $szs_status, ', which does not imply the intended SZS status (', $opt_solution_szs_status, ').';
+	}
     } else {
-	print_formula_names_with_color (\@used_premises, $USED_PREMISE_COLOR);
+	say 'We failed to interpret the result of a call to', $SPACE, $opt_proof_finder_timeout, $SPACE, 'as a derivation.';
+	say 'We cannot, then, extract the set of used premises.';
     }
 
     return 1;
