@@ -24,7 +24,8 @@ use TPTP qw(ensure_tptp4x_available
 	    ensure_valid_tptp_file
 	    prove_if_possible
 	    ensure_sensible_tptp_theory
-	    known_prover);
+	    known_prover
+	    tptp4X_output);
 use Utils qw(error_message
 	     ensure_readable_file
 	     asterisk_list
@@ -236,7 +237,10 @@ around 'execute' => sub {
     }
 
     if (! ensure_sensible_tptp_theory ($theory_path)) {
-	say STDERR error_message ('The file at ', $theory_path, ' is not a valid TPTP file.');
+	my $errors = tptp4X_output ($theory_path);
+	say {*STDERR} error_message ('The file at ', $theory_path, ' is not a valid TPTP file.');
+	say {*STDERR} 'Here is what tptp4X gave as output when processing the file:';
+	say {*STDERR} $errors;
 	exit 1;
     }
 

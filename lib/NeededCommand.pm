@@ -22,7 +22,8 @@ use TPTP qw(ensure_tptp4x_available
 	    prove_if_possible
 	    ensure_sensible_tptp_theory
 	    known_prover
-	    incompatible_szs_statuses);
+	    incompatible_szs_statuses
+	    tptp4X_output);
 use Utils qw(error_message
 	     ensure_readable_file);
 
@@ -150,7 +151,10 @@ around 'execute' => sub {
     }
 
     if (! ensure_sensible_tptp_theory ($theory_path)) {
-	say STDERR error_message ('The file at ', $theory_path, ' is not a valid TPTP file.');
+	my $errors = tptp4X_output ($theory_path);
+	say {*STDERR} error_message ('The file at ', $theory_path, ' is not a valid TPTP file.');
+	say {*STDERR} 'Here is what tptp4X output when evaluating the file:';
+	say {*STDERR} $errors;
 	exit 1;
     }
 

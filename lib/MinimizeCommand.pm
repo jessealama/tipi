@@ -28,6 +28,7 @@ use TPTP qw(ensure_tptp4x_available
 	    supported_provers
 	    prove_if_possible
 	    ensure_sensible_tptp_theory
+	    tptp4X_output
        );
 use Utils qw(asterisk_list
 	     error_message
@@ -237,7 +238,10 @@ sub print_formula_names_with_color {
 	}
 
 	if (! ensure_sensible_tptp_theory ($theory_path)) {
-	    say STDERR error_message ('The file at ', $theory_path, ' is not a valid TPTP file.');
+	    my $errors = tptp4X_output ($theory_path);
+	    say {*STDERR} error_message ('The file at ', $theory_path, ' is not a valid TPTP file.');
+	    say {*STDERR} 'Here is what tptp4X output when evaluating the file:';
+	    say {*STDERR} $errors;
 	    exit 1;
 	}
 

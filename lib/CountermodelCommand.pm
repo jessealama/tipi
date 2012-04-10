@@ -16,8 +16,13 @@ use feature 'say';
 extends 'Command';
 
 use Theory;
-use TPTP qw(ensure_tptp4x_available ensure_valid_tptp_file prove_if_possible ensure_sensible_tptp_theory);
-use Utils qw(error_message);
+use TPTP qw(ensure_tptp4x_available
+	    ensure_valid_tptp_file
+	    prove_if_possible
+	    ensure_sensible_tptp_theory
+	    tptp4X_output);
+use Utils qw(error_message
+	     ensure_readable_file);
 
 Readonly my $EMPTY_STRING => q{};
 Readonly my $TWO_SPACES => q{  };
@@ -87,8 +92,16 @@ around 'execute' => sub {
 
     my $theory_path = $arguments[0];
 
+    if (! ensure_readable_file ($theory_path)) {
+	say {*STDERR} error_message ('There is no file at', $SPACE, $theory_path, $SPACE, '(or it is unreadable).');
+	exit 1;
+    }
+
     if (! ensure_sensible_tptp_theory ($theory_path)) {
-	say STDERR error_message ('The file at ', $theory_path, ' is not a valid TPTP file.');
+	my $errors = tptp4X_output ($theory_path);
+	say {*STDERR} error_message ('The file at ', $theory_path, ' is not a valid TPTP file.');
+	say {*STDERR} 'Here is what tptp4X output when evaluating the file:';
+	say {*STDERR} $errors;
 	exit 1;
     }
 

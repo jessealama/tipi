@@ -22,7 +22,8 @@ use TPTP qw(ensure_tptp4x_available
 	    ensure_valid_tptp_file
 	    prove_if_possible
 	    ensure_sensible_tptp_theory
-	    ensure_getsymbols_available);
+	    ensure_getsymbols_available
+	    tptp4X_output);
 use Utils qw(error_message);
 
 Readonly my $DESCRIPTION => 'Print the symbols occurring in a TPTP theory.';
@@ -95,12 +96,15 @@ around 'execute' => sub {
 
     my $theory_path = $arguments[0];
 
-    if (ensure_sensible_tptp_theory ($theory_path)) {
-	return $self->$orig (@arguments);
-    } else {
-	say STDERR error_message ('The file at ', $theory_path, ' is not a valid TPTP file.');
+    if (! ensure_sensible_tptp_theory ($theory_path)) {
+	my $errors = tptp4X_output ($theory_path);
+	say {*STDERR} error_message ('The file at ', $theory_path, ' is not a valid TPTP file.');
+	say {*STDERR} 'Here is what tptp4X output when evaluating the file:';
+	say {*STDERR} $errors;
 	exit 1;
     }
+
+    return $self->$orig (@arguments);
 
 };
 
