@@ -93,14 +93,9 @@ sub summarize_availability_of_program {
     my $summary = $program . ($SPACE x $offset) . $SPACE . $MAPS_TO . $SPACE;
 
     if (defined $can_run{$program}) {
-	my $path_or_false = $can_run{$program};
-	if ($path_or_false) {
-	    $summary .= colored ($path_or_false, $GOOD_COLOR);
-	} else {
-	    $summary .= colored ('Not Found', $BAD_COLOR);
-	}
+	$summary .= colored ($can_run{$program}, $GOOD_COLOR);
     } else {
-	$summary .= colored ('Error', $BAD_COLOR) . $SPACE . ': We failed to even determine whether we can run' . $SPACE . $program . $FULL_STOP;
+	$summary .= colored ('Not Found', $BAD_COLOR);
     }
 
     return $summary;
