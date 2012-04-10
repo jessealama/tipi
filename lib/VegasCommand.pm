@@ -12,8 +12,9 @@ use English qw(-no_match_vars);
 use Data::Dumper;
 use Term::ANSIColor qw(colored);
 use Regexp::DefaultFlags;
-use List::Util qw(shuffle);
+use List::Util qw(shuffle max min);
 use List::MoreUtils qw(any none first_value first_index);
+use Memoize;
 use feature 'say';
 
 extends 'Command';
@@ -54,6 +55,8 @@ Readonly my $SUCCESS => 'success';
 Readonly my $WEAKLY_SUCCESSFUL => 'success (weak)';
 Readonly my $STRONGLY_UNSUCCESSFUL => 'unsuccessful (strong)';
 Readonly my $WEAKLY_UNSUCCESSFUL => 'unsuccessful (weak)';
+Readonly my $ASCENDING => 'ascending';
+Readonly my $DESCENDING => 'descending';
 
 my $opt_show_output = 0;
 my $opt_show_premises = 0;
@@ -64,9 +67,10 @@ my $opt_debug = 0;
 my $opt_solution_szs_status = 'Theorem';
 my @opt_provers = ();
 my @opt_keep = ();
+my $num_to_keep = undef;
 my $opt_timeout = 30; # seconds
-my $opt_increasing = 0;
-my $opt_decreasing = 0;
+my $opt_min_subset_size = 0;
+my $opt_max_subset_size = undef;
 
 sub print_formula_names_with_color {
     my $formulas_ref = shift;
@@ -84,7 +88,7 @@ sub print_formula_names_with_color {
 	    = map { colored ($_, $color) } @formula_names_sorted;
 	say join ("\N{LF}", @formula_names_colored);
     } else {
-	my @formula_names_colored = map { $_->name_with_color ($color) } @formulas;
+	my @formula_names_colored = map { colored ($_, $color) } @formulas;
 	say join ("\N{LF}", @formula_names_colored);
     }
 
@@ -99,6 +103,7 @@ sub BUILD {
 }
 
 my @axioms = ();
+my @axioms_minus_keepers = ();
 
 around 'execute' => sub {
     my $orig = shift;
@@ -117,8 +122,8 @@ around 'execute' => sub {
 	'with-prover=s' => \@opt_provers,
 	'keep=s' => \@opt_keep,
 	'timeout=i' => \$opt_timeout,
-	'increasing' => \$opt_increasing,
-	'decreasing' => \$opt_decreasing,
+	'min-subset-size=i' => \$opt_min_subset_size,
+	'max-subset-size=i' => \$opt_max_subset_size,
     ) or pod2usage (2);
 
     if ($opt_help) {
@@ -157,12 +162,17 @@ around 'execute' => sub {
     }
 
     my %provers = ();
-
+    my @provers_no_dups = ();
     foreach my $tool (@opt_provers) {
-	$provers{$tool} = 0;
+	if (defined $provers{$tool}) {
+
+	} else {
+	    $provers{$tool} = 0;
+	    push (@provers_no_dups, $tool);
+	}
     }
 
-    @opt_provers = keys %provers;
+    @opt_provers = @provers_no_dups;
 
     foreach my $prover (@opt_provers) {
 	if (! known_prover ($prover)) {
@@ -180,6 +190,21 @@ around 'execute' => sub {
 
     if (scalar @arguments == 0) {
 	pod2usage (-msg => error_message ('Please supply a TPTP theory file.'),
+		   -exitval => 2);
+    }
+
+    if ($opt_min_subset_size < 0) {
+	pod2usage (-msg => error_message ($opt_min_subset_size, $SPACE, 'is not an appropriate value for the --min-subset-size option.'),
+		   -exitval => 2);
+    }
+
+    if (defined $opt_max_subset_size && $opt_max_subset_size < 0) {
+	pod2usage (-msg => error_message ($opt_min_subset_size, $SPACE, 'is not an appropriate value for the --max-subset-size option.'),
+		   -exitval => 2);
+    }
+
+    if (defined $opt_max_subset_size && $opt_max_subset_size < $opt_min_subset_size) {
+	pod2usage (-msg => error_message ('The maximum subset size is less than the minimum subset size.'),
 		   -exitval => 2);
     }
 
@@ -220,6 +245,11 @@ around 'execute' => sub {
 
     @axioms = sort @axioms_by_name;
 
+    if (scalar @axioms < $opt_min_subset_size) {
+	say {*STDERR} error_message ('There are fewer axioms (', scalar @axioms, ') than were specified in the --min-subset-subset option.');
+	exit 1;
+    }
+
     foreach my $to_keep (@opt_keep) {
 	if (none { $_ eq $to_keep } @axioms_by_name) {
 	    say {*STDERR} error_message ($to_keep, $SPACE, 'is not the name of any axiom of ', $theory_path, $FULL_STOP);
@@ -233,6 +263,22 @@ around 'execute' => sub {
 	$to_keep{$formula} = 0;
     }
     @opt_keep = keys %to_keep;
+
+    $num_to_keep = scalar @opt_keep;
+
+    if (defined $opt_max_subset_size && scalar @opt_keep > $opt_max_subset_size) {
+	pod2usage (-msg => error_message ('We were asked to keep', $SPACE, $num_to_keep, $SPACE, 'formulas, but this exceeds the value of the --max-subset-size option.'),
+		   -exitval => 2);
+    }
+
+    my %axioms_minus_keepers = ();
+    foreach my $axiom (@axioms) {
+	if (! defined $to_keep{$axiom}) {
+	    $axioms_minus_keepers{$axiom} = 0;
+	}
+    }
+
+    @axioms_minus_keepers = keys %axioms_minus_keepers;
 
     return $self->$orig (@arguments);
 
@@ -268,60 +314,127 @@ sub solve_greedily {
 
 }
 
-sub random_subset {
-    my @set = @_;
+sub random_subset_containing_keepers {
 
-    my $num_elements = scalar @set;
-    my $size = rand $num_elements;
+    # Wanted: a random subset of @axioms that
+    #
+    # * contains all @opt_keep
+    # * has at least $opt_min_subset_size elememts
+    # * has at most $opt_max_subset_size elements, if that is defined
 
-    my @shuffled = shuffle @set;
-    my @next = @shuffled[0 .. $size - 1];
+    my @answer = @opt_keep;
 
-    if (wantarray) {
-	return @next;
-    } else {
-	return \@next;
+    my @shuffled = shuffle @axioms_minus_keepers;
+
+    foreach my $i (1 .. ($opt_min_subset_size - scalar @opt_keep)) {
+	my $elt = pop @shuffled;
+	push (@answer, $elt);
     }
 
-}
+    # The set @answer includes @opt_keep and some random elements that
+    # ensure that it has at least $opt_min_subset_size elements.
 
-sub random_subset_containing_keepers {
-    my @set = random_subset (@axioms);
-
-    foreach my $to_keep (@opt_keep) {
-	if (! list_member ($to_keep, \@set)) {
-	    push (@set, $to_keep);
+    if (defined $opt_max_subset_size) {
+	foreach my $i (scalar @answer + 1 .. $opt_max_subset_size) {
+	    if (int rand 2) {
+		my $elt = pop @shuffled;
+		push (@answer, $elt);
+	    }
+	}
+    } else {
+	while (defined (my $elt = shift @shuffled)) {
+	    if (int rand 2) {
+		push (@answer, $elt);
+	    }
 	}
     }
 
     if (wantarray) {
-	return @set;
+	return @answer;
     } else {
-	return \@set;
+	return \@answer;
     }
 
 }
 
+sub factorial {
+    my $n = shift;
+    if ($n < 0) {
+	return 0;
+    } elsif ($n == 0) {
+	return 1;
+    } else {
+	my $x = 1;
+	foreach my $i (1 .. $n) {
+	    $x = $x * $i;
+	}
+	return $x;
+    }
+}
+
+memoize ('n_choose_k');
+sub n_choose_k {
+    my $n = shift;
+    my $k = shift;
+    if ($k > $n) {
+	return 0;
+    } else {
+	return factorial ($n) / (factorial ($k) * factorial ($n - $k));
+    }
+}
+
 my %encountered_subsets = ();
 
-sub next_random_subset {
-    my @set = random_subset_containing_keepers ();
-
-    @set = sort @set;
-    my $set_as_string = join ($COMMA, @set);
-
-    while (defined $encountered_subsets{$set_as_string}) {
-	@set = random_subset_containing_keepers ();
-	@set = sort @set;
-	$set_as_string = join ($COMMA, @set);
+memoize ('num_combinations_from_to');
+sub num_combinations_from_to {
+    my $from = shift;
+    my $to = shift;
+    my $x = 0;
+    foreach my $i ($from .. $to) {
+	$x += n_choose_k (scalar @axioms_minus_keepers, $i);
     }
+    return $x;
+}
 
-    $encountered_subsets{$set_as_string} = 0;
+sub next_random_subset {
 
-    if (wantarray) {
-	return @set;
+    my $max_subset_size
+	= defined $opt_max_subset_size ? $opt_max_subset_size : scalar @axioms;
+
+    # carp 'Max subset size: ', $max_subset_size;
+
+    my $num_subsets = num_combinations_from_to ($opt_min_subset_size,
+						$max_subset_size);
+
+    # carp 'Num subsets: ', $num_subsets;
+
+    if (scalar keys %encountered_subsets < $num_subsets) {
+
+	# carp 'So far we have seen ', scalar keys %encountered_subsets, ' subsets';
+
+	my @set = random_subset_containing_keepers ();
+
+	@set = sort @set;
+	my $set_as_string = scalar @set == 0 ? $EMPTY_STRING : join ($COMMA, @set);
+
+	while (defined $encountered_subsets{$set_as_string}) {
+	    # carp 'We have already seen ', $set_as_string, ' before';
+	    @set = random_subset_containing_keepers ();
+	    @set = sort @set;
+	    $set_as_string = scalar @set == 0 ? $EMPTY_STRING : join ($COMMA, @set);
+	}
+
+	# carp 'Escape!';
+
+	$encountered_subsets{$set_as_string} = 0;
+
+	if (wantarray) {
+	    return @set;
+	} else {
+	    return \@set;
+	}
     } else {
-	return \@set;
+	return undef;
     }
 
 }
@@ -347,6 +460,19 @@ sub summarize_trial {
 
 }
 
+sub candidate_is_known {
+    my $candidate_ref = shift;
+    my $losing_candidates_ref = shift;
+
+    my @candidate = @{$candidate_ref};
+    my @losing_candidates = @{$losing_candidates_ref};
+
+    return any { sublist (\@candidate, $_) } @losing_candidates;
+
+}
+
+my $one_unknown_candidate = 0;
+
 sub execute {
     my $self = shift;
     my @arguments = @_;
@@ -355,7 +481,6 @@ sub execute {
 
     my $theory_path = $arguments[0];
     my $theory = Theory->new (path => $theory_path);
-    my @axioms = $theory->get_axioms (1);
 
     my $num_trials = 0;
     my $subset_ref = next_random_subset ();
@@ -363,8 +488,10 @@ sub execute {
     while (defined $subset_ref) {
 
 	$num_trials++;
-	print 'Trial', $SPACE, $num_trials, $SPACE;
 	my @subset = @{$subset_ref};
+	print 'Trial', $SPACE, $num_trials, $SPACE, '(', scalar @subset, $SPACE, 'axioms)', $SPACE;
+
+	# carp 'Subset:', Dumper (@subset);
 
 	$subset_ref = next_random_subset ();
 
@@ -374,8 +501,8 @@ sub execute {
 	    $status{$prover} = $SZS_NOT_TRIED;
 	}
 
-	if (any { sublist ($_, \@subset) } @losers) {
-	    say colored ($WEAKLY_SUCCESSFUL, $UNKNOWN_COLOR), $SPACE, '(a known non-solution extends this candidate)';
+	if (candidate_is_known (\@subset, \@losers)) {
+	    say colored ($STRONGLY_UNSUCCESSFUL, $BAD_COLOR), $SPACE, '(a known non-solution includes this candidate)';
 	    say summarize_trial (\%status);
 	    next;
 	}
@@ -393,25 +520,53 @@ sub execute {
 		say summarize_trial (\%status);
 		print_formula_names_with_color (\@subset, $USED_PREMISE_COLOR);
 
-		exit 0; # <--- the only exit from this infinite loop
+		exit 0; # <--- bail out hard -- we won!
 
 	    } elsif (szs_contradicts ($overall_judgment, $opt_solution_szs_status)) {
-		# say colored ('AWESOME (syntactically)', 'red');
 		push (@losers, \@subset);
-		say colored ($STRONGLY_UNSUCCESSFUL, $BAD_COLOR), $SPACE, '(any later candidate that includes this one will be ignored)';
+		say colored ($STRONGLY_UNSUCCESSFUL, $BAD_COLOR), $SPACE, '(any later candidate that is included in this one will be ignored)';
 	    } else {
 		say colored ('Um...', $UNKNOWN_COLOR);
 		say colored ($WEAKLY_UNSUCCESSFUL, $UNKNOWN_COLOR);
+		$one_unknown_candidate = 1;
 	    }
 	} else {
 	    say colored ($WEAKLY_UNSUCCESSFUL, $UNKNOWN_COLOR), $SPACE, '(unable to reach a decision)';
+	    $one_unknown_candidate = 1;
 	}
 
 	say summarize_trial (\%status);
 
     }
 
-    say 'It seems we have exhausted all possible subsets.';
+    say $LF, 'We have exhausted all possible subsets.';
+
+    if ($one_unknown_candidate) {
+	say 'The best we can say is that the answer is', $SPACE, colored ('unknown', $UNKNOWN_COLOR), $FULL_STOP;
+    } else {
+	say 'We found no candidate on which we could not render judgment,';
+	say 'yet we found no candidate that solves the problem.';
+	if (defined $opt_max_subset_size) {
+	    if ($opt_max_subset_size < scalar @axioms) {
+		say 'Since a nontrivial upper bound was placed on the subsets we considered,';
+		say 'it would seem that the the best we can say is that the answer is', $SPACE, colored ('unknown', $UNKNOWN_COLOR), $FULL_STOP;
+	    } elsif ($opt_min_subset_size > 0) {
+		say 'Since a nontrivial lower bound was placed on the subsets we considered,';
+		say 'it would seem that the the best we can say is that the answer is', $SPACE, colored ('unknown', $UNKNOWN_COLOR), $FULL_STOP;
+	    } else {
+		say 'Since no bounds were placed on the sizes of the subsets that we considered,';
+		say 'it would seem that', $SPACE, colored ('no', $BAD_COLOR), $SPACE, 'solves the problem as we wanted';
+		say '(For no subset can we contradict the intended SZS status', $SPACE, $opt_solution_szs_status, '.)';
+	    }
+	} elsif ($opt_min_subset_size > 0) {
+	    say 'Since a nontrivial lower bound was placed on the subsets we considered,';
+	    say 'it would seem that the the best we can say is that the answer is', $SPACE, colored ('unknown', $UNKNOWN_COLOR), $FULL_STOP;
+	} else {
+	    say 'Since no bounds were placed on the sizes of the subsets that we considered,';
+	    say 'it would seem that', $SPACE, colored ('no', $BAD_COLOR), $SPACE, 'solves the problem as we wanted';
+	    say '(For no subset can we contradict the intended SZS status', $SPACE, $opt_solution_szs_status, '.)';
+	}
+    }
 
 }
 
