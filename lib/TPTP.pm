@@ -345,7 +345,7 @@ sub find_model {
 
 sub ensure_sensible_tptp_theory {
     my $theory_path = shift;
-    return ensure_readable_file ($theory_path) && ensure_valid_tptp_file ($theory_path);
+    return (ensure_readable_file ($theory_path) && ensure_valid_tptp_file ($theory_path));
 }
 
 sub known_prover {
