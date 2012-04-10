@@ -234,6 +234,7 @@ sub reprove_syntactically {
 
     my $derivation = prove_if_possible ($theory,
 					$opt_proof_finder,
+					$opt_solution_szs_status,
 					{ 'timeout' => $opt_proof_finder_timeout });
 
     if ($opt_debug) {
@@ -254,7 +255,7 @@ sub reprove_syntactically {
 	}
 
 	$theory = $derivation->theory_from_used_premises ();
-	$derivation = prove_if_possible ($theory, $opt_proof_finder);
+	$derivation = prove_if_possible ($theory, $opt_proof_finder, $opt_solution_szs_status);
 	@unused_premises = $derivation->get_unused_premises ();
 
     }

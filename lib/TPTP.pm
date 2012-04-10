@@ -214,12 +214,13 @@ sub prove {
 sub prove_if_possible {
     my $theory = shift;
     my $prover = shift;
+    my $intended_szs_status = shift;
     my $parameters_ref = shift;
 
     my %parameters = defined $parameters_ref ? %{$parameters_ref} : ();
 
     my $theory_path = $theory->get_path ();
-    my $tptp_result = eval { prove ($theory, $prover, \%parameters) };
+    my $tptp_result = eval { prove ($theory, $prover, $intended_szs_status, \%parameters) };
     my $tptp_message = $@;
 
     if (! defined $tptp_result) {
