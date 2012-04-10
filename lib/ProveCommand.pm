@@ -92,6 +92,7 @@ around 'execute' => sub {
 	'show-premises' => \$opt_show_premises,
 	'man' => \$opt_man,
 	'verbose' => \$opt_verbose,
+	'debug' => \$opt_debug,
 	'help|?' => \$opt_help,
 	'solution-szs-status=s' => \$opt_solution_szs_status,
 	'prover=s' => \$opt_prover,
@@ -188,6 +189,10 @@ sub execute {
 			      $opt_prover,
 			      $opt_solution_szs_status,
 			      { 'timeout' => $opt_timeout });
+
+    if ($opt_debug) {
+	warn 'We got the following result:', $LF, Dumper ($result);
+    }
 
     my $err_output = $result->get_error_output ();
     my $std_output = $result->get_output ();
