@@ -256,56 +256,157 @@ sub minimize {
 sub one_tool_solves {
     my $theory = shift;
 
-    my $solvable_with_script = "/Users/alama/sources/tipi/bin/solvable.pl";
-    my $path = $theory->get_path ();
     my %harnesses = ();
-    my @solvable_with_call = ($solvable_with_script,
-			      "--timeout=${opt_timeout}",
-			      "--intended-szs-status=${opt_solution_szs_status}");
+    my %parameters = ( 'timeout' => $opt_timeout );
+
     foreach my $prover (@opt_provers) {
-	push (@solvable_with_call, "--with-prover=${prover}");
+
+	my $coderef = sub
+	    { if ($theory->solvable_with ($prover,
+					  $opt_solution_szs_status,
+					  \%parameters)) {
+		exit 0;
+	    } else {
+		exit 1;
+	}
+	  };
+	my $harness = harness ($coderef);
+	$harnesses{$prover} = $harness;
     }
 
-    push (@solvable_with_call, $path);
 
-    my $harness = harness (\@solvable_with_call);
-    $harness->start ();
-    $harness->finish ();
+    my $timer = timer ($opt_timeout);
 
-    my @results = defined (eval { $harness->results () }) ? $harness->results () : ();
-
-    if (scalar @results == 0) {
-	confess 'The call to the solvability script did not go as planned...';
-    } else {
-	my $exit_code = $results[0];
-	return ($exit_code == 0 ? 1 : 0);
+    # Launch all the provers
+    my @harnesses = values %harnesses;
+    foreach my $harness (@harnesses) {
+	$harness->start ();
     }
+
+    $timer->start ();
+
+    # Wait for a prover to terminate until the clock runs out
+    until ((! $timer->check ()) || (any { ! $_->pumpable () } @harnesses)) {
+
+	# Pump
+	foreach my $harness (@harnesses) {
+	    if ($harness->pumpable ()) {
+		$harness->pump_nb ();
+	    }
+	}
+
+	sleep 1;
+
+    }
+
+    # Finish the first nonpumpable harness.  Kill all the others
+    foreach my $harness (@harnesses) {
+	if ($harness->pumpable ()) {
+	    $harness->kill_kill ();
+	} else {
+	    $harness->finish ();
+	}
+    }
+
+    # carp 'Harnesses:', $LF, Dumper (%harnesses);
+
+    foreach my $prover (keys %harnesses) {
+	my $h = $harnesses{$prover};
+	my @results = $h->full_results ();
+	if (scalar @results == 0) {
+	    # warn 'Zero results (or ', $prover, ' is still running).';
+	} elsif (scalar @results == 1) {
+	    my $result = $results[0];
+	    if (defined $result) {
+		if ($result == 0) {
+		    return 1;
+		}
+	    }
+	} else {
+	    # warn 'Huh? Multiple results for ', $prover;
+	}
+    }
+
+    return 0;
 
 }
 
 sub one_tool_countersolves {
+
     my $theory = shift;
-    my $tools_ref = shift;
-    my $parameters_ref = shift;
 
-    my @tools = defined $tools_ref ? @{$tools_ref} : ();
-    my %parameters = defined $parameters_ref ? %{$parameters_ref} : ();
+    my %harnesses = ();
+    my %parameters = ( 'timeout' => $opt_timeout );
 
-    if ($opt_debug) {
-	$parameters{'debug'} = 1;
+    foreach my $prover (@opt_provers) {
+
+	my $coderef = sub
+	    { if ($theory->countersolvable_with ($prover,
+						 $opt_solution_szs_status,
+						 \%parameters)) {
+		exit 0;
+	    } else {
+		exit 1;
+	    }
+	  };
+	my $harness = harness ($coderef);
+	$harnesses{$prover} = $harness;
     }
 
-    my $index_of_first_successful_tool
-	= first_index { $theory->countersolvable_with ($_,
-						       $opt_solution_szs_status,
-						       \%parameters) }
-	    @tools;
 
-    if ($index_of_first_successful_tool < 0) {
-	return 0;
-    } else {
-	return $tools[$index_of_first_successful_tool];
+    my $timer = timer ($opt_timeout);
+
+    # Launch all the provers
+    my @harnesses = values %harnesses;
+    foreach my $harness (@harnesses) {
+	$harness->start ();
     }
+
+    $timer->start ();
+
+    # Wait for a prover to terminate until the clock runs out
+    until ((! $timer->check ()) || (any { ! $_->pumpable () } @harnesses)) {
+
+	# Pump
+	foreach my $harness (@harnesses) {
+	    if ($harness->pumpable ()) {
+		$harness->pump_nb ();
+	    }
+	}
+
+	sleep 1;
+
+    }
+
+    # Finish the first nonpumpable harness.  Kill all the others
+    foreach my $harness (@harnesses) {
+	if ($harness->pumpable ()) {
+	    $harness->kill_kill ();
+	} else {
+	    $harness->finish ();
+	}
+    }
+
+    # carp 'Harnesses:', $LF, Dumper (%harnesses);
+
+    foreach my $prover (keys %harnesses) {
+	my $h = $harnesses{$prover};
+	my @results = $h->full_results ();
+	if (scalar @results == 0) {
+	    # warn 'Zero results (or ', $prover, ' is still running).';
+	} elsif (scalar @results == 1) {
+	    my $result = $results[0];
+	    if (defined $result) {
+		if ($result == 0) {
+		    return 1;
+		}
+	    }
+	} else {
+	    # warn 'Huh? Multiple results for ', $prover;
+	}
+    }
+
+    return 0;
 
 }
 
