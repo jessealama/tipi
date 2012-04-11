@@ -18,6 +18,8 @@ use Term::ProgressBar;
 use Regexp::DefaultFlags;
 use POSIX qw(ceil);
 use Algorithm::Combinatorics qw(combinations);
+use IPC::Cmd qw(can_run);
+use IPC::Run qw(run start timer harness timeout);
 
 extends 'Command';
 
@@ -70,10 +72,8 @@ my $opt_man = 0;
 my $opt_verbose = 0;
 my $opt_debug = 0;
 my $opt_solution_szs_status = 'Theorem';
-my @opt_proof_finders = ();
-my @opt_model_finders = ();
-my $opt_model_finder_timeout = 5;
-my $opt_proof_finder_timeout = 30;
+my @opt_provers = ();
+my $opt_timeout = 30;
 my $opt_skip_initial_proof = 0;
 my $opt_show_only_final_used_premises = 0;
 my $opt_show_only_final_unused_premises = 0;
@@ -129,11 +129,9 @@ around 'execute' => sub {
 	'verbose' => \$opt_verbose,
 	'help|?' => \$opt_help,
 	'debug' => \$opt_debug,
-	'proof-finder=s' => \@opt_proof_finders,
-	'model-finder=s' => \@opt_model_finders,
+	'with-prover=s' => \@opt_provers,
 	'solution-szs-status=s' => \$opt_solution_szs_status,
-	'model-finder-timeout=i' => \$opt_model_finder_timeout,
-	'proof-finder-timeout=i' => \$opt_proof_finder_timeout,
+	'timeout=i' => \$opt_timeout,
 	'skip-initial-proof' => \$opt_skip_initial_proof,
     ) or pod2usage (2);
 
@@ -179,41 +177,33 @@ around 'execute' => sub {
 		   -exitval => 2);
     }
 
-    if ($opt_model_finder_timeout < 0) {
-	pod2usage (-msg => error_message ('Invalid value ', $opt_model_finder_timeout, ' for the model-finder timeout option.'),
+    if ($opt_timeout < 0) {
+	pod2usage (-msg => error_message ('Invalid value ', $opt_timeout, ' for the --timeout option.'),
 		   -exitval => 2);
     }
 
-    if ($opt_proof_finder_timeout < 0) {
-	pod2usage (-msg => error_message ('Invalid value ', $opt_proof_finder_timeout, ' for the proof-finder timeout option.'),
-		   -exitval => 2);
+    if (scalar @opt_provers == 0) {
+	@opt_provers = ('eprover', 'paradox');
     }
 
-    if (scalar @opt_proof_finders == 0) {
-	@opt_proof_finders = ('eprover');
+    my %provers = ();
+
+    foreach my $tool (@opt_provers) {
+	$provers{$tool} = 0;
     }
 
-    if (scalar @opt_model_finders == 0) {
-	@opt_model_finders = ('paradox');
-    }
+    @opt_provers = keys %provers;
+    my @supported_provers = supported_provers ();
 
-    my %proof_finders = ();
-    my %model_finders = ();
-
-    foreach my $tool (@opt_proof_finders) {
-	$proof_finders{$tool} = 0;
-    }
-
-    foreach my $tool (@opt_model_finders) {
-	$model_finders{$tool} = 0;
-    }
-
-    @opt_proof_finders = keys %proof_finders;
-    @opt_model_finders = keys %model_finders;
-
-    foreach my $prover (@opt_proof_finders, @opt_model_finders) {
-	if (! known_prover ($prover)) {
-	    my @supported_provers = supported_provers ();
+    foreach my $prover (@opt_provers) {
+	if (known_prover ($prover)) {
+	    if (can_run ($prover)) {
+		next;
+	    } else {
+		say {*STDERR} error_message ($prover, $SPACE, 'is supported by tipi, but it could not be found.'), $LF;
+		exit 1;
+	    }
+	} else {
 	    say {*STDERR} error_message ('Unknown prover', $SPACE, $prover), $LF;
 	    say {*STDERR} 'The following provers are known:', "\N{LF}";
 	    if (scalar @supported_provers == 0) {
@@ -255,25 +245,42 @@ around 'execute' => sub {
 
 };
 
+sub minimize {
+    my $theory = shift;
+    my $prover = shift;
+    return $theory->minimize ($prover,
+			      $opt_solution_szs_status,
+			      { 'timeout' => $opt_timeout });
+}
+
 sub one_tool_solves {
     my $theory = shift;
-    my $tools_ref = shift;
-    my $parameters_ref = shift;
 
-    my @tools = defined $tools_ref ? @{$tools_ref} : ();
-    my %parameters = defined $parameters_ref ? %{$parameters_ref} : ();
-
-    my $index_of_first_successful_tool
-	= first_index { $theory->solvable_with ($_,
-						$opt_solution_szs_status,
-						\%parameters) }
-	    @tools;
-
-    if ($index_of_first_successful_tool < 0) {
-	return 0;
-    } else {
-	return $tools[$index_of_first_successful_tool];
+    my $solvable_with_script = "/Users/alama/sources/tipi/bin/solvable.pl";
+    my $path = $theory->get_path ();
+    my %harnesses = ();
+    my @solvable_with_call = ($solvable_with_script,
+			      "--timeout=${opt_timeout}",
+			      "--intended-szs-status=${opt_solution_szs_status}");
+    foreach my $prover (@opt_provers) {
+	push (@solvable_with_call, "--with-prover=${prover}");
     }
+
+    push (@solvable_with_call, $path);
+
+    my $harness = harness (\@solvable_with_call);
+    $harness->start ();
+    $harness->finish ();
+
+    my @results = defined (eval { $harness->results () }) ? $harness->results () : ();
+
+    if (scalar @results == 0) {
+	confess 'The call to the solvability script did not go as planned...';
+    } else {
+	my $exit_code = $results[0];
+	return ($exit_code == 0 ? 1 : 0);
+    }
+
 }
 
 sub one_tool_countersolves {
@@ -304,41 +311,15 @@ sub one_tool_countersolves {
 
 sub one_prover_solves {
     my $theory = shift;
-    return one_tool_solves ($theory,
-			    \@opt_proof_finders,
-			    { 'timeout' => $opt_proof_finder_timeout });
+    return one_tool_solves ($theory);
 }
 
 sub one_prover_countersolves {
     my $theory = shift;
     my $parameters_ref = shift;
     return one_tool_countersolves ($theory,
-				   \@opt_proof_finders,
-				   { 'timeout' => $opt_proof_finder_timeout });
-}
-
-sub one_model_finder_solves {
-    my $theory = shift;
-    my $parameters_ref = shift;
-    return one_tool_solves ($theory,
-			    \@opt_model_finders,
-			    { 'timeout' => $opt_model_finder_timeout });
-}
-
-sub one_model_finder_countersolves {
-    my $theory = shift;
-    my $parameters_ref = shift;
-    return one_tool_countersolves ($theory,
-				   \@opt_model_finders,
-				   { 'timeout' => $opt_model_finder_timeout });
-}
-
-sub minimize {
-    my $theory = shift;
-    my $prover = shift;
-    return $theory->minimize ($prover,
-			      $opt_solution_szs_status,
-			      { 'timeout' => $opt_proof_finder_timeout })
+				   \@opt_provers,
+				   { 'timeout' => $opt_timeout });
 }
 
 sub execute {
@@ -384,7 +365,7 @@ sub execute {
 
     my $num_initial_proofs_found = 0;
 
-    foreach my $prover (@opt_proof_finders) {
+    foreach my $prover (@opt_provers) {
 
 	my $initial_proof_result = undef;
 	my $initial_proof_szs_status = undef;
@@ -456,7 +437,7 @@ sub execute {
 	my @supported_provers = supported_provers ();
 	say error_message ('No prover succeeded; we cannot proceed.');
 	say 'We tried to solve the problem using the following prover(s):', "\N{LF}";
-	say asterisk_list (@opt_proof_finders);
+	say asterisk_list (@opt_provers);
 	say 'If you wish to skip the initial proof check, use the --skip-initial-proof option.';
 	say 'If you want to use other provers, use the --proof-finder option.';
 
@@ -466,7 +447,7 @@ sub execute {
 	exit 1;
     }
 
-    foreach my $prover (@opt_proof_finders) {
+    foreach my $prover (@opt_provers) {
 
 	say 'PREMISES (', $prover, ')', $SPACE, '(', colored ('used', $USED_PREMISE_COLOR), $SPACE, '/', $SPACE, colored ('unused', $UNUSED_PREMISE_COLOR), ')';
 
@@ -495,7 +476,7 @@ sub execute {
 
     # Find the minimal sets of used premises
     my @minimal_used_premise_sets = ();
-    foreach my $prover (@opt_proof_finders) {
+    foreach my $prover (@opt_provers) {
 	my $szs_status = $initial_proof_szs_status{$prover};
 	if (is_szs_success ($szs_status)) {
 	    my @used_premises = @{$used_by_prover{$prover}};
@@ -516,7 +497,7 @@ sub execute {
 						  \@other_used_premises_names_sorted)
 					    || ! subtuple (\@other_used_premises_names_sorted,
 							   \@used_premises_names_sorted) } }
-		    @opt_proof_finders) {
+		    @opt_provers) {
 		push (@minimal_used_premise_sets, \@used_premises_names_sorted);
 	    }
 
@@ -585,9 +566,10 @@ sub execute {
 	foreach my $axiom (@axioms) {
 	    if (defined $conjecture_name && $axiom eq $conjecture_name) {
 		# Don't remove the conjecture (if there is one)
+		next;
 	    } else {
 		my $trimmed_theory = $theory->remove_formula_by_name ($axiom);
-		if (one_model_finder_countersolves ($trimmed_theory)) {
+		if (one_prover_countersolves ($trimmed_theory)) {
 		    say colored ($axiom, $NEEDED_PREMISE_COLOR);
 		    $needed{$axiom} = 0;
 		} elsif (one_prover_solves ($trimmed_theory)) {
@@ -670,7 +652,7 @@ sub execute {
 	my @solved_so_far_negatively = ();
 
 	my $num_combinations = 2 ** scalar @candidate_formulas;
-	my $estimate_seconds = $opt_proof_finder_timeout * $num_combinations;
+	my $estimate_seconds = $opt_timeout * $num_combinations;
 	my $estimate_minutes = ceil ($estimate_seconds / 60);
 	my $estimate_minutes_at_least_one
 	    = $estimate_minutes < 1 ? 1 : $estimate_minutes;
@@ -722,7 +704,7 @@ sub execute {
 		my @formulas = map { $theory->formula_with_name ($_) } @tuple;
 		my $bigger_theory = $small_theory->postulate (\@formulas);
 
-		if (one_model_finder_countersolves ($bigger_theory)) {
+		if (one_prover_countersolves ($bigger_theory)) {
 		    push (@solved_so_far_negatively, \@tuple);
 		} elsif (one_prover_solves ($bigger_theory)) {
 		    push (@solved_so_far_positively, \@tuple);
