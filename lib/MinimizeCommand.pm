@@ -118,142 +118,142 @@ sub print_formula_names_with_color {
 
 }
 
-    around 'execute' => sub {
-	my $orig = shift;
-	my $self = shift;
-	my @arguments = @_;
+around 'execute' => sub {
+    my $orig = shift;
+    my $self = shift;
+    my @arguments = @_;
 
-	GetOptionsFromArray (
-	    \@arguments,
-	    'man' => \$opt_man,
-	    'verbose' => \$opt_verbose,
-	    'help|?' => \$opt_help,
-	    'debug' => \$opt_debug,
-	    'proof-finder=s' => \@opt_proof_finders,
-	    'model-finder=s' => \@opt_model_finders,
-	    'solution-szs-status=s' => \$opt_solution_szs_status,
-	    'model-finder-timeout=i' => \$opt_model_finder_timeout,
-	    'proof-finder-timeout=i' => \$opt_proof_finder_timeout,
-	    'skip-initial-proof' => \$opt_skip_initial_proof,
-	) or pod2usage (2);
+    GetOptionsFromArray (
+	\@arguments,
+	'man' => \$opt_man,
+	'verbose' => \$opt_verbose,
+	'help|?' => \$opt_help,
+	'debug' => \$opt_debug,
+	'proof-finder=s' => \@opt_proof_finders,
+	'model-finder=s' => \@opt_model_finders,
+	'solution-szs-status=s' => \$opt_solution_szs_status,
+	'model-finder-timeout=i' => \$opt_model_finder_timeout,
+	'proof-finder-timeout=i' => \$opt_proof_finder_timeout,
+	'skip-initial-proof' => \$opt_skip_initial_proof,
+    ) or pod2usage (2);
 
-	if ($opt_help) {
-	    pod2usage(1);
-	}
+    if ($opt_help) {
+	pod2usage(1);
+    }
 
-	if ($opt_man) {
-	    pod2usage(
-		-exitstatus => 0,
-		-verbose    => 2
-	    );
-	}
+    if ($opt_man) {
+	pod2usage(
+	    -exitstatus => 0,
+	    -verbose    => 2
+	);
+    }
 
-	# debug implies verbose
-	if ($opt_debug) {
-	    $opt_verbose = 1;
-	}
+    # debug implies verbose
+    if ($opt_debug) {
+	$opt_verbose = 1;
+    }
 
-	if (scalar @arguments == 0) {
-	    pod2usage (-msg => error_message ('Please supply a TPTP theory file.'),
-		       -exitval => 2);
-	}
+    if (scalar @arguments == 0) {
+	pod2usage (-msg => error_message ('Please supply a TPTP theory file.'),
+		   -exitval => 2);
+    }
 
-	if (scalar @arguments > 1) {
-	    pod2usage (-msg => error_message ('Unable to make sense of the arguments', "\N{LF}", "\N{LF}", $TWO_SPACES, join ($SPACE, @arguments)),
-		       -exitval => 2);
-	}
+    if (scalar @arguments > 1) {
+	pod2usage (-msg => error_message ('Unable to make sense of the arguments', "\N{LF}", "\N{LF}", $TWO_SPACES, join ($SPACE, @arguments)),
+		   -exitval => 2);
+    }
 
-	if ($opt_solution_szs_status eq $EMPTY_STRING) {
-	    pod2usage (-msg => error_message ('The empty string is not an acceptable SZS problem status.'),
-		       -exitval => 2);
+    if ($opt_solution_szs_status eq $EMPTY_STRING) {
+	pod2usage (-msg => error_message ('The empty string is not an acceptable SZS problem status.'),
+		   -exitval => 2);
 
-	}
+    }
 
-	if ($opt_solution_szs_status !~ /\A [A-Za-z]+ \z/) {
-	    pod2usage (-msg => error_message ('Unacceptable SZS problem status', "\N{LF}", "\N{LF}", $TWO_SPACES, $opt_solution_szs_status),
-		       -exitval => 2);
-	}
+    if ($opt_solution_szs_status !~ /\A [A-Za-z]+ \z/) {
+	pod2usage (-msg => error_message ('Unacceptable SZS problem status', "\N{LF}", "\N{LF}", $TWO_SPACES, $opt_solution_szs_status),
+		   -exitval => 2);
+    }
 
-	if ($opt_show_only_final_used_premises && $opt_show_only_final_unused_premises) {
-	    pod2usage (-msg => error_message ('One cannot choose to show only the used and unused premises.'),
-		       -exitval => 2);
-	}
+    if ($opt_show_only_final_used_premises && $opt_show_only_final_unused_premises) {
+	pod2usage (-msg => error_message ('One cannot choose to show only the used and unused premises.'),
+		   -exitval => 2);
+    }
 
-	if ($opt_model_finder_timeout < 0) {
-	    pod2usage (-msg => error_message ('Invalid value ', $opt_model_finder_timeout, ' for the model-finder timeout option.'),
-		       -exitval => 2);
-	}
+    if ($opt_model_finder_timeout < 0) {
+	pod2usage (-msg => error_message ('Invalid value ', $opt_model_finder_timeout, ' for the model-finder timeout option.'),
+		   -exitval => 2);
+    }
 
-	if ($opt_proof_finder_timeout < 0) {
-	    pod2usage (-msg => error_message ('Invalid value ', $opt_proof_finder_timeout, ' for the proof-finder timeout option.'),
-		       -exitval => 2);
-	}
+    if ($opt_proof_finder_timeout < 0) {
+	pod2usage (-msg => error_message ('Invalid value ', $opt_proof_finder_timeout, ' for the proof-finder timeout option.'),
+		   -exitval => 2);
+    }
 
-	if (scalar @opt_proof_finders == 0) {
-	    @opt_proof_finders = ('eprover');
-	}
+    if (scalar @opt_proof_finders == 0) {
+	@opt_proof_finders = ('eprover');
+    }
 
-	if (scalar @opt_model_finders == 0) {
-	    @opt_model_finders = ('paradox');
-	}
+    if (scalar @opt_model_finders == 0) {
+	@opt_model_finders = ('paradox');
+    }
 
-	my %proof_finders = ();
-	my %model_finders = ();
+    my %proof_finders = ();
+    my %model_finders = ();
 
-	foreach my $tool (@opt_proof_finders) {
-	    $proof_finders{$tool} = 0;
-	}
+    foreach my $tool (@opt_proof_finders) {
+	$proof_finders{$tool} = 0;
+    }
 
-	foreach my $tool (@opt_model_finders) {
-	    $model_finders{$tool} = 0;
-	}
+    foreach my $tool (@opt_model_finders) {
+	$model_finders{$tool} = 0;
+    }
 
-	@opt_proof_finders = keys %proof_finders;
-	@opt_model_finders = keys %model_finders;
+    @opt_proof_finders = keys %proof_finders;
+    @opt_model_finders = keys %model_finders;
 
-	foreach my $prover (@opt_proof_finders, @opt_model_finders) {
-	    if (! known_prover ($prover)) {
-		my @supported_provers = supported_provers ();
-		say {*STDERR} error_message ('Unknown prover', $SPACE, $prover), $LF;
-		say {*STDERR} 'The following provers are known:', "\N{LF}";
-		if (scalar @supported_provers == 0) {
-		    say {*STDERR} '(none)';
-		} else {
-		    say asterisk_list (@supported_provers);
-		}
-		exit 1;
+    foreach my $prover (@opt_proof_finders, @opt_model_finders) {
+	if (! known_prover ($prover)) {
+	    my @supported_provers = supported_provers ();
+	    say {*STDERR} error_message ('Unknown prover', $SPACE, $prover), $LF;
+	    say {*STDERR} 'The following provers are known:', "\N{LF}";
+	    if (scalar @supported_provers == 0) {
+		say {*STDERR} '(none)';
+	    } else {
+		say asterisk_list (@supported_provers);
 	    }
-	}
-
-	if (! ensure_tptp4x_available ()) {
-	    say STDERR error_message ('Cannot run tptp4X');
 	    exit 1;
 	}
+    }
 
-	my $theory_path = $arguments[0];
+    if (! ensure_tptp4x_available ()) {
+	say STDERR error_message ('Cannot run tptp4X');
+	exit 1;
+    }
 
-	if (! ensure_readable_file ($theory_path)) {
-	    say STDERR error_message ('There is no file at', $SPACE, $theory_path, $SPACE, '(or it is unreadable).');
-	    exit 1;
-	}
+    my $theory_path = $arguments[0];
 
-	if (! ensure_sensible_tptp_theory ($theory_path)) {
-	    my $errors = tptp4X_output ($theory_path);
-	    say {*STDERR} error_message ('The file at ', $theory_path, ' is not a valid TPTP file.');
-	    say {*STDERR} 'Here is what tptp4X output when evaluating the file:';
-	    say {*STDERR} $errors;
-	    exit 1;
-	}
+    if (! ensure_readable_file ($theory_path)) {
+	say STDERR error_message ('There is no file at', $SPACE, $theory_path, $SPACE, '(or it is unreadable).');
+	exit 1;
+    }
 
-	my $theory = Theory->new (path => $theory_path);
+    if (! ensure_sensible_tptp_theory ($theory_path)) {
+	my $errors = tptp4X_output ($theory_path);
+	say {*STDERR} error_message ('The file at ', $theory_path, ' is not a valid TPTP file.');
+	say {*STDERR} 'Here is what tptp4X output when evaluating the file:';
+	say {*STDERR} $errors;
+	exit 1;
+    }
 
-	if ($theory->is_first_order ()) {
-	    return $self->$orig (@arguments);
-	} else {
-	    say {*STDERR} error_message ('The theory at', $SPACE, $theory_path, $SPACE, 'seems to be a non-first-order theory.');
-	}
+    my $theory = Theory->new (path => $theory_path);
 
-    };
+    if ($theory->is_first_order ()) {
+	return $self->$orig (@arguments);
+    } else {
+	say {*STDERR} error_message ('The theory at', $SPACE, $theory_path, $SPACE, 'seems to be a non-first-order theory.');
+    }
+
+};
 
 sub one_tool_solves {
     my $theory = shift;
@@ -506,16 +506,16 @@ sub execute {
 			  = $initial_proof_szs_status{$other_prover};
 		      $other_prover eq $prover
 			  || ! (is_szs_success ($other_prover_szs_status))
-			  || eval { my @other_used_premises
-					= @{$used_by_prover{$other_prover}};
-				    my @other_used_premises_names
-					= map { $_->get_name () } @other_used_premises;
-				    my @other_used_premises_names_sorted
-					= sort @other_used_premises_names;
-				    subtuple (\@used_premises_names_sorted,
-					      \@other_used_premises_names_sorted)
-					|| ! subtuple (\@other_used_premises_names_sorted,
-						       \@used_premises_names_sorted) } }
+			      || eval { my @other_used_premises
+					    = @{$used_by_prover{$other_prover}};
+					my @other_used_premises_names
+					    = map { $_->get_name () } @other_used_premises;
+					my @other_used_premises_names_sorted
+					    = sort @other_used_premises_names;
+					subtuple (\@used_premises_names_sorted,
+						  \@other_used_premises_names_sorted)
+					    || ! subtuple (\@other_used_premises_names_sorted,
+							   \@used_premises_names_sorted) } }
 		    @opt_proof_finders) {
 		push (@minimal_used_premise_sets, \@used_premises_names_sorted);
 	    }
