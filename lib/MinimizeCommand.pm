@@ -290,7 +290,8 @@ sub one_tool_solves {
 
 	# Pump
 	foreach my $harness (@harnesses) {
-	    if ($harness->pumpable ()) {
+	    my $pumpable = eval { $harness->pumpable () };
+	    if (defined $pumpable && $pumpable) {
 		$harness->pump_nb ();
 	    }
 	}
@@ -301,7 +302,8 @@ sub one_tool_solves {
 
     # Finish the first nonpumpable harness.  Kill all the others
     foreach my $harness (@harnesses) {
-	if ($harness->pumpable ()) {
+	my $pumpable = eval { $harness->pumpable () };
+	if ( (! defined $pumpable) || (! $pumpable)) {
 	    $harness->kill_kill ();
 	} else {
 	    $harness->finish ();
@@ -369,7 +371,8 @@ sub one_tool_countersolves {
 
 	# Pump
 	foreach my $harness (@harnesses) {
-	    if ($harness->pumpable ()) {
+	    my $pumpable = eval { $harness->pumpable () };
+	    if (defined $pumpable && $pumpable) {
 		$harness->pump_nb ();
 	    }
 	}
@@ -380,7 +383,8 @@ sub one_tool_countersolves {
 
     # Finish the first nonpumpable harness.  Kill all the others
     foreach my $harness (@harnesses) {
-	if ($harness->pumpable ()) {
+	my $pumpable = eval { $harness->pumpable () };
+	if (! (defined $pumpable) || ! $pumpable) {
 	    $harness->kill_kill ();
 	} else {
 	    $harness->finish ();
@@ -418,9 +422,8 @@ sub one_prover_solves {
 sub one_prover_countersolves {
     my $theory = shift;
     my $parameters_ref = shift;
-    return one_tool_countersolves ($theory,
-				   \@opt_provers,
-				   { 'timeout' => $opt_timeout });
+    return one_tool_countersolves ($theory);
+
 }
 
 sub execute {
