@@ -22,6 +22,7 @@ use Utils qw(error_message);
 Readonly my $EMPTY_STRING => q{};
 Readonly my $TWO_SPACES => q{  };
 Readonly my $SPACE => q{ };
+Readonly my $LF => "\N{LF}";
 Readonly my $DESCRIPTION => 'Find models of a theory.';
 Readonly my $GOOD_COLOR => 'green';
 Readonly my $BAD_COLOR => 'red';
@@ -121,12 +122,12 @@ sub execute {
     my $tptp_result_message = $@;
 
     if (! defined $tptp_result) {
-	print {*STDERR} message (error_message ('Something went wrong searching for a model of ', $theory_path, '.'));
+	say {*STDERR} error_message ('Something went wrong searching for a model of ', $theory_path, '.');
 	if (defined $tptp_result_message && $tptp_result_message ne $EMPTY_STRING) {
-	    	print {*STDERR} message_with_extra_linefeed ('The error was:');
-		print {*STDERR} message ($tptp_result_message);
+	    say {*STDERR} 'The error was:', $LF;
+	    say {*STDERR} $tptp_result_message;
 	} else {
-	    print {*STDERR} message ('No further information is available.');
+	    say {*STDERR} 'No further information is available.';
 	}
 
 	exit 1;
@@ -149,12 +150,12 @@ sub execute {
 
     if (! defined $model) {
 	my $tptp_output = $tptp_result->get_output ();
-	print {*STDERR} message (error_message ('Something went wrong interpreting the output as a model', $theory_path, ': ', $model_message));
+	say {*STDERR} error_message ('Something went wrong interpreting the output as a model', $theory_path, ': ', $model_message);
 	if (defined $tptp_output && $tptp_output ne $EMPTY_STRING) {
-	    	print {*STDERR} message_with_extra_linefeed ('The output we tried to interpret was:');
-		print {*STDERR} message ($tptp_output);
+	    say {*STDERR} 'The output we tried to interpret was:', $LF;
+	    say {*STDERR} $tptp_output;
 	} else {
-	    print {*STDERR} message ('Strangely, there was no output at all.  (So how could we possibly interpret it as a model?)');
+	    say {*STDERR} 'Strangely, there was no output at all.  (So how could we possibly interpret it as a model?)';
 	}
 
 	exit 1;
@@ -164,12 +165,12 @@ sub execute {
 
     if (! defined $szs_status) {
 	my $tptp_output = $tptp_result->get_output ();
-	print {*STDERR} message (error_message ('Something went wrong extracting the SZS status for the output of a model-finding task for', $theory_path, '.'));
+	say {*STDERR} error_message ('Something went wrong extracting the SZS status for the output of a model-finding task for', $theory_path, '.');
 	if (defined $tptp_output && $tptp_output ne $EMPTY_STRING) {
-	    	print {*STDERR} message_with_extra_linefeed ('The output we tried to interpret was:');
-		print {*STDERR} message ($tptp_output);
+	    	say {*STDERR} 'The output we tried to interpret was:', $LF;
+		say {*STDERR} $tptp_output;
 	} else {
-	    print {*STDERR} message ('Strangely, there was no output at all.  (So how could we possibly extract the SZS status?)');
+	    say {*STDERR} 'Strangely, there was no output at all.  (So how could we possibly extract the SZS status?)';
 	}
 
 	exit 1;

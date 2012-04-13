@@ -835,7 +835,9 @@ sub solve {
 	carp 'Result of calling ', $prover, $COLON, "\N{LF}", Dumper ($result);
     }
 
-    return $result->get_szs_status ();
+    my $status = $result->get_szs_status ();
+
+    return $status;
 }
 
 sub solvable_with {
@@ -1013,31 +1015,40 @@ sub minimize {
 
     my $theory_to_minimize = $self->copy ();
 
+    my @used_premises = $theory_to_minimize->get_axioms (1);
+    my @unused_premises = ();
+
     my $result = TPTP::prove ($theory_to_minimize,
 			      $prover,
 			      $intended_szs_status,
 			      \%parameters);
     my $last_known_good_result = $result;
     my $szs_status = $result->get_szs_status ();
-    my $derivation = $result->output_as_derivation ();
+    my $derivation = eval { $result->output_as_derivation () };
 
-    my @unused_premises = $derivation->get_unused_premises ();
+    if (defined $derivation) {
+	@unused_premises = $derivation->get_unused_premises ();
 
-    while (is_szs_success ($szs_status)
-	       && szs_implies ($szs_status, $intended_szs_status)
-		   && scalar @unused_premises > 0) {
-	$last_known_good_result = $result;
+	while (is_szs_success ($szs_status)
+		   && szs_implies ($szs_status, $intended_szs_status)
+		       && scalar @unused_premises > 0) {
+	    $last_known_good_result = $result;
 
-	$theory_to_minimize = $derivation->theory_from_used_premises ();
-	$result = TPTP::prove ($theory_to_minimize,
-			       $prover,
-			       $intended_szs_status,
-			       \%parameters);
-	$szs_status = $result->get_szs_status ();
-	$derivation = is_szs_success ($szs_status) ? $result->output_as_derivation ()
-	    : undef;
-	@unused_premises = defined $derivation ? $derivation->get_unused_premises ()
-	    : ();
+	    $theory_to_minimize = $derivation->theory_from_used_premises ();
+	    $result = TPTP::prove ($theory_to_minimize,
+				   $prover,
+				   $intended_szs_status,
+				   \%parameters);
+	    $szs_status = $result->get_szs_status ();
+	    $derivation = is_szs_success ($szs_status) ? $result->output_as_derivation ()
+		: undef;
+	    @unused_premises = defined $derivation ? $derivation->get_unused_premises ()
+		: ();
+	}
+    } else {
+	if (defined $parameters{'debug'} && $parameters{'debug'}) {
+	    carp warning_message ('Unable to interpret the output of', $SPACE, $prover, $SPACE, 'as a derivation.');
+	}
     }
 
     return (is_szs_success ($szs_status) ? $result : $last_known_good_result);

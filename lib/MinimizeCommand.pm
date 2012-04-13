@@ -18,6 +18,8 @@ use Term::ProgressBar;
 use Regexp::DefaultFlags;
 use POSIX qw(ceil);
 use Algorithm::Combinatorics qw(combinations);
+use IPC::Cmd qw(can_run);
+use IPC::Run qw(run start timer harness timeout);
 
 extends 'Command';
 
@@ -47,6 +49,7 @@ Readonly my $EMPTY_STRING => q{};
 Readonly my $TWO_SPACES => q{  };
 Readonly my $SPACE => q{ };
 Readonly my $COMMA => q{,};
+Readonly my $FULL_STOP => q{.};
 Readonly my $COLON => q{:};
 Readonly my $SLASH => q{/};
 Readonly my $ASTERISK => q{*};
@@ -70,13 +73,12 @@ my $opt_man = 0;
 my $opt_verbose = 0;
 my $opt_debug = 0;
 my $opt_solution_szs_status = 'Theorem';
-my @opt_proof_finders = ();
-my @opt_model_finders = ();
-my $opt_model_finder_timeout = 5;
-my $opt_proof_finder_timeout = 30;
+my @opt_provers = ();
+my $opt_timeout = 30;
 my $opt_skip_initial_proof = 0;
 my $opt_show_only_final_used_premises = 0;
 my $opt_show_only_final_unused_premises = 0;
+my $opt_confirm = 0;
 
 sub BUILD {
     my $self = shift;
@@ -118,227 +120,313 @@ sub print_formula_names_with_color {
 
 }
 
-    around 'execute' => sub {
-	my $orig = shift;
-	my $self = shift;
-	my @arguments = @_;
+around 'execute' => sub {
+    my $orig = shift;
+    my $self = shift;
+    my @arguments = @_;
 
-	GetOptionsFromArray (
-	    \@arguments,
-	    'man' => \$opt_man,
-	    'verbose' => \$opt_verbose,
-	    'help|?' => \$opt_help,
-	    'debug' => \$opt_debug,
-	    'proof-finder=s' => \@opt_proof_finders,
-	    'model-finder=s' => \@opt_model_finders,
-	    'solution-szs-status=s' => \$opt_solution_szs_status,
-	    'model-finder-timeout=i' => \$opt_model_finder_timeout,
-	    'proof-finder-timeout=i' => \$opt_proof_finder_timeout,
-	    'skip-initial-proof' => \$opt_skip_initial_proof,
-	) or pod2usage (2);
+    GetOptionsFromArray (
+	\@arguments,
+	'man' => \$opt_man,
+	'verbose' => \$opt_verbose,
+	'help|?' => \$opt_help,
+	'debug' => \$opt_debug,
+	'with-prover=s' => \@opt_provers,
+	'solution-szs-status=s' => \$opt_solution_szs_status,
+	'timeout=i' => \$opt_timeout,
+	'skip-initial-proof' => \$opt_skip_initial_proof,
+	'confirm' => \$opt_confirm,
+    ) or pod2usage (2);
 
-	if ($opt_help) {
-	    pod2usage(1);
-	}
+    if ($opt_help) {
+	pod2usage(1);
+    }
 
-	if ($opt_man) {
-	    pod2usage(
-		-exitstatus => 0,
-		-verbose    => 2
-	    );
-	}
+    if ($opt_man) {
+	pod2usage(
+	    -exitstatus => 0,
+	    -verbose    => 2
+	);
+    }
 
-	# debug implies verbose
-	if ($opt_debug) {
-	    $opt_verbose = 1;
-	}
+    # debug implies verbose
+    if ($opt_debug) {
+	$opt_verbose = 1;
+    }
 
-	if (scalar @arguments == 0) {
-	    pod2usage (-msg => error_message ('Please supply a TPTP theory file.'),
-		       -exitval => 2);
-	}
+    if (scalar @arguments == 0) {
+	pod2usage (-msg => error_message ('Please supply a TPTP theory file.'),
+		   -exitval => 2);
+    }
 
-	if (scalar @arguments > 1) {
-	    pod2usage (-msg => error_message ('Unable to make sense of the arguments', "\N{LF}", "\N{LF}", $TWO_SPACES, join ($SPACE, @arguments)),
-		       -exitval => 2);
-	}
+    if (scalar @arguments > 1) {
+	pod2usage (-msg => error_message ('Unable to make sense of the arguments', "\N{LF}", "\N{LF}", $TWO_SPACES, join ($SPACE, @arguments)),
+		   -exitval => 2);
+    }
 
-	if ($opt_solution_szs_status eq $EMPTY_STRING) {
-	    pod2usage (-msg => error_message ('The empty string is not an acceptable SZS problem status.'),
-		       -exitval => 2);
+    if ($opt_solution_szs_status eq $EMPTY_STRING) {
+	pod2usage (-msg => error_message ('The empty string is not an acceptable SZS problem status.'),
+		   -exitval => 2);
 
-	}
+    }
 
-	if ($opt_solution_szs_status !~ /\A [A-Za-z]+ \z/) {
-	    pod2usage (-msg => error_message ('Unacceptable SZS problem status', "\N{LF}", "\N{LF}", $TWO_SPACES, $opt_solution_szs_status),
-		       -exitval => 2);
-	}
+    if ($opt_solution_szs_status !~ /\A [A-Za-z]+ \z/) {
+	pod2usage (-msg => error_message ('Unacceptable SZS problem status', "\N{LF}", "\N{LF}", $TWO_SPACES, $opt_solution_szs_status),
+		   -exitval => 2);
+    }
 
-	if ($opt_show_only_final_used_premises && $opt_show_only_final_unused_premises) {
-	    pod2usage (-msg => error_message ('One cannot choose to show only the used and unused premises.'),
-		       -exitval => 2);
-	}
+    if ($opt_show_only_final_used_premises && $opt_show_only_final_unused_premises) {
+	pod2usage (-msg => error_message ('One cannot choose to show only the used and unused premises.'),
+		   -exitval => 2);
+    }
 
-	if ($opt_model_finder_timeout < 0) {
-	    pod2usage (-msg => error_message ('Invalid value ', $opt_model_finder_timeout, ' for the model-finder timeout option.'),
-		       -exitval => 2);
-	}
+    if ($opt_timeout < 0) {
+	pod2usage (-msg => error_message ('Invalid value ', $opt_timeout, ' for the --timeout option.'),
+		   -exitval => 2);
+    }
 
-	if ($opt_proof_finder_timeout < 0) {
-	    pod2usage (-msg => error_message ('Invalid value ', $opt_proof_finder_timeout, ' for the proof-finder timeout option.'),
-		       -exitval => 2);
-	}
+    if (scalar @opt_provers == 0) {
+	@opt_provers = ('eprover', 'paradox');
+    }
 
-	if (scalar @opt_proof_finders == 0) {
-	    @opt_proof_finders = ('eprover');
-	}
+    my %provers = ();
 
-	if (scalar @opt_model_finders == 0) {
-	    @opt_model_finders = ('paradox');
-	}
+    foreach my $tool (@opt_provers) {
+	$provers{$tool} = 0;
+    }
 
-	my %proof_finders = ();
-	my %model_finders = ();
+    @opt_provers = keys %provers;
+    my @supported_provers = supported_provers ();
 
-	foreach my $tool (@opt_proof_finders) {
-	    $proof_finders{$tool} = 0;
-	}
-
-	foreach my $tool (@opt_model_finders) {
-	    $model_finders{$tool} = 0;
-	}
-
-	@opt_proof_finders = keys %proof_finders;
-	@opt_model_finders = keys %model_finders;
-
-	foreach my $prover (@opt_proof_finders, @opt_model_finders) {
-	    if (! known_prover ($prover)) {
-		my @supported_provers = supported_provers ();
-		say {*STDERR} error_message ('Unknown prover', $SPACE, $prover), $LF;
-		say {*STDERR} 'The following provers are known:', "\N{LF}";
-		if (scalar @supported_provers == 0) {
-		    say {*STDERR} '(none)';
-		} else {
-		    say asterisk_list (@supported_provers);
-		}
+    foreach my $prover (@opt_provers) {
+	if (known_prover ($prover)) {
+	    if (can_run ($prover)) {
+		next;
+	    } else {
+		say {*STDERR} error_message ($prover, $SPACE, 'is supported by tipi, but it could not be found.'), $LF;
 		exit 1;
 	    }
-	}
-
-	if (! ensure_tptp4x_available ()) {
-	    say STDERR error_message ('Cannot run tptp4X');
-	    exit 1;
-	}
-
-	my $theory_path = $arguments[0];
-
-	if (! ensure_readable_file ($theory_path)) {
-	    say STDERR error_message ('There is no file at', $SPACE, $theory_path, $SPACE, '(or it is unreadable).');
-	    exit 1;
-	}
-
-	if (! ensure_sensible_tptp_theory ($theory_path)) {
-	    my $errors = tptp4X_output ($theory_path);
-	    say {*STDERR} error_message ('The file at ', $theory_path, ' is not a valid TPTP file.');
-	    say {*STDERR} 'Here is what tptp4X output when evaluating the file:';
-	    say {*STDERR} $errors;
-	    exit 1;
-	}
-
-	my $theory = Theory->new (path => $theory_path);
-
-	if ($theory->is_first_order ()) {
-	    return $self->$orig (@arguments);
 	} else {
-	    say {*STDERR} error_message ('The theory at', $SPACE, $theory_path, $SPACE, 'seems to be a non-first-order theory.');
+	    say {*STDERR} error_message ('Unknown prover', $SPACE, $prover), $LF;
+	    say {*STDERR} 'The following provers are known:', "\N{LF}";
+	    if (scalar @supported_provers == 0) {
+		say {*STDERR} '(none)';
+	    } else {
+		say asterisk_list (@supported_provers);
+	    }
+	    exit 1;
 	}
+    }
 
-    };
+    if (! ensure_tptp4x_available ()) {
+	say STDERR error_message ('Cannot run tptp4X');
+	exit 1;
+    }
 
-sub one_tool_solves {
-    my $theory = shift;
-    my $tools_ref = shift;
-    my $parameters_ref = shift;
+    my $theory_path = $arguments[0];
 
-    my @tools = defined $tools_ref ? @{$tools_ref} : ();
-    my %parameters = defined $parameters_ref ? %{$parameters_ref} : ();
+    if (! ensure_readable_file ($theory_path)) {
+	say STDERR error_message ('There is no file at', $SPACE, $theory_path, $SPACE, '(or it is unreadable).');
+	exit 1;
+    }
 
-    my $index_of_first_successful_tool
-	= first_index { $theory->solvable_with ($_,
-						$opt_solution_szs_status,
-						\%parameters) }
-	    @tools;
+    if (! ensure_sensible_tptp_theory ($theory_path)) {
+	my $errors = tptp4X_output ($theory_path);
+	say {*STDERR} error_message ('The file at ', $theory_path, ' is not a valid TPTP file.');
+	say {*STDERR} 'Here is what tptp4X output when evaluating the file:';
+	say {*STDERR} $errors;
+	exit 1;
+    }
 
-    if ($index_of_first_successful_tool < 0) {
-	return 0;
+    my $theory = Theory->new (path => $theory_path);
+
+    if ($theory->is_first_order ()) {
+	return $self->$orig (@arguments);
     } else {
-	return $tools[$index_of_first_successful_tool];
-    }
-}
-
-sub one_tool_countersolves {
-    my $theory = shift;
-    my $tools_ref = shift;
-    my $parameters_ref = shift;
-
-    my @tools = defined $tools_ref ? @{$tools_ref} : ();
-    my %parameters = defined $parameters_ref ? %{$parameters_ref} : ();
-
-    if ($opt_debug) {
-	$parameters{'debug'} = 1;
+	say {*STDERR} error_message ('The theory at', $SPACE, $theory_path, $SPACE, 'seems to be a non-first-order theory.');
     }
 
-    my $index_of_first_successful_tool
-	= first_index { $theory->countersolvable_with ($_,
-						       $opt_solution_szs_status,
-						       \%parameters) }
-	    @tools;
-
-    if ($index_of_first_successful_tool < 0) {
-	return 0;
-    } else {
-	return $tools[$index_of_first_successful_tool];
-    }
-
-}
-
-sub one_prover_solves {
-    my $theory = shift;
-    return one_tool_solves ($theory,
-			    \@opt_proof_finders,
-			    { 'timeout' => $opt_proof_finder_timeout });
-}
-
-sub one_prover_countersolves {
-    my $theory = shift;
-    my $parameters_ref = shift;
-    return one_tool_countersolves ($theory,
-				   \@opt_proof_finders,
-				   { 'timeout' => $opt_proof_finder_timeout });
-}
-
-sub one_model_finder_solves {
-    my $theory = shift;
-    my $parameters_ref = shift;
-    return one_tool_solves ($theory,
-			    \@opt_model_finders,
-			    { 'timeout' => $opt_model_finder_timeout });
-}
-
-sub one_model_finder_countersolves {
-    my $theory = shift;
-    my $parameters_ref = shift;
-    return one_tool_countersolves ($theory,
-				   \@opt_model_finders,
-				   { 'timeout' => $opt_model_finder_timeout });
-}
+};
 
 sub minimize {
     my $theory = shift;
     my $prover = shift;
     return $theory->minimize ($prover,
 			      $opt_solution_szs_status,
-			      { 'timeout' => $opt_proof_finder_timeout })
+			      { 'timeout' => $opt_timeout });
+}
+
+sub one_tool_solves {
+    my $theory = shift;
+
+    my %harnesses = ();
+    my %parameters = ( 'timeout' => $opt_timeout );
+
+    foreach my $prover (@opt_provers) {
+
+	my $coderef = sub
+	    { if ($theory->solvable_with ($prover,
+					  $opt_solution_szs_status,
+					  \%parameters)) {
+		exit 0;
+	    } else {
+		exit 1;
+	}
+	  };
+	my $harness = harness ($coderef);
+	$harnesses{$prover} = $harness;
+    }
+
+
+    my $timer = timer ($opt_timeout);
+
+    # Launch all the provers
+    my @harnesses = values %harnesses;
+    foreach my $harness (@harnesses) {
+	$harness->start ();
+    }
+
+    $timer->start ();
+
+    # Wait for a prover to terminate until the clock runs out
+    until ((! $timer->check ()) || (any { ! $_->pumpable () } @harnesses)) {
+
+	# Pump
+	foreach my $harness (@harnesses) {
+	    my $pumpable = eval { $harness->pumpable () };
+	    if (defined $pumpable && $pumpable) {
+		$harness->pump_nb ();
+	    }
+	}
+
+	sleep 1;
+
+    }
+
+    # Finish the first nonpumpable harness.  Kill all the others
+    foreach my $harness (@harnesses) {
+	my $pumpable = eval { $harness->pumpable () };
+	if ( (! defined $pumpable) || (! $pumpable)) {
+	    $harness->kill_kill ();
+	} else {
+	    $harness->finish ();
+	}
+    }
+
+    # carp 'Harnesses:', $LF, Dumper (%harnesses);
+
+    foreach my $prover (keys %harnesses) {
+	my $h = $harnesses{$prover};
+	my @results = $h->full_results ();
+	if (scalar @results == 0) {
+	    # warn 'Zero results (or ', $prover, ' is still running).';
+	} elsif (scalar @results == 1) {
+	    my $result = $results[0];
+	    if (defined $result) {
+		if ($result == 0) {
+		    return 1;
+		}
+	    }
+	} else {
+	    # warn 'Huh? Multiple results for ', $prover;
+	}
+    }
+
+    return 0;
+
+}
+
+sub one_tool_countersolves {
+
+    my $theory = shift;
+
+    my %harnesses = ();
+    my %parameters = ( 'timeout' => $opt_timeout );
+
+    foreach my $prover (@opt_provers) {
+
+	my $coderef = sub
+	    { if ($theory->countersolvable_with ($prover,
+						 $opt_solution_szs_status,
+						 \%parameters)) {
+		exit 0;
+	    } else {
+		exit 1;
+	    }
+	  };
+	my $harness = harness ($coderef);
+	$harnesses{$prover} = $harness;
+    }
+
+
+    my $timer = timer ($opt_timeout);
+
+    # Launch all the provers
+    my @harnesses = values %harnesses;
+    foreach my $harness (@harnesses) {
+	$harness->start ();
+    }
+
+    $timer->start ();
+
+    # Wait for a prover to terminate until the clock runs out
+    until ((! $timer->check ()) || (any { ! $_->pumpable () } @harnesses)) {
+
+	# Pump
+	foreach my $harness (@harnesses) {
+	    my $pumpable = eval { $harness->pumpable () };
+	    if (defined $pumpable && $pumpable) {
+		$harness->pump_nb ();
+	    }
+	}
+
+	sleep 1;
+
+    }
+
+    # Finish the first nonpumpable harness.  Kill all the others
+    foreach my $harness (@harnesses) {
+	my $pumpable = eval { $harness->pumpable () };
+	if (! (defined $pumpable) || ! $pumpable) {
+	    $harness->kill_kill ();
+	} else {
+	    $harness->finish ();
+	}
+    }
+
+    # carp 'Harnesses:', $LF, Dumper (%harnesses);
+
+    foreach my $prover (keys %harnesses) {
+	my $h = $harnesses{$prover};
+	my @results = $h->full_results ();
+	if (scalar @results == 0) {
+	    # warn 'Zero results (or ', $prover, ' is still running).';
+	} elsif (scalar @results == 1) {
+	    my $result = $results[0];
+	    if (defined $result) {
+		if ($result == 0) {
+		    return 1;
+		}
+	    }
+	} else {
+	    # warn 'Huh? Multiple results for ', $prover;
+	}
+    }
+
+    return 0;
+
+}
+
+sub one_prover_solves {
+    my $theory = shift;
+    return one_tool_solves ($theory);
+}
+
+sub one_prover_countersolves {
+    my $theory = shift;
+    my $parameters_ref = shift;
+    return one_tool_countersolves ($theory);
+
 }
 
 sub execute {
@@ -349,6 +437,7 @@ sub execute {
     my $theory = Theory->new (path => $theory_path);
 
     my @axioms = $theory->get_axioms (1);
+    my @original_axioms = @axioms;
 
     my $theory_has_conjecture = $theory->has_conjecture_formula ();
     my $conjecture = undef;
@@ -384,7 +473,7 @@ sub execute {
 
     my $num_initial_proofs_found = 0;
 
-    foreach my $prover (@opt_proof_finders) {
+    foreach my $prover (@opt_provers) {
 
 	my $initial_proof_result = undef;
 	my $initial_proof_szs_status = undef;
@@ -456,7 +545,7 @@ sub execute {
 	my @supported_provers = supported_provers ();
 	say error_message ('No prover succeeded; we cannot proceed.');
 	say 'We tried to solve the problem using the following prover(s):', "\N{LF}";
-	say asterisk_list (@opt_proof_finders);
+	say asterisk_list (@opt_provers);
 	say 'If you wish to skip the initial proof check, use the --skip-initial-proof option.';
 	say 'If you want to use other provers, use the --proof-finder option.';
 
@@ -466,7 +555,7 @@ sub execute {
 	exit 1;
     }
 
-    foreach my $prover (@opt_proof_finders) {
+    foreach my $prover (@opt_provers) {
 
 	say 'PREMISES (', $prover, ')', $SPACE, '(', colored ('used', $USED_PREMISE_COLOR), $SPACE, '/', $SPACE, colored ('unused', $UNUSED_PREMISE_COLOR), ')';
 
@@ -495,7 +584,7 @@ sub execute {
 
     # Find the minimal sets of used premises
     my @minimal_used_premise_sets = ();
-    foreach my $prover (@opt_proof_finders) {
+    foreach my $prover (@opt_provers) {
 	my $szs_status = $initial_proof_szs_status{$prover};
 	if (is_szs_success ($szs_status)) {
 	    my @used_premises = @{$used_by_prover{$prover}};
@@ -506,17 +595,17 @@ sub execute {
 			  = $initial_proof_szs_status{$other_prover};
 		      $other_prover eq $prover
 			  || ! (is_szs_success ($other_prover_szs_status))
-			  || eval { my @other_used_premises
-					= @{$used_by_prover{$other_prover}};
-				    my @other_used_premises_names
-					= map { $_->get_name () } @other_used_premises;
-				    my @other_used_premises_names_sorted
-					= sort @other_used_premises_names;
-				    subtuple (\@used_premises_names_sorted,
-					      \@other_used_premises_names_sorted)
-					|| ! subtuple (\@other_used_premises_names_sorted,
-						       \@used_premises_names_sorted) } }
-		    @opt_proof_finders) {
+			      || eval { my @other_used_premises
+					    = @{$used_by_prover{$other_prover}};
+					my @other_used_premises_names
+					    = map { $_->get_name () } @other_used_premises;
+					my @other_used_premises_names_sorted
+					    = sort @other_used_premises_names;
+					subtuple (\@used_premises_names_sorted,
+						  \@other_used_premises_names_sorted)
+					    || ! subtuple (\@other_used_premises_names_sorted,
+							   \@used_premises_names_sorted) } }
+		    @opt_provers) {
 		push (@minimal_used_premise_sets, \@used_premises_names_sorted);
 	    }
 
@@ -585,9 +674,10 @@ sub execute {
 	foreach my $axiom (@axioms) {
 	    if (defined $conjecture_name && $axiom eq $conjecture_name) {
 		# Don't remove the conjecture (if there is one)
+		next;
 	    } else {
 		my $trimmed_theory = $theory->remove_formula_by_name ($axiom);
-		if (one_model_finder_countersolves ($trimmed_theory)) {
+		if (one_prover_countersolves ($trimmed_theory)) {
 		    say colored ($axiom, $NEEDED_PREMISE_COLOR);
 		    $needed{$axiom} = 0;
 		} elsif (one_prover_solves ($trimmed_theory)) {
@@ -670,7 +760,7 @@ sub execute {
 	my @solved_so_far_negatively = ();
 
 	my $num_combinations = 2 ** scalar @candidate_formulas;
-	my $estimate_seconds = $opt_proof_finder_timeout * $num_combinations;
+	my $estimate_seconds = $opt_timeout * $num_combinations;
 	my $estimate_minutes = ceil ($estimate_seconds / 60);
 	my $estimate_minutes_at_least_one
 	    = $estimate_minutes < 1 ? 1 : $estimate_minutes;
@@ -722,7 +812,7 @@ sub execute {
 		my @formulas = map { $theory->formula_with_name ($_) } @tuple;
 		my $bigger_theory = $small_theory->postulate (\@formulas);
 
-		if (one_model_finder_countersolves ($bigger_theory)) {
+		if (one_prover_countersolves ($bigger_theory)) {
 		    push (@solved_so_far_negatively, \@tuple);
 		} elsif (one_prover_solves ($bigger_theory)) {
 		    push (@solved_so_far_positively, \@tuple);
@@ -765,8 +855,66 @@ sub execute {
 
 	    say 'Along the way, we found', $SPACE, $num_candidates_unknown, $SPACE, 'combinations of premises';
 	    say 'for which we could not determine whether they constitute a solution.';
-	    say 'There were', $SPACE, $num_already_known_good, $SPACE, 'combinations that properly extend known good combinations,';
-	    say 'so they were not printed.';
+	    say 'There were', $SPACE, $num_already_known_good, $SPACE, 'combinations that properly extend one of the above solutions.';
+
+	    if ($num_candidates_unknown == 0) {
+		say 'Since we were able to make a decision about every combination of premises,';
+		say 'we can conclude that these are all the minimal subtheories that suffice.';
+
+	    } else {
+		say 'Since we could not make a decision about at least one combination of premises,';
+		say 'we cannot conclude that these are all the minimal subtheories that suffice.';
+		say 'It may be that increasining resources (time, speed, memory) would';
+		say 'be enough to allow us to make a decision about all combinations.';
+	    }
+
+	    if ($opt_skip_initial_proof) {
+		say 'Since we elected to skip the initial proof, we considered all possible';
+		say 'subsets of the axioms of the original theory.';
+	    } elsif (scalar @axioms == scalar @original_axioms) {
+		say 'Since we found that every axiom of the original theory was used,';
+		say 'we have considered all possible subsets of the original theory.';
+	    } else {
+		say 'The theory we started with has', $SPACE, scalar @original_axioms, $SPACE, 'axioms,';
+		say 'but we did not consider all possible subsets of the original axioms';
+		say 'because we found a proper subset of them (possibly multiple proper subsets)';
+		say 'that sufficed, and we considered only subsets of these premises.';
+		say 'Perhaps this suits your theory exploration needs.';
+		say 'If not, you can retry this command using the --skip-initial-proof';
+		say 'option, in which case we really will consider all possible subsets of';
+		say 'the original theory.  (Warning: there may be very many more subsets.)';
+	    }
+
+	    if ($opt_confirm) {
+		say 'Confirming minimality of the', $SPACE, scalar @solved_sorted, $SPACE, 'solutions.';
+		say 'PREMISES (', colored ('needed', $NEEDED_PREMISE_COLOR), $SPACE, $SLASH, $SPACE, colored ('unneeded', $UNNEEDED_PREMISE_COLOR), $SPACE, $SLASH, $SPACE, colored ('unknown', $UNKNOWN_COLOR), ')';
+		say '(If each of the solutions really is a minimal theory, then we should';
+		say 'expect to find, for each, that all of its premises are marked as', $SPACE, colored ('needed', $NEEDED_PREMISE_COLOR), $FULL_STOP;
+		say 'It could be that a premise is marked', $SPACE, colored ('unknown', $UNKNOWN_COLOR), ', in which case';
+		say 'we could not decide (given the limits) whether deleting the premise';
+		say 'results in a positive or negative solution.';
+
+		say 'If a premise is marked', $SPACE, colored ('unneeded', $UNNEEDED_PREMISE_COLOR), ', then the solution is not minimal after all.';
+		foreach my $i (1 .. scalar @solved_sorted) {
+		    my $solution_ref = $solved_sorted[$i - 1];
+		    my @solution = @{$solution_ref};
+		    my @formulas = map { $theory->formula_with_name ($_) } @solution;
+		    my $bigger_theory = $small_theory->postulate (\@formulas);
+		    say 'Solution', $SPACE, $i;
+		    foreach my $premise (@solution) {
+			my $bad_theory
+			    = $bigger_theory->remove_formula_by_name ($premise);
+			if (one_prover_countersolves ($bad_theory)) {
+			    say colored ($premise, $NEEDED_PREMISE_COLOR)
+			} elsif (one_prover_solves ($bad_theory)) {
+			    say colored ($premise, $UNNEEDED_PREMISE_COLOR);
+			} else {
+			    say colored ($premise, $UNKNOWN_COLOR);
+			}
+		    }
+		}
+	    }
+
 	}
 
     }
