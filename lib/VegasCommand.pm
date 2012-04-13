@@ -559,7 +559,7 @@ sub execute {
 		say 'it would seem that the the best we can say is that the answer is', $SPACE, colored ('unknown', $UNKNOWN_COLOR), $FULL_STOP;
 	    } else {
 		say 'Since no bounds were placed on the sizes of the subsets that we considered,';
-		say 'it would seem that', $SPACE, colored ('no', $BAD_COLOR), $SPACE, 'solves the problem as we wanted';
+		say 'it would seem that', $SPACE, colored ('no', $BAD_COLOR), $SPACE, 'candidate solves the problem as we wanted';
 		say '(For no subset can we contradict the intended SZS status', $SPACE, $opt_solution_szs_status, '.)';
 	    }
 	} elsif ($opt_min_subset_size > 0) {
