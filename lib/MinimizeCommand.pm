@@ -49,6 +49,7 @@ Readonly my $EMPTY_STRING => q{};
 Readonly my $TWO_SPACES => q{  };
 Readonly my $SPACE => q{ };
 Readonly my $COMMA => q{,};
+Readonly my $FULL_STOP => q{.};
 Readonly my $COLON => q{:};
 Readonly my $SLASH => q{/};
 Readonly my $ASTERISK => q{*};
@@ -436,6 +437,7 @@ sub execute {
     my $theory = Theory->new (path => $theory_path);
 
     my @axioms = $theory->get_axioms (1);
+    my @original_axioms = @axioms;
 
     my $theory_has_conjecture = $theory->has_conjecture_formula ();
     my $conjecture = undef;
@@ -853,12 +855,46 @@ sub execute {
 
 	    say 'Along the way, we found', $SPACE, $num_candidates_unknown, $SPACE, 'combinations of premises';
 	    say 'for which we could not determine whether they constitute a solution.';
-	    say 'There were', $SPACE, $num_already_known_good, $SPACE, 'combinations that properly extend known good combinations,';
-	    say 'so they were not printed.';
+	    say 'There were', $SPACE, $num_already_known_good, $SPACE, 'combinations that properly extend one of the above solutions.';
+
+	    if ($num_candidates_unknown == 0) {
+		say 'Since we were able to make a decision about every combination of premises,';
+		say 'we can conclude that these are all the minimal subtheories that suffice.';
+
+	    } else {
+		say 'Since we could not make a decision about at least one combination of premises,';
+		say 'we cannot conclude that these are all the minimal subtheories that suffice.';
+		say 'It may be that increasining resources (time, speed, memory) would';
+		say 'be enough to allow us to make a decision about all combinations.';
+	    }
+
+	    if ($opt_skip_initial_proof) {
+		say 'Since we elected to skip the initial proof, we considered all possible';
+		say 'subsets of the axioms of the original theory.';
+	    } elsif (scalar @axioms == scalar @original_axioms) {
+		say 'Since we found that every axiom of the original theory was used,';
+		say 'we have considered all possible subsets of the original theory.';
+	    } else {
+		say 'The theory we started with has', $SPACE, scalar @original_axioms, $SPACE, 'axioms,';
+		say 'but we did not consider all possible subsets of the original axioms';
+		say 'because we found a proper subset of them (possibly multiple proper subsets)';
+		say 'that sufficed, and we considered only subsets of these premises.';
+		say 'Perhaps this suits your theory exploration needs.';
+		say 'If not, you can retry this command using the --skip-initial-proof';
+		say 'option, in which case we really will consider all possible subsets of';
+		say 'the original theory.  (Warning: there may be very many more subsets.)';
+	    }
 
 	    if ($opt_confirm) {
 		say 'Confirming minimality of the', $SPACE, scalar @solved_sorted, $SPACE, 'solutions.';
-		print 'PREMISES (', colored ('needed', $NEEDED_PREMISE_COLOR), $SPACE, $SLASH, $SPACE, colored ('unneeded', $UNNEEDED_PREMISE_COLOR), $SPACE, $SLASH, $SPACE, colored ('unknown', $UNKNOWN_COLOR), ')', "\N{LF}";
+		say 'PREMISES (', colored ('needed', $NEEDED_PREMISE_COLOR), $SPACE, $SLASH, $SPACE, colored ('unneeded', $UNNEEDED_PREMISE_COLOR), $SPACE, $SLASH, $SPACE, colored ('unknown', $UNKNOWN_COLOR), ')';
+		say '(If each of the solutions really is a minimal theory, then we should';
+		say 'expect to find, for each, that all of its premises are marked as', $SPACE, colored ('needed', $NEEDED_PREMISE_COLOR), $FULL_STOP;
+		say 'It could be that a premise is marked', $SPACE, colored ('unknown', $UNKNOWN_COLOR), ', in which case';
+		say 'we could not decide (given the limits) whether deleting the premise';
+		say 'results in a positive or negative solution.';
+
+		say 'If a premise is marked', $SPACE, colored ('unneeded', $UNNEEDED_PREMISE_COLOR), ', then the solution is not minimal after all.';
 		foreach my $i (1 .. scalar @solved_sorted) {
 		    my $solution_ref = $solved_sorted[$i - 1];
 		    my @solution = @{$solution_ref};
