@@ -77,6 +77,7 @@ my $opt_timeout = 30;
 my $opt_skip_initial_proof = 0;
 my $opt_show_only_final_used_premises = 0;
 my $opt_show_only_final_unused_premises = 0;
+my $opt_confirm = 0;
 
 sub BUILD {
     my $self = shift;
@@ -133,6 +134,7 @@ around 'execute' => sub {
 	'solution-szs-status=s' => \$opt_solution_szs_status,
 	'timeout=i' => \$opt_timeout,
 	'skip-initial-proof' => \$opt_skip_initial_proof,
+	'confirm' => \$opt_confirm,
     ) or pod2usage (2);
 
     if ($opt_help) {
@@ -853,6 +855,30 @@ sub execute {
 	    say 'for which we could not determine whether they constitute a solution.';
 	    say 'There were', $SPACE, $num_already_known_good, $SPACE, 'combinations that properly extend known good combinations,';
 	    say 'so they were not printed.';
+
+	    if ($opt_confirm) {
+		say 'Confirming minimality of the', $SPACE, scalar @solved_sorted, $SPACE, 'solutions.';
+		print 'PREMISES (', colored ('needed', $NEEDED_PREMISE_COLOR), $SPACE, $SLASH, $SPACE, colored ('unneeded', $UNNEEDED_PREMISE_COLOR), $SPACE, $SLASH, $SPACE, colored ('unknown', $UNKNOWN_COLOR), ')', "\N{LF}";
+		foreach my $i (1 .. scalar @solved_sorted) {
+		    my $solution_ref = $solved_sorted[$i - 1];
+		    my @solution = @{$solution_ref};
+		    my @formulas = map { $theory->formula_with_name ($_) } @solution;
+		    my $bigger_theory = $small_theory->postulate (\@formulas);
+		    say 'Solution', $SPACE, $i;
+		    foreach my $premise (@solution) {
+			my $bad_theory
+			    = $bigger_theory->remove_formula_by_name ($premise);
+			if (one_prover_countersolves ($bad_theory)) {
+			    say colored ($premise, $NEEDED_PREMISE_COLOR)
+			} elsif (one_prover_solves ($bad_theory)) {
+			    say colored ($premise, $UNNEEDED_PREMISE_COLOR);
+			} else {
+			    say colored ($premise, $UNKNOWN_COLOR);
+			}
+		    }
+		}
+	    }
+
 	}
 
     }
