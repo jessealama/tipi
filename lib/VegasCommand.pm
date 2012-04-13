@@ -530,7 +530,7 @@ sub execute {
 		push (@losers, \@subset);
 		say colored ($STRONGLY_UNSUCCESSFUL, $BAD_COLOR), $SPACE, '(any later candidate that is included in this one will be ignored)';
 	    } else {
-		say colored ('Um...', $UNKNOWN_COLOR);
+		say colored ('Um...', $UNKNOWN_COLOR), $SPACE, '(', $overall_judgment, ')';
 		say colored ($WEAKLY_UNSUCCESSFUL, $UNKNOWN_COLOR);
 		$one_unknown_candidate = 1;
 	    }
