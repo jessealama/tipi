@@ -117,7 +117,6 @@ sub ensure_sensible_prover_parameters {
 sub prove {
     my $theory = shift;
     my $prover = shift;
-    my $intended_szs_status = shift;
     my $parameters_ref = shift;
 
     my %parameters = defined $parameters_ref ? %{$parameters_ref} : ();
@@ -208,8 +207,7 @@ sub prove {
 			    output => $output,
 			    error_output => $error,
 			    background_theory => $theory,
-			    tool => $prover,
-			    intended_szs_status => $intended_szs_status);
+			    tool => $prover);
 
     } else {
 	my @results = $harness->full_results ();
@@ -222,8 +220,7 @@ sub prove {
 			    output => $output,
 			    error_output => $error,
 			    background_theory => $theory,
-			    tool => $prover,
-			    intended_szs_status => $intended_szs_status);
+			    tool => $prover);
     }
 
 }
