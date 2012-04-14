@@ -43,7 +43,9 @@ use Utils qw(asterisk_list
 	     ensure_readable_file);
 use SZS qw(szs_camelword_for
 	   is_szs_success
-	   szs_implies);
+	   szs_implies
+	   szs_contradicts
+	   successful_statuses);
 
 Readonly my $EMPTY_STRING => q{};
 Readonly my $TWO_SPACES => q{  };
@@ -269,6 +271,12 @@ sub one_prover_countersolves {
 					    \@opt_provers,
 					    { 'timeout' => $opt_timeout });
 
+}
+
+sub first_solver {
+    my $theory = shift;
+    return $theory->run_simultaneously_till_first_success (\@opt_provers,
+							   { 'timeout' => $opt_timeout});
 }
 
 sub execute {
@@ -519,16 +527,31 @@ sub execute {
 		next;
 	    } else {
 		my $trimmed_theory = $theory->remove_formula_by_name ($axiom);
-		if (one_prover_countersolves ($trimmed_theory)) {
-		    say colored ($axiom, $NEEDED_PREMISE_COLOR);
-		    $needed{$axiom} = 0;
-		} elsif (one_prover_solves ($trimmed_theory)) {
-		    say colored ($axiom, $UNNEEDED_PREMISE_COLOR);
-		    $unneeded{$axiom} = 0;
-		} else {
+
+
+		my %statuses = %{first_solver ($trimmed_theory)};
+
+		# Aggregate the SZS judgments
+		my @statuses = values %statuses;
+		my @successes = successful_statuses (@statuses);
+
+		if (scalar @successes == 0) {
 		    say colored ($axiom, $UNKNOWN_COLOR);
 		    $unknown{$axiom} = 0;
+		} else {
+		    if (any { szs_implies ($_,
+					   $opt_solution_szs_status) } @successes) {
+			say colored ($axiom, $UNNEEDED_PREMISE_COLOR);
+			$unneeded{$axiom} = 0;
+		    } elsif (any { szs_contradicts ($_,
+						    $opt_solution_szs_status) } @successes) {
+			say colored ($axiom, $NEEDED_PREMISE_COLOR);
+			$needed{$axiom} = 0;
+		    } else {
+			confess 'We were unable to make a decision from the SZS statuses', $LF, Dumper (%statuses);
+		    }
 		}
+
 	    }
 	}
 
@@ -654,13 +677,26 @@ sub execute {
 		my @formulas = map { $theory->formula_with_name ($_) } @tuple;
 		my $bigger_theory = $small_theory->postulate (\@formulas);
 
-		if (one_prover_countersolves ($bigger_theory)) {
-		    push (@solved_so_far_negatively, \@tuple);
-		} elsif (one_prover_solves ($bigger_theory)) {
-		    push (@solved_so_far_positively, \@tuple);
-		} else {
-		    # Don't know what to do
+		my %statuses = %{first_solver ($bigger_theory)};
+
+		# Aggregate the SZS judgments
+		my @statuses = values %statuses;
+		my @successes = successful_statuses (@statuses);
+
+		if (scalar @successes == 0) {
+		    my @unsuccessful_statuses = unsuccessful_statuses (@statuses);
+		    warn 'The aggregate SZS judgments list is empty; here are the unsuccessful SZS statuses:', $LF, Dumper (@unsuccessful_statuses);
 		    $num_candidates_unknown++;
+		} else {
+		    if (any { szs_implies ($_,
+					   $opt_solution_szs_status) } @successes) {
+			push (@solved_so_far_positively, \@tuple);
+		    } elsif (any { szs_contradicts ($_,
+						    $opt_solution_szs_status) } @successes) {
+			push (@solved_so_far_negatively, \@tuple);
+		    } else {
+			confess 'We were unable to make a decision from the SZS statuses', $LF, Dumper (%statuses);
+		    }
 		}
 
 	    }
@@ -745,13 +781,27 @@ sub execute {
 		    foreach my $premise (@solution) {
 			my $bad_theory
 			    = $bigger_theory->remove_formula_by_name ($premise);
-			if (one_prover_countersolves ($bad_theory)) {
-			    say colored ($premise, $NEEDED_PREMISE_COLOR)
-			} elsif (one_prover_solves ($bad_theory)) {
-			    say colored ($premise, $UNNEEDED_PREMISE_COLOR);
-			} else {
+
+			my %statuses = %{first_solver ($bigger_theory)};
+
+			# Aggregate the SZS judgments
+			my @statuses = values %statuses;
+			my @successes = successful_statuses (@statuses);
+
+			if (scalar @successes == 0) {
 			    say colored ($premise, $UNKNOWN_COLOR);
+			} else {
+			    if (any { szs_implies ($_,
+						   $opt_solution_szs_status) } @successes) {
+				say colored ($premise, $UNNEEDED_PREMISE_COLOR);
+			    } elsif (any { szs_contradicts ($_,
+							    $opt_solution_szs_status) } @successes) {
+				say colored ($premise, $NEEDED_PREMISE_COLOR)
+			    } else {
+				confess 'We were unable to make a decision from the SZS statuses', $LF, Dumper (%statuses);
+			    }
 			}
+
 		    }
 		}
 	    }
