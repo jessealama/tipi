@@ -16,16 +16,27 @@ use feature 'say';
 extends 'Command';
 
 use Theory;
-use TPTP qw(ensure_tptp4x_available ensure_valid_tptp_file prove_if_possible ensure_sensible_tptp_theory);
-use Utils qw(error_message);
+use TPTP qw(ensure_tptp4x_available
+	    ensure_valid_tptp_file
+	    prove_if_possible
+	    ensure_sensible_tptp_theory
+	    known_prover);
+use Utils qw(error_message
+	     asterisk_list
+	     ensure_readable_file);
+use SZS qw(is_szs_success
+	   szs_implies);
 
 Readonly my $EMPTY_STRING => q{};
 Readonly my $TWO_SPACES => q{  };
 Readonly my $SPACE => q{ };
 Readonly my $LF => "\N{LF}";
+Readonly my $FULL_STOP => q{.};
 Readonly my $DESCRIPTION => 'Find models of a theory.';
 Readonly my $GOOD_COLOR => 'green';
 Readonly my $BAD_COLOR => 'red';
+Readonly my $UNKNOWN_COLOR => 'yellow';
+Readonly my $SZS_SATISFIABLE => 'Satisfiable';
 
 my $opt_help = 0;
 my $opt_man = 0;
@@ -34,6 +45,7 @@ my $opt_debug = 0;
 my $opt_with_conjecture_as = undef;
 my $opt_show_model = 0;
 my $opt_timeout = 30; # seconds
+my $opt_model_finder = 'paradox';
 
 sub BUILD {
     my $self = shift;
@@ -54,6 +66,7 @@ around 'execute' => sub {
 	'with-conjecture-as=s' => \$opt_with_conjecture_as,
 	'show-model' => \$opt_show_model,
 	'timeout=i' => \$opt_timeout,
+	'model-finder=s' => \$opt_model_finder,
     ) or pod2usage (2);
 
     if ($opt_help) {
@@ -87,7 +100,26 @@ around 'execute' => sub {
 	exit 1;
     }
 
+    if (! known_prover ($opt_model_finder)) {
+	say {*STDERR} error_message ('Unknown model finder', $SPACE, $opt_model_finder, $FULL_STOP);
+
+	my @supported_provers = supported_provers ();
+	say {*STDERR} 'The following provers are known:', "\N{LF}";
+	if (scalar @supported_provers == 0) {
+	    say {*STDERR} '(none)';
+	} else {
+	    say asterisk_list (@supported_provers);
+	}
+
+	exit 1;
+    }
+
     my $theory_path = $arguments[0];
+
+    if (! ensure_readable_file ($theory_path)) {
+	say {*STDERR} error_message ('There is no file at', $SPACE, $theory_path, $SPACE, '(or it is unreadable).');
+	exit 1;
+    }
 
     if (ensure_sensible_tptp_theory ($theory_path)) {
 	return $self->$orig (@arguments);
@@ -117,43 +149,30 @@ sub execute {
 	$theory = $theory->strip_conjecture ();
     }
 
-    my $tptp_result = eval { TPTP::find_model ($theory,
-					       { 'timeout' => $opt_timeout }) };
-    my $tptp_result_message = $@;
+    my $result = TPTP::prove ($theory,
+			      $opt_model_finder,
+			      $SZS_SATISFIABLE,
+			      { 'timeout' => $opt_timeout });
 
-    if (! defined $tptp_result) {
-	say {*STDERR} error_message ('Something went wrong searching for a model of ', $theory_path, '.');
-	if (defined $tptp_result_message && $tptp_result_message ne $EMPTY_STRING) {
-	    say {*STDERR} 'The error was:', $LF;
-	    say {*STDERR} $tptp_result_message;
-	} else {
-	    say {*STDERR} 'No further information is available.';
-	}
-
+    if ($result->timed_out ()) {
+	say colored ('Timeout', $UNKNOWN_COLOR);
 	exit 1;
     }
 
-    if ($tptp_result->timed_out ()) {
-	print colored ('Timeout', $BAD_COLOR), "\N{LF}";
+    if (! $result->exited_cleanly ()) {
+	say colored ('Error', $BAD_COLOR), $SPACE, '(unclean exit; we may have killed it ourselves)';
 	exit 1;
     }
 
-    my $exit_code = $tptp_result->get_exit_code ();
-
-    if (! defined $exit_code || $exit_code != 0) {
-	print colored ('Error', $BAD_COLOR);
-	exit 1;
-    }
-
-    my $model = eval { $tptp_result->output_as_model () };
+    my $model = eval { $result->output_as_model () };
     my $model_message = $@;
 
     if (! defined $model) {
-	my $tptp_output = $tptp_result->get_output ();
+	my $output = $result->get_output ();
 	say {*STDERR} error_message ('Something went wrong interpreting the output as a model', $theory_path, ': ', $model_message);
-	if (defined $tptp_output && $tptp_output ne $EMPTY_STRING) {
+	if (defined $output && $output ne $EMPTY_STRING) {
 	    say {*STDERR} 'The output we tried to interpret was:', $LF;
-	    say {*STDERR} $tptp_output;
+	    say {*STDERR} $output;
 	} else {
 	    say {*STDERR} 'Strangely, there was no output at all.  (So how could we possibly interpret it as a model?)';
 	}
@@ -161,26 +180,28 @@ sub execute {
 	exit 1;
     }
 
-    my $szs_status = eval { $tptp_result->get_szs_status () };
+    my $szs_status = $result->get_szs_status ();
 
-    if (! defined $szs_status) {
-	my $tptp_output = $tptp_result->get_output ();
-	say {*STDERR} error_message ('Something went wrong extracting the SZS status for the output of a model-finding task for', $theory_path, '.');
-	if (defined $tptp_output && $tptp_output ne $EMPTY_STRING) {
-	    	say {*STDERR} 'The output we tried to interpret was:', $LF;
-		say {*STDERR} $tptp_output;
+    if (is_szs_success ($szs_status)) {
+	if (szs_implies ($szs_status, $SZS_SATISFIABLE)) {
+
+	    say colored ($szs_status, $GOOD_COLOR);
+
+	    if ($opt_show_model) {
+		my $model_description = eval { $model->describe () };
+		if (defined $model_description) {
+		    say $model_description;
+		} else {
+		    say {*STDERR} error_message ('Although', $SPACE, $opt_model_finder, $SPACE, 'terminated cleanly and gives the SZS status');
+		    say $szs_status, ', we failed to extract a description of a model.';
+		    exit 1;
+		}
+	    }
 	} else {
-	    say {*STDERR} 'Strangely, there was no output at all.  (So how could we possibly extract the SZS status?)';
+	    say colored ($szs_status, $BAD_COLOR);
 	}
-
-	exit 1;
-    }
-
-    print colored ($szs_status, $GOOD_COLOR), "\N{LF}"; # ... "It's all good!"
-
-    if ($opt_show_model) {
-	my $model_description = $model->describe ();
-	print $model_description;
+    } else {
+	say colored ($szs_status, $BAD_COLOR);
     }
 
     return 1;
