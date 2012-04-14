@@ -9,12 +9,19 @@ use charnames qw(:full);
 use List::MoreUtils qw(firstidx any none);
 use File::Temp qw(tempfile);
 use Regexp::DefaultFlags;
-use Utils qw(ensure_readable_file slurp);
 use Data::Dumper;
 
 # Our modules
+use Utils qw(ensure_readable_file
+	     slurp);
 use Formula;
-use SZS qw(szs_implies is_szs_success szs_contradicts);
+use SZS qw(szs_implies
+	   is_szs_success
+	   szs_contradicts
+	   szs_status
+	   successful_statuses
+	   unsuccessful_statuses
+	   aggregate_statuses);
 
 Readonly my $TPTP4X => 'tptp4X';
 Readonly my $EMPTY_STRING => q{};
@@ -24,8 +31,11 @@ Readonly my $COLON => q{:};
 Readonly my $LF => "\N{LF}";
 Readonly my $FULL_STOP => q{.};
 Readonly my $DEBUG => q{DEBUG};
-Readonly my $SZS_THEOREM => 'Theorem';
-Readonly my $SZS_SATISFIABLE => 'Satisfiable';
+Readonly my $SZS_THEOREM => szs_status ('Theorem');
+Readonly my $SZS_SATISFIABLE => szs_status ('Satisfiable');
+Readonly my $SZS_NOT_TRIED_YET => szs_status ('NotTriedYet');
+Readonly my $SZS_IN_PROGRESS => szs_status ('InProgress');
+Readonly my $SZS_COUNTERSATISFIABLE => szs_status ('CounterSatisfiable');
 
 has 'path' => (
     is => 'rw',
@@ -756,19 +766,30 @@ sub independent_axiom {
     }
 
     my $trimmed_theory = $self->remove_formula ($axiom);
+    my $axiom_as_conjecture = $axiom->make_conjecture ();
+    my $theory_with_axiom_as_conjecture
+	= $trimmed_theory->add_formula ($axiom_as_conjecture);
 
-    my $derivable = $trimmed_theory->proves ($axiom,
-					     \@provers,
-					     \%parameters);
+    my %statuses
+	= %{$theory_with_axiom_as_conjecture->run_simultaneously_till_first_success (\@provers,
+										     \%parameters)};
 
-    if ($derivable) {
-	return 0;
+    # Aggregate the SZS judgments
+    my @statuses = values %statuses;
+    my @successes = successful_statuses (@statuses);
+
+    if (scalar @successes == 0) {
+	my @unsuccessful_statuses = unsuccessful_statuses (@statuses);
+	warn 'The aggregate SZS judgments list is empty; here are the unsuccessful SZS statuses:', $LF, Dumper (@unsuccessful_statuses);
+	return -1;
     } else {
-	my $satisfiable = one_tool_solves ($trimmed_theory,
-					   $SZS_SATISFIABLE,
-					   \@provers,
-					   \%parameters);
-	return $satisfiable;
+	if (any { szs_implies ($_, $SZS_THEOREM) } @successes) {
+	    return 0;
+	} elsif (any { szs_implies ($_, $SZS_COUNTERSATISFIABLE) } @successes) {
+	    return 1;
+	} else {
+	    confess 'We were unable to make a decision from the SZS statuses', $LF, Dumper (%statuses), $LF, 'whether', $SPACE, $axiom_name, $SPACE, 'is derivable from the other axioms', $LF, 'or whether is can be countersatisfied.';
+	}
     }
 
 }
@@ -823,14 +844,12 @@ sub is_satisfiable {
 sub solve {
     my $self = shift;
     my $prover = shift;
-    my $intended_szs_status = shift;
     my $parameters_ref = shift;
 
     my %parameters = defined $parameters_ref ? %{$parameters_ref} : ();
 
     my $result = TPTP::prove ($self,
 			      $prover,
-			      $intended_szs_status,
 			      \%parameters);
 
     if (defined $parameters{'debug'} && $parameters{'debug'}) {
@@ -878,10 +897,12 @@ sub countersolvable_with {
 
     my $szs_status = $self->solve ($prover, $intended_szs_status, \%parameters);
 
+    warn 'Got ', $szs_status, ' with ', $prover;
+
     if (is_szs_success ($szs_status)) {
 	return szs_contradicts ($szs_status, $intended_szs_status);
     } else {
-	return 0;
+	return -1;
     }
 
 }
@@ -1015,7 +1036,6 @@ sub minimize {
 
     my $result = TPTP::prove ($theory_to_minimize,
 			      $prover,
-			      $intended_szs_status,
 			      \%parameters);
     my $last_known_good_result = $result;
     my $szs_status = $result->get_szs_status ();
@@ -1032,7 +1052,6 @@ sub minimize {
 	    $theory_to_minimize = $derivation->theory_from_used_premises ();
 	    $result = TPTP::prove ($theory_to_minimize,
 				   $prover,
-				   $intended_szs_status,
 				   \%parameters);
 	    $szs_status = $result->get_szs_status ();
 	    $derivation = is_szs_success ($szs_status) ? $result->output_as_derivation ()
@@ -1050,96 +1069,6 @@ sub minimize {
 
 }
 
-sub one_tool_solves {
-    my $self = shift;
-    my $intended_szs_status = shift;
-    my $provers_ref = shift;
-    my $parameters_ref = shift;
-
-    my @provers = defined $provers_ref ? @{$provers_ref} : ();
-    my %parameters = defined $parameters_ref ? %{$parameters_ref} : ();
-
-    my %harnesses = ();
-
-    foreach my $prover (@provers) {
-
-	my $coderef = sub
-	    { if ($self->solvable_with ($prover,
-					$intended_szs_status,
-					\%parameters)) {
-		exit 0;
-	    } else {
-		exit 1;
-	}
-	  };
-	my $harness = harness ($coderef);
-	$harnesses{$prover} = $harness;
-    }
-
-    my $timeout = $parameters{'timeout'};
-
-    if (! defined $timeout) {
-	confess 'We require a timeout, but none was provided.';
-    }
-
-    my $timer = timer ($timeout);
-
-    # Launch all the provers
-    my @harnesses = values %harnesses;
-    foreach my $harness (@harnesses) {
-	$harness->start ();
-    }
-
-    $timer->start ();
-
-    # Wait for a prover to terminate until the clock runs out
-    until ((! $timer->check ()) || (any { ! $_->pumpable () } @harnesses)) {
-
-	# Pump
-	foreach my $harness (@harnesses) {
-	    my $pumpable = eval { $harness->pumpable () };
-	    if (defined $pumpable && $pumpable) {
-		$harness->pump_nb ();
-	    }
-	}
-
-	sleep 1;
-
-    }
-
-    # Finish the first nonpumpable harness.  Kill all the others
-    foreach my $harness (@harnesses) {
-	my $pumpable = eval { $harness->pumpable () };
-	if ( (! defined $pumpable) || (! $pumpable)) {
-	    $harness->kill_kill ();
-	} else {
-	    $harness->finish ();
-	}
-    }
-
-    # carp 'Harnesses:', $LF, Dumper (%harnesses);
-
-    foreach my $prover (keys %harnesses) {
-	my $h = $harnesses{$prover};
-	my @results = $h->full_results ();
-	if (scalar @results == 0) {
-	    # warn 'Zero results (or ', $prover, ' is still running).';
-	} elsif (scalar @results == 1) {
-	    my $result = $results[0];
-	    if (defined $result) {
-		if ($result == 0) {
-		    return 1;
-		}
-	    }
-	} else {
-	    # warn 'Huh? Multiple results for ', $prover;
-	}
-    }
-
-    return 0;
-
-}
-
 sub one_tool_countersolves {
     my $self = shift;
     my $intended_szs_status = shift;
@@ -1149,21 +1078,91 @@ sub one_tool_countersolves {
     my @provers = defined $provers_ref ? @{$provers_ref} : ();
     my %parameters = defined $parameters_ref ? %{$parameters_ref} : ();
 
+    my %statuses = %{$self->run_simultaneously_till_first_success (\@provers,
+								   \%parameters)};
+
+    # Aggregate the SZS judgments
+    my @statuses = values %statuses;
+    my @aggregate = aggregate_statuses (@statuses);
+
+    if (scalar @aggregate == 0) {
+	my @unsuccessful_statuses = unsuccessful_statuses (@statuses);
+	warn 'The aggregate SZS judgments list is empty; here are the unsuccessful SZS statuses:', $LF, Dumper (@unsuccessful_statuses);
+	return -1;
+    } elsif (scalar @aggregate == 1) {
+	my $judgment = $aggregate[0];
+	return (szs_contradicts ($judgment, $intended_szs_status) ? 1 : 0);
+    } else {
+	confess 'When aggregating the SZS statuses', $LF, Dumper (@statuses), $LF, 'we arrived at multiple judgments:', $LF, Dumper (@aggregate), $LF, 'Which one should we choose?';
+    }
+
+}
+
+sub one_tool_solves {
+    my $self = shift;
+    my $intended_szs_status = shift;
+    my $provers_ref = shift;
+    my $parameters_ref = shift;
+
+    my @provers = defined $provers_ref ? @{$provers_ref} : ();
+    my %parameters = defined $parameters_ref ? %{$parameters_ref} : ();
+
+    my %statuses = %{$self->run_simultaneously_till_first_success (\@provers,
+								   \%parameters)};
+
+    # Aggregate the SZS judgments
+    my @statuses = values %statuses;
+    my @aggregate = aggregate_statuses (@statuses);
+
+    if (scalar @aggregate == 0) {
+	my @unsuccessful_statuses = unsuccessful_statuses (@statuses);
+	warn 'The aggregate SZS judgments list is empty; here are the unsuccessful SZS statuses:', $LF, Dumper (@unsuccessful_statuses);
+	return -1;
+    } elsif (scalar @aggregate == 1) {
+	my $judgment = $aggregate[0];
+	return (szs_implies ($judgment, $intended_szs_status) ? 1 : 0);
+    } else {
+	confess 'When aggregating the SZS statuses', $LF, Dumper (@statuses), $LF, 'we arrived at multiple judgments:', $LF, Dumper (@aggregate), $LF, 'Which one should we choose?';
+    }
+
+}
+
+sub run_simultaneously_till_first_success {
+    my $self = shift;
+    my $provers_ref = shift;
+    my $parameters_ref = shift;
+
+    my @provers = defined $provers_ref ? @{$provers_ref} : ();
+    my %parameters = defined $parameters_ref ? %{$parameters_ref} : ();
+
     my %harnesses = ();
+    my %statuses = ();
+
+    foreach my $prover (@provers) {
+    	$statuses{$prover} = $SZS_NOT_TRIED_YET;
+    }
+
+    my %temporary_filehandles = ();
+    my %temporary_file_paths = ();
+
+    foreach my $prover (@provers) {
+	(my $temp_fh, my $temp_path) = tempfile ();
+	$temporary_filehandles{$prover} = $temp_fh;
+	$temporary_file_paths{$prover} = $temp_path;
+    }
 
     foreach my $prover (@provers) {
 
 	my $coderef = sub
-	    { if ($self->countersolvable_with ($prover,
-					       $intended_szs_status,
-					       \%parameters)) {
-		exit 0;
-	    } else {
-		exit 1;
-	    }
+	    { my $prover_fh = $temporary_filehandles{$prover};
+	      my $status = $self->solve ($prover, \%parameters);
+	      say {$prover_fh} $status;
+	      exit (is_szs_success ($status) ? 0 : 1);
 	  };
+
 	my $harness = harness ($coderef);
 	$harnesses{$prover} = $harness;
+
     }
 
     my $timeout = $parameters{'timeout'};
@@ -1207,26 +1206,20 @@ sub one_tool_countersolves {
 	}
     }
 
-    # carp 'Harnesses:', $LF, Dumper (%harnesses);
-
-    foreach my $prover (keys %harnesses) {
-	my $h = $harnesses{$prover};
-	my @results = $h->full_results ();
-	if (scalar @results == 0) {
-	    # warn 'Zero results (or ', $prover, ' is still running).';
-	} elsif (scalar @results == 1) {
-	    my $result = $results[0];
-	    if (defined $result) {
-		if ($result == 0) {
-		    return 1;
-		}
-	    }
-	} else {
-	    # warn 'Huh? Multiple results for ', $prover;
-	}
+    # Close all the output filehandles
+    foreach my $fh (values %temporary_filehandles) {
+	close $fh;
     }
 
-    return 0;
+    # Get the SZS statuses
+    foreach my $prover (@provers) {
+	my $szs_output_path = $temporary_file_paths{$prover};
+	my $szs_status = slurp ($szs_output_path);
+	chomp $szs_status;
+	$statuses{$prover} = $szs_status;
+    }
+
+    return \%statuses;
 
 }
 
