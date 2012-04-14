@@ -170,9 +170,11 @@ sub execute {
     # fofify
     $theory = $theory->fofify ();
 
-    if ($opt_verbose && $theory->has_conjecture_formula ()) {
-	say {*STDERR} warning_message ('The theory at', $SPACE, $theory_path, $SPACE, 'has a conjecture formula; for checking independence, it will be ignored.');
+    if ($theory->has_conjecture_formula ()) {
 	$theory = $theory->strip_conjecture ();
+	say {*STDERR} warning_message ('The theory at', $SPACE, $theory_path, $SPACE, 'has a conjecture formula.');
+	say {*STDERR} 'For the purposes of checking independence, it will be discarded';
+	say {*STDERR} 'so that we can focus on just the axioms of the theory.';
     }
 
     my @axioms = $theory->get_axioms (1);
@@ -187,10 +189,6 @@ sub execute {
 						       \@opt_provers,
 						       { 'timeout' => $opt_timeout });
 
-	if ($opt_debug) {
-	    say {*STDERR} 'Testing indepedence of', $SPACE, $axiom_name, $COLON, $SPACE, $independence;
-	}
-
 	if ($independence == -1) {
 	    $unknown{$axiom_name} = 0;
 	} elsif ($independence == 0) {
@@ -204,6 +202,18 @@ sub execute {
 	if (! $opt_thorough && ($independence == -1 || $independence == 0)) {
 	    last;
 	}
+
+	if ($opt_verbose) {
+	    print $axiom_name, $COLON, $SPACE;
+	    if (defined $known_dependent{$axiom_name}) {
+		say colored ('dependent', $BAD_COLOR);
+	    } elsif (defined $unknown{$axiom_name}) {
+		say colored ('unknown', $UNKNOWN_COLOR);
+	    } else {
+		say colored ('underivable', $GOOD_COLOR);
+	    }
+	}
+
 
     }
 
