@@ -12,6 +12,7 @@ use English qw(-no_match_vars);
 use Data::Dumper;
 use Term::ANSIColor qw(colored);
 use List::MoreUtils qw(any first_index);
+use IPC::Cmd qw(can_run);
 use feature 'say';
 
 extends 'Command';
@@ -20,15 +21,19 @@ use Theory;
 use TPTP qw(ensure_tptp4x_available
 	    ensure_valid_tptp_file
 	    prove_if_possible
-	    ensure_sensible_tptp_theory);
+	    ensure_sensible_tptp_theory
+	    supported_provers
+	    known_prover);
 use Utils qw(error_message
 	     ensure_readable_file
-	     warning_message);
+	     warning_message
+	     asterisk_list);
 
 Readonly my $COLON => q{:};
 Readonly my $TWO_SPACES => q{  };
 Readonly my $SPACE => q{ };
-Readonly my $DESCRIPTION => 'Try proving a conjecture.';
+Readonly my $LF => "\N{LF}";
+Readonly my $DESCRIPTION => 'Is my set of axioms independent?';
 Readonly my $GOOD_COLOR => 'green';
 Readonly my $BAD_COLOR => 'red';
 Readonly my $UNKNOWN_COLOR => 'yellow';
@@ -38,6 +43,8 @@ my $opt_man = 0;
 my $opt_verbose = 0;
 my $opt_debug = 0;
 my $opt_thorough = 0;
+my @opt_provers = ();
+my $opt_timeout = 30; # seconds
 
 sub BUILD {
     my $self = shift;
@@ -57,6 +64,8 @@ around 'execute' => sub {
 	'verbose' => \$opt_verbose,
 	'help|?' => \$opt_help,
 	'thorough' => \$opt_thorough,
+	'with-prover=s' => \@opt_provers,
+	'timeout=i' => \$opt_timeout,
     ) or pod2usage (2);
 
     if ($opt_help) {
@@ -85,9 +94,52 @@ around 'execute' => sub {
 		   -exitval => 2);
     }
 
+    if (scalar @opt_provers == 0) {
+	@opt_provers = ('eprover', 'paradox');
+    }
+
+    my %provers = ();
+
+    foreach my $tool (@opt_provers) {
+	$provers{$tool} = 0;
+    }
+
+    @opt_provers = keys %provers;
+    my @supported_provers = supported_provers ();
+
+    foreach my $prover (@opt_provers) {
+	if (known_prover ($prover)) {
+	    if (can_run ($prover)) {
+		next;
+	    } else {
+		say {*STDERR} error_message ($prover, $SPACE, 'is supported by tipi, but it could not be found.'), $LF;
+		exit 1;
+	    }
+	} else {
+	    say {*STDERR} error_message ('Unknown prover', $SPACE, $prover), $LF;
+	    say {*STDERR} 'The following provers are known:', "\N{LF}";
+	    if (scalar @supported_provers == 0) {
+		say {*STDERR} '(none)';
+	    } else {
+		say asterisk_list (@supported_provers);
+	    }
+	    exit 1;
+	}
+    }
+
     if (! ensure_tptp4x_available ()) {
 	say STDERR error_message ('Cannot run tptp4X');
 	exit 1;
+    }
+
+    if (! defined $opt_timeout) {
+	pod2usage (-msg => error_message ('No timeout was specfied; please supply one.'),
+		   -exitval => 2);
+    }
+
+    if ($opt_timeout < 0) {
+	pod2usage (-msg => error_message ('Invalid value ', $opt_timeout, ' for the --timeout option.'),
+		   -exitval => 2);
     }
 
     my $theory_path = $arguments[0];
@@ -120,42 +172,39 @@ sub execute {
 
     if ($opt_verbose && $theory->has_conjecture_formula ()) {
 	say {*STDERR} warning_message ('The theory at', $SPACE, $theory_path, $SPACE, 'has a conjecture formula; for checking independence, it will be ignored.');
+	$theory = $theory->strip_conjecture ();
     }
-
-    $theory = $theory->strip_conjecture ();
 
     my @axioms = $theory->get_axioms (1);
-
-    if (any { ! defined $_ } @axioms) {
-	croak 'We found an undefined axiom.';
-    }
+    my @sorted_axioms = sort { $a->get_name () cmp $b->get_name () } @axioms;
 
     my %known_dependent = ();
     my %unknown = ();
 
-  INDEPENDENCE:
-    foreach my $i (0 .. scalar @axioms - 1) {
-	my $axiom = $axioms[$i];
+    foreach my $axiom (@sorted_axioms) {
 	my $axiom_name = $axiom->get_name ();
-	my $independence = $theory->independent_axiom ($axiom);
+	my $independence = $theory->independent_axiom ($axiom,
+						       \@opt_provers,
+						       { 'timeout' => $opt_timeout });
 
 	if ($opt_debug) {
 	    say {*STDERR} 'Testing indepedence of', $SPACE, $axiom_name, $COLON, $SPACE, $independence;
 	}
 
-	if ($independence == 1) {
-	    # nothing to do but keep going
+	if ($independence == -1) {
+	    $unknown{$axiom_name} = 0;
 	} elsif ($independence == 0) {
 	    $known_dependent{$axiom_name} = 0;
-	    if (! $opt_thorough) {
-		last INDEPENDENCE;
-	    }
+	} elsif ($independence == 1) {
+	    # keep going
 	} else {
-	    $unknown{$axiom_name} = 0;
-	    if (! $opt_thorough) {
-		last INDEPENDENCE;
-	    }
+	    confess 'Unexpected value', $SPACE, $independence, $SPACE, 'from the independence-checking function.';
 	}
+
+	if (! $opt_thorough && ($independence == -1 || $independence == 0)) {
+	    last;
+	}
+
     }
 
     my @dependent = sort keys %known_dependent;
@@ -170,22 +219,22 @@ sub execute {
     } elsif (scalar @unknown == 0) {
 	say colored ('Dependent', $BAD_COLOR);
 	say 'The following have been shown to be derivable from the other axioms:';
-	say join ("\N{LF}", @dependent_colored);
+	say join ("\N{LF}", @dependent);
 	exit 1;
     } elsif (scalar @dependent == 0) {
 	say colored ('Unknown', $UNKNOWN_COLOR);
 	say 'No axiom was shown to be derivable from the other axioms,';
 	say 'but for each the following axioms we were unable to determine';
 	say 'whether it is underivable from the other axioms:';
-	say join ("\N{LF}", @unknown_colored);
+	say join ("\N{LF}", @unknown);
 	exit 1;
     } else {
 	say colored ('Dependent', $BAD_COLOR);
 	say 'The following have been shown to be derivable from the other axioms:';
-	say join ("\N{LF}", @dependent_colored);
+	say join ("\N{LF}", @dependent);
 	say 'Moreover, for each the following axioms we were unable to determine';
 	say 'whether it is underivable from the other axioms:';
-	say join ("\N{LF}", @unknown_colored);
+	say join ("\N{LF}", @unknown);
 	exit 1;
     }
 
