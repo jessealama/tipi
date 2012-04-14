@@ -752,7 +752,7 @@ sub independent_axiom {
     }
 
     if ($self->has_conjecture_formula ()) {
-	confess 'To test whether a theory (finite set of axioms) is independent, we require that there be no conjecture formula.';
+	confess 'To test whether a theory (finite set of axioms) is independent, we require that it have no conjecture formula.';
     }
 
     my $trimmed_theory = $self->remove_formula ($axiom);
