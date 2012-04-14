@@ -449,5 +449,82 @@ sub known_szs_status {
 		    || defined $code_for{$status});
 }
 
+sub successful_statuses {
+    my @statuses = @_;
+    my @successes = ();
+    foreach my $status (@statuses) {
+	if (is_szs_success ($status)) {
+	    push (@successes, $status);
+	}
+    }
+    if (wantarray) {
+	return @successes;
+    } else {
+	return \@successes;
+    }
+}
+
+sub unsuccessful_statuses {
+    my @statuses = @_;
+    my @unsuccesses = ();
+    foreach my $status (@statuses) {
+	if (! is_szs_success ($status)) {
+	    push (@unsuccesses, $status);
+	}
+    }
+    if (wantarray) {
+	return @unsuccesses;
+    } else {
+	return \@unsuccesses;
+    }
+}
+
+sub compatible_szs_statuses {
+    my @statuses = @_;
+    my $compatible = 1;
+    foreach my $status (@statuses) {
+	foreach my $other_status (@statuses) {
+	    if (szs_contradicts ($status, $other_status)) {
+		$compatible = 0;
+		last;
+	    }
+	}
+	if (! $compatible) {
+	    last;
+	}
+    }
+    return $compatible;
+}
+
+sub maximally_specific_statuses {
+    my @statuses = @_;
+    my @maximal = ();
+    foreach my $status (@statuses) {
+	if (all { szs_implies ($status, $_) } @statuses) {
+	    push (@maximal, $statuses);
+	}
+    }
+    if (wantarray) {
+	return @maximal;
+    } else {
+	return \@maximal;
+    }
+}
+
+sub aggregate_statuses {
+    my @statuses = @_;
+    my @successes = successful_statuses (@statuses);
+    if (scalar @successes == 0) {
+	my @unsuccesses = unsuccessful_statuses (@statuses);
+	if (scalar @unsuccessful_statuses == 0) {
+	    return $UNK;
+	} else {
+	    return maximally_specific_statuses (@unsuccessful_statuses);
+	}
+    } else {
+	return maximally_specific_statuses (@successful_statuses);
+    }
+}
+
 1;
 __END__
