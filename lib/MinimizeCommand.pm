@@ -881,7 +881,7 @@ sub execute {
 		say 'Perhaps this suits your theory exploration needs.';
 		say 'If not, you can retry this command using the --skip-initial-proof';
 		say 'option, in which case we really will consider all possible subsets of';
-		say 'the original theory.  (Warning: there may be very many more subsets.)';
+		say 'the original theory.  (Warning: there may be many more subsets.)';
 	    }
 
 	    if ($opt_confirm) {
