@@ -24,6 +24,8 @@ Readonly my $COLON => q{:};
 Readonly my $LF => "\N{LF}";
 Readonly my $FULL_STOP => q{.};
 Readonly my $DEBUG => q{DEBUG};
+Readonly my $SZS_THEOREM => 'Theorem';
+Readonly my $SZS_SATISFIABLE => 'Satisfiable';
 
 has 'path' => (
     is => 'rw',
