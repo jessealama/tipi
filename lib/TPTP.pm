@@ -166,7 +166,7 @@ sub prove {
 			    '2>', \$error,
 			    $timer);
     } elsif ($prover eq 'paradox') {
-	my @paradox_call = ('paradox', '--tstp', $theory_path);
+	my @paradox_call = ('paradox', '--tstp', '--model', $theory_path);
 	$harness = harness (\@paradox_call,
 			    '>', \$output,
 			    '2>', \$error,
