@@ -887,6 +887,11 @@ sub countersolvable_with {
 sub proves {
     my $self = shift;
     my $formula = shift;
+    my $provers_ref = shift;
+    my $parameters_ref = shift;
+
+    my @provers = defined $provers_ref ? @{$provers_ref} : ();
+    my %parameters = defined $parameters_ref ? %{$parameters_ref} : ();
 
     if ($self->has_conjecture_formula ()) {
 	my $path = $self->get_path ();
