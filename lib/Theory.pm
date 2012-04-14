@@ -897,21 +897,9 @@ sub proves {
     my $formula_as_conjecture = $formula->make_conjecture ();
     my $new_theory = $self->add_formula ($formula_as_conjecture);
 
-    my $result = TPTP::prove ($new_theory);
-    my $szs_status
-	= $result->has_szs_status () ? $result->get_szs_status () : 'Unknown';
-
-    if ($result->timed_out ()) {
-	return -1;
-    } elsif ($szs_status eq 'Unknown') {
-	return -1;
-    } elsif ($szs_status eq 'Theorem') {
-	return 1;
-    } elsif ($szs_status eq 'Unsatisfiable') {
-	return 1;
-    } else {
-	return 0;
-    }
+    return $new_theory->one_tool_solves ($SZS_THEOREM,
+					 \@provers,
+					 \%parameters);
 
 }
 
