@@ -1055,5 +1055,185 @@ sub minimize {
 
 }
 
+sub one_tool_solves {
+    my $self = shift;
+    my $intended_szs_status = shift;
+    my $provers_ref = shift;
+    my $parameters_ref = shift;
+
+    my @provers = defined $provers_ref ? @{$provers_ref} : ();
+    my %parameters = defined $parameters_ref ? %{$parameters_ref} : ();
+
+    my %harnesses = ();
+
+    foreach my $prover (@provers) {
+
+	my $coderef = sub
+	    { if ($self->solvable_with ($prover,
+					$intended_szs_status,
+					\%parameters)) {
+		exit 0;
+	    } else {
+		exit 1;
+	}
+	  };
+	my $harness = harness ($coderef);
+	$harnesses{$prover} = $harness;
+    }
+
+    my $timeout = $parameters{'timeout'};
+
+    if (! defined $timeout) {
+	confess error_message ('We require a timeout, but none was provided.');
+    }
+
+    my $timer = timer ($timeout);
+
+    # Launch all the provers
+    my @harnesses = values %harnesses;
+    foreach my $harness (@harnesses) {
+	$harness->start ();
+    }
+
+    $timer->start ();
+
+    # Wait for a prover to terminate until the clock runs out
+    until ((! $timer->check ()) || (any { ! $_->pumpable () } @harnesses)) {
+
+	# Pump
+	foreach my $harness (@harnesses) {
+	    my $pumpable = eval { $harness->pumpable () };
+	    if (defined $pumpable && $pumpable) {
+		$harness->pump_nb ();
+	    }
+	}
+
+	sleep 1;
+
+    }
+
+    # Finish the first nonpumpable harness.  Kill all the others
+    foreach my $harness (@harnesses) {
+	my $pumpable = eval { $harness->pumpable () };
+	if ( (! defined $pumpable) || (! $pumpable)) {
+	    $harness->kill_kill ();
+	} else {
+	    $harness->finish ();
+	}
+    }
+
+    # carp 'Harnesses:', $LF, Dumper (%harnesses);
+
+    foreach my $prover (keys %harnesses) {
+	my $h = $harnesses{$prover};
+	my @results = $h->full_results ();
+	if (scalar @results == 0) {
+	    # warn 'Zero results (or ', $prover, ' is still running).';
+	} elsif (scalar @results == 1) {
+	    my $result = $results[0];
+	    if (defined $result) {
+		if ($result == 0) {
+		    return 1;
+		}
+	    }
+	} else {
+	    # warn 'Huh? Multiple results for ', $prover;
+	}
+    }
+
+    return 0;
+
+}
+
+sub one_tool_countersolves {
+    my $self = shift;
+    my $intended_szs_status = shift;
+    my $provers_ref = shift;
+    my $parameters_ref = shift;
+
+    my @provers = defined $provers_ref ? @{$provers_ref} : ();
+    my %parameters = defined $parameters_ref ? %{$parameters_ref} : ();
+
+    my %harnesses = ();
+
+    foreach my $prover (@provers) {
+
+	my $coderef = sub
+	    { if ($self->countersolvable_with ($prover,
+					       $intended_szs_status,
+					       \%parameters)) {
+		exit 0;
+	    } else {
+		exit 1;
+	    }
+	  };
+	my $harness = harness ($coderef);
+	$harnesses{$prover} = $harness;
+    }
+
+    my $timeout = $parameters{'timeout'};
+
+    if (! defined $timeout) {
+	confess error_message ('We require a timeout, but none was provided.');
+    }
+
+    my $timer = timer ($timeout);
+
+    # Launch all the provers
+    my @harnesses = values %harnesses;
+    foreach my $harness (@harnesses) {
+	$harness->start ();
+    }
+
+    $timer->start ();
+
+    # Wait for a prover to terminate until the clock runs out
+    until ((! $timer->check ()) || (any { ! $_->pumpable () } @harnesses)) {
+
+	# Pump
+	foreach my $harness (@harnesses) {
+	    my $pumpable = eval { $harness->pumpable () };
+	    if (defined $pumpable && $pumpable) {
+		$harness->pump_nb ();
+	    }
+	}
+
+	sleep 1;
+
+    }
+
+    # Finish the first nonpumpable harness.  Kill all the others
+    foreach my $harness (@harnesses) {
+	my $pumpable = eval { $harness->pumpable () };
+	if (! (defined $pumpable) || ! $pumpable) {
+	    $harness->kill_kill ();
+	} else {
+	    $harness->finish ();
+	}
+    }
+
+    # carp 'Harnesses:', $LF, Dumper (%harnesses);
+
+    foreach my $prover (keys %harnesses) {
+	my $h = $harnesses{$prover};
+	my @results = $h->full_results ();
+	if (scalar @results == 0) {
+	    # warn 'Zero results (or ', $prover, ' is still running).';
+	} elsif (scalar @results == 1) {
+	    my $result = $results[0];
+	    if (defined $result) {
+		if ($result == 0) {
+		    return 1;
+		}
+	    }
+	} else {
+	    # warn 'Huh? Multiple results for ', $prover;
+	}
+    }
+
+    return 0;
+
+}
+
 1;
 __END__

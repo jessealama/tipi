@@ -256,176 +256,18 @@ sub minimize {
 			      { 'timeout' => $opt_timeout });
 }
 
-sub one_tool_solves {
-    my $theory = shift;
-
-    my %harnesses = ();
-    my %parameters = ( 'timeout' => $opt_timeout );
-
-    foreach my $prover (@opt_provers) {
-
-	my $coderef = sub
-	    { if ($theory->solvable_with ($prover,
-					  $opt_solution_szs_status,
-					  \%parameters)) {
-		exit 0;
-	    } else {
-		exit 1;
-	}
-	  };
-	my $harness = harness ($coderef);
-	$harnesses{$prover} = $harness;
-    }
-
-
-    my $timer = timer ($opt_timeout);
-
-    # Launch all the provers
-    my @harnesses = values %harnesses;
-    foreach my $harness (@harnesses) {
-	$harness->start ();
-    }
-
-    $timer->start ();
-
-    # Wait for a prover to terminate until the clock runs out
-    until ((! $timer->check ()) || (any { ! $_->pumpable () } @harnesses)) {
-
-	# Pump
-	foreach my $harness (@harnesses) {
-	    my $pumpable = eval { $harness->pumpable () };
-	    if (defined $pumpable && $pumpable) {
-		$harness->pump_nb ();
-	    }
-	}
-
-	sleep 1;
-
-    }
-
-    # Finish the first nonpumpable harness.  Kill all the others
-    foreach my $harness (@harnesses) {
-	my $pumpable = eval { $harness->pumpable () };
-	if ( (! defined $pumpable) || (! $pumpable)) {
-	    $harness->kill_kill ();
-	} else {
-	    $harness->finish ();
-	}
-    }
-
-    # carp 'Harnesses:', $LF, Dumper (%harnesses);
-
-    foreach my $prover (keys %harnesses) {
-	my $h = $harnesses{$prover};
-	my @results = $h->full_results ();
-	if (scalar @results == 0) {
-	    # warn 'Zero results (or ', $prover, ' is still running).';
-	} elsif (scalar @results == 1) {
-	    my $result = $results[0];
-	    if (defined $result) {
-		if ($result == 0) {
-		    return 1;
-		}
-	    }
-	} else {
-	    # warn 'Huh? Multiple results for ', $prover;
-	}
-    }
-
-    return 0;
-
-}
-
-sub one_tool_countersolves {
-
-    my $theory = shift;
-
-    my %harnesses = ();
-    my %parameters = ( 'timeout' => $opt_timeout );
-
-    foreach my $prover (@opt_provers) {
-
-	my $coderef = sub
-	    { if ($theory->countersolvable_with ($prover,
-						 $opt_solution_szs_status,
-						 \%parameters)) {
-		exit 0;
-	    } else {
-		exit 1;
-	    }
-	  };
-	my $harness = harness ($coderef);
-	$harnesses{$prover} = $harness;
-    }
-
-
-    my $timer = timer ($opt_timeout);
-
-    # Launch all the provers
-    my @harnesses = values %harnesses;
-    foreach my $harness (@harnesses) {
-	$harness->start ();
-    }
-
-    $timer->start ();
-
-    # Wait for a prover to terminate until the clock runs out
-    until ((! $timer->check ()) || (any { ! $_->pumpable () } @harnesses)) {
-
-	# Pump
-	foreach my $harness (@harnesses) {
-	    my $pumpable = eval { $harness->pumpable () };
-	    if (defined $pumpable && $pumpable) {
-		$harness->pump_nb ();
-	    }
-	}
-
-	sleep 1;
-
-    }
-
-    # Finish the first nonpumpable harness.  Kill all the others
-    foreach my $harness (@harnesses) {
-	my $pumpable = eval { $harness->pumpable () };
-	if (! (defined $pumpable) || ! $pumpable) {
-	    $harness->kill_kill ();
-	} else {
-	    $harness->finish ();
-	}
-    }
-
-    # carp 'Harnesses:', $LF, Dumper (%harnesses);
-
-    foreach my $prover (keys %harnesses) {
-	my $h = $harnesses{$prover};
-	my @results = $h->full_results ();
-	if (scalar @results == 0) {
-	    # warn 'Zero results (or ', $prover, ' is still running).';
-	} elsif (scalar @results == 1) {
-	    my $result = $results[0];
-	    if (defined $result) {
-		if ($result == 0) {
-		    return 1;
-		}
-	    }
-	} else {
-	    # warn 'Huh? Multiple results for ', $prover;
-	}
-    }
-
-    return 0;
-
-}
-
 sub one_prover_solves {
     my $theory = shift;
-    return one_tool_solves ($theory);
+    return $theory->one_tool_solves ($opt_solution_szs_status,
+				     \@opt_provers,
+				     { 'timeout' => $opt_timeout });
 }
 
 sub one_prover_countersolves {
     my $theory = shift;
-    my $parameters_ref = shift;
-    return one_tool_countersolves ($theory);
+    return $theory->one_tool_countersolves ($opt_solution_szs_status,
+					    \@opt_provers,
+					    { 'timeout' => $opt_timeout });
 
 }
 
