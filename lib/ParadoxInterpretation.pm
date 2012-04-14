@@ -27,7 +27,7 @@ sub describe {
 
     my $description = join ("\N{LF}", @model_lines);
 
-    return "${description}\N{LF}";
+    return $description;
 }
 
 1;
