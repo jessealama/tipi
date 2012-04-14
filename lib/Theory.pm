@@ -735,6 +735,11 @@ sub postulate {
 sub independent_axiom {
     my $self = shift;
     my $axiom = shift;
+    my $provers_ref = shift;
+    my $parameters_ref = shift;
+
+    my @provers = defined $provers_ref ? @{$provers_ref} : ();
+    my %parameters = defined $parameters_ref ? %{$parameters_ref} : ();
 
     my $axiom_name = $axiom->get_name ();
 
