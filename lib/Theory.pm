@@ -752,7 +752,7 @@ sub independent_axiom {
     }
 
     if ($self->has_conjecture_formula ()) {
-	confess error_message ('To test whether a theory (finite set of axioms) is independent, we require that there be no conjecture formula.');
+	confess 'To test whether a theory (finite set of axioms) is independent, we require that there be no conjecture formula.';
     }
 
     my $trimmed_theory = $self->remove_formula ($axiom);
@@ -1079,7 +1079,7 @@ sub one_tool_solves {
     my $timeout = $parameters{'timeout'};
 
     if (! defined $timeout) {
-	confess error_message ('We require a timeout, but none was provided.');
+	confess 'We require a timeout, but none was provided.';
     }
 
     my $timer = timer ($timeout);
@@ -1169,7 +1169,7 @@ sub one_tool_countersolves {
     my $timeout = $parameters{'timeout'};
 
     if (! defined $timeout) {
-	confess error_message ('We require a timeout, but none was provided.');
+	confess 'We require a timeout, but none was provided.';
     }
 
     my $timer = timer ($timeout);
