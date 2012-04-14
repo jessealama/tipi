@@ -1,18 +1,27 @@
 package SZS;
 
+use strict;
+use warnings;
 use base 'Exporter';
 use Readonly;
 use Carp qw(carp croak confess);
-use List::MoreUtils qw(any);
+use List::MoreUtils qw(any all);
+use Data::Dumper;
+use charnames qw(:full);
 
 our @EXPORT_OK = qw(szs_camelword_for
 		    known_szs_status
 		    is_szs_success
 		    szs_implies
-		    szs_contradicts);
+		    szs_contradicts
+		    szs_status
+		    successful_statuses
+		    unsuccessful_statuses
+		    aggregate_statuses);
 
 Readonly my $SPACE => q{ };
 Readonly my $FULL_STOP => q{.};
+Readonly my $LF => "\N{LF}";
 
 # Don't know at the moment how to handle ASS
 
@@ -48,6 +57,7 @@ Readonly my $FUN => 'FinitelyUnsatisfiable';
 Readonly my $UNS => 'Unsatisfiable';
 Readonly my $WUC => 'WeakerUnsatisfiableConclusion';
 Readonly my $WCT => 'WeakerCounterTheorem';
+Readonly my $NOC => 'NoConsequence';
 
 # Non-success ontology
 Readonly my $NOS => 'NoSuccess';
@@ -220,7 +230,7 @@ Readonly my %isa => (
 
 Readonly my %nota => (
     $UNP => [$SAP, $ESA, $SAT, $THM, $EQV, $TAC, $WEC, $ETH, $TAU, $WTC, $WTH, $CAX, $CSA, $UNS, $NOC],
-    $SAP => [$UNP, $ESA, $SAT, $THM, $EQC, $TAC, $WEC, $ETH, $TAU, $WTC, $WTH, $CAX, $SCA, $TCA, $WCA, $CSA, $NOC],
+    $SAP => [$UNP, $ESA, $SAT, $THM, $EQV, $TAC, $WEC, $ETH, $TAU, $WTC, $WTH, $CAX, $SCA, $TCA, $WCA, $CSA, $NOC],
     $ESA => [$SAT, $THM, $EQV, $TAC, $WEC, $ETH, $TAU, $WTC, $WTH, $CAX, $CSA, $NOC],
     $SAT => [$THM, $EQV, $TAC, $WEC, $ETH, $TAU, $WTC, $WTH, $CSA, $NOC],
     $THM => [$UNP, $ESA, $SAT, $EQV, $TAC, $WEC, $ETH, $TAU, $WTC, $WTH, $CAX, $SCA, $TCA, $WCA],
@@ -422,6 +432,14 @@ sub szs_implies {
     my $szs_code_or_camelword_1 = shift;
     my $szs_code_or_camelword_2 = shift;
 
+    if (! defined $szs_code_or_camelword_1) {
+	confess 'We seem to be missing a mandatory first argument.';
+    }
+
+    if (! defined $szs_code_or_camelword_2) {
+	confess 'We seem to be missing a mandatory second argument.';
+    }
+
     if (defined $camelword_for{$szs_code_or_camelword_1}) {
 	my $camelword_1 = $camelword_for{$szs_code_or_camelword_1};
 	return szs_implies ($camelword_1, $szs_code_or_camelword_2);
@@ -447,6 +465,97 @@ sub known_szs_status {
     return (defined $SUCCESS_CODES{$status}
 		|| defined $NON_SUCCESS_CODES{$status}
 		    || defined $code_for{$status});
+}
+
+sub szs_status {
+    my $status = shift;
+    if (known_szs_status ($status)) {
+	return $status;
+    } else {
+	confess $status, $SPACE, 'is not a known SZS status.';
+    }
+}
+
+sub successful_statuses {
+    my @statuses = @_;
+    my @successes = ();
+    foreach my $status (@statuses) {
+	if (! known_szs_status ($status)) {
+	    confess 'Unknown SZS status', $SPACE, $status;
+	}
+	if (is_szs_success ($status)) {
+	    push (@successes, $status);
+	}
+    }
+    if (wantarray) {
+	return @successes;
+    } else {
+	return \@successes;
+    }
+}
+
+sub unsuccessful_statuses {
+    my @statuses = @_;
+    my @unsuccesses = ();
+    foreach my $status (@statuses) {
+	if (! known_szs_status ($status)) {
+	    confess 'Unknown SZS status', $SPACE, $status;
+	}
+	if (! is_szs_success ($status)) {
+	    push (@unsuccesses, $status);
+	}
+    }
+    if (wantarray) {
+	return @unsuccesses;
+    } else {
+	return \@unsuccesses;
+    }
+}
+
+sub compatible_szs_statuses {
+    my @statuses = @_;
+    my $compatible = 1;
+    foreach my $status (@statuses) {
+	foreach my $other_status (@statuses) {
+	    if (szs_contradicts ($status, $other_status)) {
+		$compatible = 0;
+		last;
+	    }
+	}
+	if (! $compatible) {
+	    last;
+	}
+    }
+    return $compatible;
+}
+
+sub maximally_specific_statuses {
+    my @statuses = @_;
+    my @maximal = ();
+    foreach my $status (@statuses) {
+	if (all { szs_implies ($status, $_) } @statuses) {
+	    push (@maximal, $status);
+	}
+    }
+
+    # Delete duplicates
+    my %maximal = ();
+    foreach my $status (@maximal) {
+	$maximal{$status} = $status;
+    }
+    @maximal = keys %maximal;
+
+    if (wantarray) {
+	return @maximal;
+    } else {
+	return \@maximal;
+    }
+}
+
+sub aggregate_statuses {
+    my @statuses = @_;
+    my @successes = successful_statuses (@statuses);
+    return maximally_specific_statuses (@successes);
 }
 
 1;
