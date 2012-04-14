@@ -744,30 +744,25 @@ sub independent_axiom {
 	croak 'The theory at', $SPACE, $path, $SPACE, 'has no axiom called', $SPACE, $axiom_name, $SPACE, 'or, if it does, it is not identical to the given axiom', "\N{LF}", "\N{LF}", $TWO_SPACES, $axiom_as_tptp_formula;
     }
 
-    my $trimmed_theory = $self->remove_formula ($axiom);
-
-    my $trimmed_theory_conjecture_false
-	= $trimmed_theory->promote_conjecture_to_false_axiom ();
-
-    # carp 'Testing independence of', $SPACE, $axiom_name, ', the trimmed theory is now:', "\N{LF}", Dumper ($trimmed_theory);
-
-    my $satisfiable = $trimmed_theory_conjecture_false->is_satisfiable ();
-
-    if ($satisfiable == -1) {
-	# carp 'Model finder failed; trying a theorem prover.';
-	my $proves = $trimmed_theory->proves ($axiom);
-	if ($proves == -1) {
-	    return -1;
-	} elsif ($proves == 0) {
-	    return 1;
-	} else {
-	    return 0;
-	}
-    } else {
-	return $satisfiable;
+    if ($self->has_conjecture_formula ()) {
+	confess error_message ('To test whether a theory (finite set of axioms) is independent, we require that there be no conjecture formula.');
     }
 
-    return $trimmed_theory->is_satisfiable ();
+    my $trimmed_theory = $self->remove_formula ($axiom);
+
+    my $derivable = $trimmed_theory->proves ($axiom,
+					     \@provers,
+					     \%parameters);
+
+    if ($derivable) {
+	return 0;
+    } else {
+	my $satisfiable = one_tool_solves ($trimmed_theory,
+					   $SZS_SATISFIABLE,
+					   \@provers,
+					   \%parameters);
+	return $satisfiable;
+    }
 
 }
 
