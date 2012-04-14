@@ -106,15 +106,18 @@ sub execute {
 
     my $theory = Theory->new (path => $theory_path);
 
-    # Transform the theory
-    if (defined $opt_with_conjecture_as) {
-	if ($opt_with_conjecture_as eq 'true') {
-	    $theory = $theory->promote_conjecture_to_true_axiom ();
+    # Transform the theory as requested, if it has a conjecture
+    # formula.
+    if ($theory->has_conjecture_formula ()) {
+	if (defined $opt_with_conjecture_as) {
+	    if ($opt_with_conjecture_as eq 'true') {
+		$theory = $theory->promote_conjecture_to_true_axiom ();
+	    } else {
+		$theory = $theory->promote_conjecture_to_false_axiom ();
+	    }
 	} else {
-	    $theory = $theory->promote_conjecture_to_false_axiom ();
+	    $theory = $theory->strip_conjecture ();
 	}
-    } else {
-	$theory = $theory->strip_conjecture ();
     }
 
     my $tptp_result = eval { TPTP::find_model ($theory,
