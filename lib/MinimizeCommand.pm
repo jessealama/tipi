@@ -855,7 +855,6 @@ sub execute {
 
 	    say 'Along the way, we found', $SPACE, $num_candidates_unknown, $SPACE, 'combinations of premises';
 	    say 'for which we could not determine whether they constitute a solution.';
-	    say 'There were', $SPACE, $num_already_known_good, $SPACE, 'combinations that properly extend one of the above solutions.';
 
 	    if ($num_candidates_unknown == 0) {
 		say 'Since we were able to make a decision about every combination of premises,';
