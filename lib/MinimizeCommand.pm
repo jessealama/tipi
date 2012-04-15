@@ -105,17 +105,23 @@ sub print_formula_names_with_color {
 
     my %parameters = defined $parameters_ref ? %{$parameters_ref} : ();
 
+    my $theory = $parameters{'theory'};
+    my $conjecture = defined $theory ? $theory->get_conjecture () : undef;
+    my $conjecture_name = defined $conjecture ? $conjecture->get_name () : undef;
+
     my @formulas = @{$formulas_ref};
 
     if (defined $parameters{'sorted'} && $parameters{'sorted'}) {
-	my @formula_names = map { $_->get_name () } @formulas;
-	my @formula_names_sorted = sort @formula_names;
-	my @formula_names_colored
-	    = map { colored ($_, $color) } @formula_names_sorted;
-	say join ("\N{LF}", @formula_names_colored);
-    } else {
-	my @formula_names_colored = map { $_->name_with_color ($color) } @formulas;
-	say join ("\N{LF}", @formula_names_colored);
+	@formulas = sort { $a->get_name () cmp $b->get_name () } @formulas;
+    }
+
+    foreach my $formula (@formulas) {
+	my $formula_name = $formula->get_name ();
+	if (defined $conjecture_name && $formula_name eq $conjecture_name) {
+	    say colored ($formula_name, $color), $SPACE, '(conjecture)';
+	} else {
+	    say colored ($formula_name, $color);
+	}
     }
 
     return 1;
@@ -418,14 +424,14 @@ sub execute {
 	    if (scalar @used_premises > 0) {
 		print_formula_names_with_color (\@used_premises,
 						$USED_PREMISE_COLOR,
-						{
-						    'sorted' => 1 });
+						{ 'sorted' => 1,
+						  'theory' => $theory });
 	    }
 	    if (scalar @unused_premises > 0) {
 		print_formula_names_with_color (\@unused_premises,
 						$UNUSED_PREMISE_COLOR,
-						{
-						    'sorted' => 1 });
+						{ 'sorted' => 1,
+						  'theory' => $theory });
 	    }
 	} else {
 	    say '(Nothing to report; the SZS status for', $SPACE, $prover, $SPACE, 'was', $SPACE, $szs_status, '.)';
@@ -501,6 +507,18 @@ sub execute {
     @unused_premises = sort @unused_premises;
     @axioms = sort @axioms;
 
+    if ($theory->has_conjecture_formula ()) {
+	my $conjecture = $theory->get_conjecture ();
+	my $conjecture_name = $conjecture->get_name ();
+	my @non_conjecture_axioms = ();
+	foreach my $axiom (@axioms) {
+	    if ($axiom ne $conjecture_name) {
+		push (@non_conjecture_axioms, $axiom);
+	    }
+	}
+	@axioms = @non_conjecture_axioms;
+    }
+
     # carp 'Axioms now:', Dumper (@axioms);
 
     my %needed = ();
@@ -508,9 +526,9 @@ sub execute {
     my %unknown = ();
 
     if ($num_initial_proofs_found == 1) {
-	say colored ('Step 2', 'blue'), ': From the', $SPACE, scalar @axioms, $SPACE, colored ('used', $USED_PREMISE_COLOR), $SPACE, 'premise(s) of the initial proof, determine the', $SPACE, colored ('needed', $NEEDED_PREMISE_COLOR), $SPACE, 'ones.';
+	say colored ('Step 2', 'blue'), ': From the', $SPACE, scalar @axioms, $SPACE, colored ('used', $USED_PREMISE_COLOR), $SPACE, 'non-conjecture premise(s) of the initial proof, determine the', $SPACE, colored ('needed', $NEEDED_PREMISE_COLOR), $SPACE, 'ones.';
     } else {
-	say colored ('Step 2', 'blue'), ': From the', $SPACE, scalar @axioms, $SPACE, colored ('used', $USED_PREMISE_COLOR), $SPACE, 'premise(s) of the initial proofs, determine the', $SPACE, colored ('needed', $NEEDED_PREMISE_COLOR), $SPACE, 'ones.';
+	say colored ('Step 2', 'blue'), ': From the', $SPACE, scalar @axioms, $SPACE, colored ('used', $USED_PREMISE_COLOR), $SPACE, 'non-conjecture premise(s) of the initial proofs, determine the', $SPACE, colored ('needed', $NEEDED_PREMISE_COLOR), $SPACE, 'ones.';
 	say '(We count as', $SPACE, colored ('used', $USED_PREMISE_COLOR), $SPACE, 'those premises that appear in a minimal element';
 	say 'of the partial order of sets of used premises, ordered by inclusion.)'
     }
