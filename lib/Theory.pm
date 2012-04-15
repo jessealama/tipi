@@ -1116,7 +1116,6 @@ sub one_tool_solves {
 
     if (scalar @aggregate == 0) {
 	my @unsuccessful_statuses = unsuccessful_statuses (@statuses);
-	warn 'The aggregate SZS judgments list is empty; here are the unsuccessful SZS statuses:', $LF, Dumper (@unsuccessful_statuses);
 	return -1;
     } elsif (scalar @aggregate == 1) {
 	my $judgment = $aggregate[0];
