@@ -12,6 +12,10 @@ sub BUILD {
     my $raw_text = $self->get_raw_text ();
 
     my %used_premises = ();
+    my $theory = $self->get_background_theory ();
+    my $conjecture = $theory->has_conjecture_formula () ? $theory->get_conjecture ()
+	: undef;
+    my $conjecture_name = defined $conjecture ? $conjecture->get_name () : undef;
 
     my @lines = split / \N{LF} /, $raw_text;
 
@@ -19,10 +23,13 @@ sub BUILD {
 	if ($line =~ / [[] input \N{SPACE} (.+) []] \z/) {
 	    my $used_formula_name = $1;
 	    $used_premises{$used_formula_name} = 0;
+	} elsif ($line =~ / [[] negated \N{SPACE} conjecture []]/ ) {
+	    if (defined $conjecture_name) {
+		$used_premises{$conjecture_name} = 0;
+	    }
 	}
     }
 
-    my $theory = $self->get_background_theory ();
     my @axioms = $theory->get_axioms ();
 
     my @used_formulas = ();
