@@ -95,7 +95,7 @@ around 'execute' => sub {
 	'debug' => \$opt_debug,
 	'help|?' => \$opt_help,
 	'solution-szs-status=s' => \$opt_solution_szs_status,
-	'prover=s' => \$opt_prover,
+	'with-prover=s' => \$opt_prover,
 	'timeout=i' => \$opt_timeout,
     ) or pod2usage (2);
 
