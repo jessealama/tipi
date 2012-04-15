@@ -187,7 +187,6 @@ sub execute {
     my $theory = Theory->new (path => $theory_path);
     my $result = TPTP::prove ($theory,
 			      $opt_prover,
-			      $opt_solution_szs_status,
 			      { 'timeout' => $opt_timeout });
 
     if ($opt_debug) {
