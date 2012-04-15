@@ -261,7 +261,6 @@ sub prove {
     my $theory = shift;
     return TPTP::prove ($theory,
 			$opt_proof_finder,
-			$opt_solution_szs_status,
 			{ 'timeout' => $opt_proof_finder_timeout });
 }
 
