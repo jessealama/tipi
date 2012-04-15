@@ -42,7 +42,7 @@ my $opt_help = 0;
 my $opt_man = 0;
 my $opt_verbose = 0;
 my $opt_debug = 0;
-my $opt_thorough = 0;
+my $opt_quick = 0;
 my @opt_provers = ();
 my $opt_timeout = 30; # seconds
 
@@ -63,7 +63,7 @@ around 'execute' => sub {
 	'debug' => \$opt_debug,
 	'verbose' => \$opt_verbose,
 	'help|?' => \$opt_help,
-	'thorough' => \$opt_thorough,
+	'quick' => \$opt_quick,
 	'with-prover=s' => \@opt_provers,
 	'timeout=i' => \$opt_timeout,
     ) or pod2usage (2);
@@ -199,7 +199,7 @@ sub execute {
 	    confess 'Unexpected value', $SPACE, $independence, $SPACE, 'from the independence-checking function.';
 	}
 
-	if (! $opt_thorough && ($independence == -1 || $independence == 0)) {
+	if (! $opt_quick && ($independence == -1 || $independence == 0)) {
 	    last;
 	}
 
