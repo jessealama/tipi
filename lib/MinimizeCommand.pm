@@ -584,7 +584,7 @@ sub execute {
 	warn 'The minimal theory is', "\N{LF}", Dumper ($small_theory);
     }
 
-    if (one_prover_solves ($small_theory)) {
+    if (one_prover_solves ($small_theory) == 1) {
 
 	say colored ('OK', $GOOD_COLOR);
 
