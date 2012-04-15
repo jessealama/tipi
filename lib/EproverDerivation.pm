@@ -23,7 +23,7 @@ sub BUILD {
     }
 
     my $theory = $self->get_background_theory ();
-    my @axioms = $theory->get_axioms ();
+    my @axioms = $theory->get_axioms (1);
 
     my @used_formulas = ();
     foreach my $formula_name (keys %used_premises) {
