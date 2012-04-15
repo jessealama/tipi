@@ -685,7 +685,6 @@ sub execute {
 
 		if (scalar @successes == 0) {
 		    my @unsuccessful_statuses = unsuccessful_statuses (@statuses);
-		    warn 'The aggregate SZS judgments list is empty; here are the unsuccessful SZS statuses:', $LF, Dumper (@unsuccessful_statuses);
 		    $num_candidates_unknown++;
 		} else {
 		    if (any { szs_implies ($_,
