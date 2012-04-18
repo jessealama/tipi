@@ -38,7 +38,7 @@ use VegasCommand;
 use SelfcheckCommand;
 use UsedPremisesCommand;
 
-Readonly my $VERSION => qv('1.0');
+Readonly my $VERSION => qv('0.9');
 
 # Constant strings
 Readonly my $EMPTY_STRING => q{};
