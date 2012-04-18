@@ -4,6 +4,7 @@ require v5.10;
 
 use Moose;
 use Carp qw(croak carp);
+use Pod::Find qw(pod_where);
 use Pod::Usage;
 use Readonly;
 use Getopt::Long qw(GetOptionsFromArray :config gnu_compat);
@@ -67,16 +68,23 @@ around 'execute' => sub {
 	'show-model' => \$opt_show_model,
 	'timeout=i' => \$opt_timeout,
 	'model-finder=s' => \$opt_model_finder,
-    ) or pod2usage (2);
+    ) or pod2usage (
+	-exitval => 2,
+	-input => pod_where({-inc => 1}, __PACKAGE__),
+    );
 
     if ($opt_help) {
-        pod2usage(1);
+        pod2usage(
+	    -exitval => 1,
+	    -input => pod_where({-inc => 1}, __PACKAGE__),
+	);
     }
 
     if ($opt_man) {
         pod2usage(
             -exitstatus => 0,
-            -verbose    => 2
+            -verbose    => 2,
+	    -input => pod_where({-inc => 1}, __PACKAGE__),
         );
     }
 
@@ -86,13 +94,18 @@ around 'execute' => sub {
     }
 
     if (scalar @arguments == 0) {
-	pod2usage (-msg => error_message ('Please supply a TPTP theory file.'),
-		   -exitval => 2);
+	pod2usage (
+	    -msg => error_message ('Please supply a TPTP theory file.'),
+	    -exitval => 2,
+	    -input => pod_where({-inc => 1}, __PACKAGE__),
+	);
     }
 
     if (scalar @arguments > 1) {
-	pod2usage (-msg => error_message ('Unable to make sense of the prove arguments', "\N{LF}", "\N{LF}", $TWO_SPACES, join ($SPACE, @arguments)),
-		   -exitval => 2);
+	pod2usage (
+	    -msg => error_message ('Unable to make sense of the prove arguments', "\N{LF}", "\N{LF}", $TWO_SPACES, join ($SPACE, @arguments)),
+	    -exitval => 2,
+	    -input => pod_where({-inc => 1}, __PACKAGE__));
     }
 
     if (! ensure_tptp4x_available ()) {
@@ -215,5 +228,41 @@ sub execute {
 __END__
 
 =pod
+
+=head1 NAME
+
+tipi model
+
+=head1 SYNOPSIS
+
+tipi model --help
+
+tipi model --man
+
+tipi model [--show-model] [--timeout=N] TPTP-file
+
+=head1 DESCRIPTION
+
+Given a TPTP problem file, attempt to build a model of the axioms of
+the TPTP problem.
+
+At most --timeout seconds are spent searching for such an
+interpretation (by default, the timeout is 30 seconds).
+
+If --show-model is not specified, we simply print whether the TPTP
+problem is satisfiable (or we print the first SZS status we obtained
+that implies that the problem is satisfiable, or whether some other
+error or non-success condition arose during the search).  If
+--show-model is specified and we were able to determine that the TPTP
+problem is indeed satisfiable, we will output a description of the
+model that witnesss this.
+
+=head1 SEE ALSO
+
+=over 8
+
+=item L<The SZS Ontology|http://www.cs.miami.edu/~tptp/cgi-bin/SeeTPTP?Category=Documents&File=SZSOntology>
+
+=back
 
 =cut

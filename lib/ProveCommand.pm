@@ -238,4 +238,44 @@ __END__
 
 =pod
 
+=head1 NAME
+
+tipi prove
+
+=head1 SYNOPSIS
+
+tipi prove --help
+
+tipi prove --man
+
+tipi prove [--verbose | --debug] [--solution-szs-status=STATUS] [--timeout=N] [--with-prover=PROVER] TPTP-file
+
+=head1 DESCRIPTION
+
+tipi prove simply attempts to solve a reasoning problem specified in
+the TPTP file.
+
+To say what "solve" means, use the C<--solution-szs-status> option.
+If you do not specify this, the SZS status B<Theorem> is used by
+default.
+
+If the C<--timeout> option is absent, a default timeout of 30 seconds
+will be used.
+
+The theorem prover specified in the C<--with-prover> option will be used.
+One can repeat this option.  The interpretation is that you are
+specifying a set of theorem provers to be used to determine
+(un)derivability.  If you omit specifying this option, then by
+default, two provers will be used: E and Paradox.  If the
+C<--with-prover> option is used, these defaults will be discarded, and
+all and only the provers you specify will be used.
+
+=head1 SEE ALSO
+
+=over 8
+
+=item L<The SZS Ontology|http://www.cs.miami.edu/~tptp/cgi-bin/SeeTPTP?Category=Documents&File=SZSOntology>
+
+=back
+
 =cut

@@ -4,6 +4,7 @@ require v5.10;
 
 use Moose;
 use Carp qw(croak carp);
+use Pod::Find qw(pod_where);
 use Pod::Usage;
 use Readonly;
 use Getopt::Long qw(GetOptionsFromArray :config gnu_compat);
@@ -56,16 +57,23 @@ around 'execute' => sub {
 	'verbose' => \$opt_verbose,
 	'help|?' => \$opt_help,
 	'debug' => \$opt_debug,
-    ) or pod2usage (2);
+    ) or pod2usage (
+	-exitval => 2,
+	-input => pod_where({-inc => 1}, __PACKAGE__),
+    );
 
     if ($opt_help) {
-        pod2usage(1);
+        pod2usage(
+	    -exitval => 1,
+	    -input => pod_where({-inc => 1}, __PACKAGE__),
+	);
     }
 
     if ($opt_man) {
         pod2usage(
             -exitstatus => 0,
-            -verbose    => 2
+            -verbose    => 2,
+	    -input => pod_where({-inc => 1}, __PACKAGE__),
         );
     }
 
@@ -75,18 +83,27 @@ around 'execute' => sub {
     }
 
     if (scalar @arguments == 0) {
-	pod2usage (-msg => error_message ('Please supply a TPTP theory file.'),
-		   -exitval => 2);
+	pod2usage (
+	    -msg => error_message ('Please supply a TPTP theory file.'),
+	    -exitval => 2,
+	    -input => pod_where({-inc => 1}, __PACKAGE__),
+	);
     }
 
     if (scalar @arguments > 1) {
-	pod2usage (-msg => error_message ('Unable to make sense of the prove arguments', "\N{LF}", "\N{LF}", $TWO_SPACES, join ($SPACE, @arguments)),
-		   -exitval => 2);
+	pod2usage (
+	    -msg => error_message ('Unable to make sense of the prove arguments', "\N{LF}", "\N{LF}", $TWO_SPACES, join ($SPACE, @arguments)),
+	    -exitval => 2,
+	    -input => pod_where({-inc => 1}, __PACKAGE__),
+);
     }
 
     if ($opt_by_occurrence && $opt_by_name) {
-	pod2usage (-msg => error_message ('Only one of --by-occurrence and --by-name are permitted.'),
-		       -exitval => 2);
+	pod2usage (
+	    -msg => error_message ('Only one of --by-occurrence and --by-name are permitted.'),
+	    -exitval => 2,
+	    -input => pod_where({-inc => 1}, __PACKAGE__),
+	);
     }
 
     if (! ensure_getsymbols_available ()) {
@@ -265,5 +282,24 @@ $symbol,            $num_total_occurrences
 __END__
 
 =pod
+
+=head1 NAME
+
+tipi symbols
+
+=head1 SYNOPSIS
+
+tipi symbols [ --help | --man ]
+
+tipi symbols TPTP-file
+
+=head1 DESCRIPTION
+
+B<tipi symbols> takes a TPTP file and gives information about the
+predicate and function symbols appearing in it.
+
+If a predicate or function occurs exactly once, its name will be
+printed in red.  This is often (but not always) an indication that
+something is wrong with the theory (did you misspell something?).
 
 =cut

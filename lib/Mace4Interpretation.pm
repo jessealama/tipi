@@ -32,4 +32,29 @@ __END__
 
 =pod
 
+=head1 NAME
+
+Mace4Interpretation
+
+=head1 DESCRIPTION
+
+This is a subclass of the Interpretation class devoted to extracting
+information from the output of the Mace4 model finding program.
+
+=head1 DEPENDENCIES
+
+=over 8
+
+=item L<Moose|http://search.cpan.org/~doy/Moose-2.0403/lib/Moose.pm>
+
+=back
+
+=head1 SEE ALSO
+
+=over 8
+
+=item L<Prover9 and Mace4|http://www.cs.unm.edu/~mccune/prover9/>
+
+=back
+
 =cut

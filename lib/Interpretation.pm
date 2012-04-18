@@ -21,4 +21,21 @@ __END__
 
 =pod
 
+=head1 NAME
+
+Interpretation
+
+=head1 DESCRIPTION
+
+This is the Moose base class for interpretations (first-order
+structures).
+
+=head1 DEPENDENCIES
+
+=over 8
+
+=item L<Moose|http://search.cpan.org/~doy/Moose-2.0403/lib/Moose.pm>
+
+=back
+
 =cut

@@ -563,4 +563,20 @@ __END__
 
 =pod
 
+=head1 NAME
+
+SZS
+
+=head1 DESCRIPTION
+
+This package contains utilities for working with SZS statuses.
+
+=head1 SEE ALSO
+
+=over 8
+
+=item L<The SZS Ontology|http://www.cs.miami.edu/~tptp/cgi-bin/SeeTPTP?Category=Documents&File=SZSOntology>
+
+=back
+
 =cut

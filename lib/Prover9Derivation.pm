@@ -62,4 +62,21 @@ __END__
 
 =pod
 
+=head1 NAME
+
+Prover9Derivation
+
+=head1 DESCRIPTION
+
+Prover9Derivation is a subclass of Derivation that extracts used
+premises from proofs output by the Prover9 theorem prover.
+
+=head1 SEE ALSO
+
+=over 8
+
+=item L<Prover9|http://www.cs.unm.edu/~mccune/prover9/>
+
+=back
+
 =cut

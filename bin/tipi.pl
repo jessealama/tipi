@@ -83,34 +83,23 @@ sub summarize_commands {
 
 sub process_commandline {
 
-    GetOptions(
-        'help|?'      => \$opt_help,
-        'man'         => \$opt_man,
-        'version'     => \$opt_version,
-    ) or pod2usage(2);
-
-    if ($opt_help) {
-        pod2usage(1);
-    }
-
-    if ($opt_man) {
-        pod2usage(
-            -exitstatus => 0,
-            -verbose    => 2
-        );
-    }
-
-    if ($opt_version) {
-        say $VERSION;
-        exit 0;
-    }
-
     if (scalar @ARGV == 0) {
 	my $message = message_with_extra_linefeed ('Please supply a tipi command.  The available commands are:');
 	$message .= message (summarize_commands ());
 	$message .= message ('See the man page for more information.  (Invoke this program with the option \'--man\'.)');
 	pod2usage (-message => $message,
 		   -exitstatus => 2);
+    }
+
+    my $first_arg = $ARGV[0];
+
+    if ($first_arg eq 'help'  || $first_arg eq 'man') {
+	pod2usage(0);
+    }
+
+    if ($opt_version) {
+        say $VERSION;
+        exit 0;
     }
 
     my $command = $ARGV[0];

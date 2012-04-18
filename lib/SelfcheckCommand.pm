@@ -5,6 +5,7 @@ use feature 'say';
 
 use Moose;
 use Carp qw(croak carp);
+use Pod::Find qw(pod_where);
 use Pod::Usage;
 use Readonly;
 use Getopt::Long qw(GetOptionsFromArray :config gnu_compat);
@@ -53,16 +54,22 @@ around 'execute' => sub {
 	'man' => \$opt_man,
 	'verbose' => \$opt_verbose,
 	'help|?' => \$opt_help,
-    ) or pod2usage (2);
+    ) or pod2usage (
+	-exitval => 2,
+	-input => pod_where({-inc => 1}, __PACKAGE__));
 
     if ($opt_help) {
-        pod2usage(1);
+        pod2usage(
+	    -exitval => 1,
+	    -input => pod_where({-inc => 1}, __PACKAGE__),
+	);
     }
 
     if ($opt_man) {
         pod2usage(
             -exitstatus => 0,
-            -verbose    => 2
+            -verbose    => 2,
+	    -input => pod_where({-inc => 1}, __PACKAGE__),
         );
     }
 
@@ -72,8 +79,11 @@ around 'execute' => sub {
     }
 
     if (scalar @arguments > 0) {
-	pod2usage (-msg => error_message ('The selcheck command should be run with no arguments.'),
-		   -exitval => 2);
+	pod2usage (
+	    -msg => error_message ('The selcheck command should be run with no arguments.'),
+	    -exitval => 2,
+	    -input => pod_where({-inc => 1}, __PACKAGE__),
+	);
     }
 
     return $self->$orig (@arguments);
@@ -182,5 +192,21 @@ sub execute {
 __END__
 
 =pod
+
+=head1 NAME
+
+tipi selfcheck
+
+=head1 SYNOPSIS
+
+tipi selfcheck
+
+=head1 DESCRIPTION
+
+This simple command will check whether you are able to run B<tipi> at
+all.  If it doesn't even run, then you are probably missing some Perl
+dependencies.  If it does run but you are missing some other non-Perl
+dependencies, you will be warned in brigh red text that cannot be
+missed.
 
 =cut

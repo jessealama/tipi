@@ -4,6 +4,7 @@ require v5.10;
 
 use Moose;
 use Carp qw(croak carp);
+use Pod::Find qw(pod_where);
 use Pod::Usage;
 use Readonly;
 use Getopt::Long qw(GetOptionsFromArray :config gnu_compat);
@@ -130,16 +131,23 @@ around 'execute' => sub {
 	'proof-finder-timeout=i' => \$opt_proof_finder_timeout,
 	'only-used' => \$opt_show_only_final_used_premises,
 	'only-unused' => \$opt_show_only_final_unused_premises,
-    ) or pod2usage (2);
+    ) or pod2usage (
+	-exitval => 2,
+	-input => pod_where({-inc => 1}, __PACKAGE__),
+    );
 
     if ($opt_help) {
-        pod2usage(1);
+        pod2usage(
+	    -exitval => 1,
+	    -input => pod_where({-inc => 1}, __PACKAGE__),
+	);
     }
 
     if ($opt_man) {
         pod2usage(
             -exitstatus => 0,
-            -verbose    => 2
+            -verbose    => 2,
+	    -input => pod_where({-inc => 1}, __PACKAGE__),
         );
     }
 
@@ -149,29 +157,43 @@ around 'execute' => sub {
     }
 
     if (scalar @arguments == 0) {
-	pod2usage (-msg => error_message ('Please supply a TPTP theory file.'),
-		   -exitval => 2);
+	pod2usage (
+	    -msg => error_message ('Please supply a TPTP theory file.'),
+	    -exitval => 2,
+	    -input => pod_where({-inc => 1}, __PACKAGE__),
+	);
     }
 
     if (scalar @arguments > 1) {
-	pod2usage (-msg => error_message ('Unable to make sense of the arguments', "\N{LF}", "\N{LF}", $TWO_SPACES, join ($SPACE, @arguments)),
-		   -exitval => 2);
+	pod2usage (
+	    -msg => error_message ('Unable to make sense of the arguments', "\N{LF}", "\N{LF}", $TWO_SPACES, join ($SPACE, @arguments)),
+	    -exitval => 2,
+	    -input => pod_where({-inc => 1}, __PACKAGE__),
+	);
     }
 
     if ($opt_solution_szs_status eq $EMPTY_STRING) {
-	pod2usage (-msg => error_message ('The empty string is not an acceptable SZS problem status.'),
-		   -exitval => 2);
+	pod2usage (
+	    -msg => error_message ('The empty string is not an acceptable SZS problem status.'),
+	    -exitval => 2,
+	    -input => pod_where({-inc => 1}, __PACKAGE__));
 
     }
 
     if ($opt_solution_szs_status !~ /\A [A-Za-z]+ \z/) {
-	pod2usage (-msg => error_message ('Unacceptable SZS problem status', "\N{LF}", "\N{LF}", $TWO_SPACES, $opt_solution_szs_status),
-		   -exitval => 2);
+	pod2usage (
+	    -msg => error_message ('Unacceptable SZS problem status', "\N{LF}", "\N{LF}", $TWO_SPACES, $opt_solution_szs_status),
+	    -exitval => 2,
+	    -input => pod_where({-inc => 1}, __PACKAGE__),
+	);
     }
 
     if ($opt_syntactically && $opt_semantically) {
-	pod2usage (-msg => error_message ('Please choose which reprove procedure you would like to use (the two options are --syntactically and --semantically).'),
-		   -exitval => 2);
+	pod2usage (
+	    -msg => error_message ('Please choose which reprove procedure you would like to use (the two options are --syntactically and --semantically).'),
+	    -exitval => 2,
+	    -input => pod_where({-inc => 1}, __PACKAGE__),
+	);
     }
 
     # debult to syntactically
@@ -180,13 +202,19 @@ around 'execute' => sub {
     }
 
     if ($opt_model_finder_timeout < 0) {
-	pod2usage (-msg => error_message ('Invalid value ', $opt_model_finder_timeout, ' for the model-finder timeout option.'),
-		   -exitval => 2);
+	pod2usage (
+	    -msg => error_message ('Invalid value ', $opt_model_finder_timeout, ' for the model-finder timeout option.'),
+	    -exitval => 2,
+	    -input => pod_where({-inc => 1}, __PACKAGE__),
+	);
     }
 
     if ($opt_proof_finder_timeout < 0) {
-	pod2usage (-msg => error_message ('Invalid value ', $opt_proof_finder_timeout, ' for the proof-finder timeout option.'),
-		   -exitval => 2);
+	pod2usage (
+	    -msg => error_message ('Invalid value ', $opt_proof_finder_timeout, ' for the proof-finder timeout option.'),
+	    -exitval => 2,
+	    -input => pod_where({-inc => 1}, __PACKAGE__),
+	);
     }
 
     if (! ensure_tptp4x_available ()) {
@@ -195,8 +223,11 @@ around 'execute' => sub {
     }
 
     if ($opt_proof_finder eq $EMPTY_STRING) {
-	pod2usage (-msg => error_message ('The empty string is not an acceptable value for the --proof-finder option.'),
-		   -exitval => 2);
+	pod2usage (
+	    -msg => error_message ('The empty string is not an acceptable value for the --proof-finder option.'),
+	    -exitval => 2,
+	    -input => pod_where({-inc => 1}, __PACKAGE__),
+	);
     }
 
     if (! can_run ($opt_proof_finder)) {
@@ -205,8 +236,11 @@ around 'execute' => sub {
     }
 
     if ($opt_model_finder eq $EMPTY_STRING) {
-	pod2usage (-msg => error_message ('The empty string is not an acceptable value for the --proof-finder option.'),
-		   -exitval => 2);
+	pod2usage (
+	    -msg => error_message ('The empty string is not an acceptable value for the --proof-finder option.'),
+	    -exitval => 2,
+	    -input => pod_where({-inc => 1}, __PACKAGE__),
+	);
     }
 
     if (! can_run ($opt_model_finder)) {
@@ -422,5 +456,75 @@ sub reprove_semantically {
 __END__
 
 =pod
+
+=head1 NAME
+
+tipi reprove
+
+=head1 SYNOPSIS
+
+tipi reprove --help
+
+tipi reprove --man
+
+tipi reprove [ --verbose | --debug ] [ --syntactically | --semantically ] [--proof-finder=PROVER] [--model-finder=MODEL-FINDER] [--proof-finder-timeout=N] [--model-finder-timeout=N] [--solution-szs-status=STATUS] TPTP-file
+
+=head1 DESCRIPTION
+
+B<tipi reprove> attempts to solve a problem from fewer premises.
+
+There are two modes in which B<tipi reprove> operates: syntactically
+or semantically (indicated by the C<--syntactically> and
+C<--semantically> options).  One or the other has to be chosen.  By
+default, the syntactic reprove method is chosen.  We describe the two
+methods in detail below; we now proceed to descrbe options common to
+both.
+
+If the C<--timeout> option is absent, a default timeout of 30 seconds
+will be used.
+
+The theorem prover specified in the C<--with-prover> option will be used.
+One can repeat this option.  The interpretation is that you are
+specifying a set of theorem provers to be used to determine
+(un)derivability.  If you omit specifying this option, then by
+default, two provers will be used: E and Paradox.  If the
+C<--with-prover> option is used, these defaults will be discarded, and
+all and only the provers you specify will be used.
+
+The C<--solution-szs-status> option is used to indicate what it means
+to solve the TPTP problem.  The default is B<Theorem>, i.e., the
+problem is successfuly solved if a theorem prover assigns the SZS
+status B<Theorem> to the problem (or some other SZS status that
+implies B<Theorem>).
+
+=head2 Syntactic reproving
+
+The definition of syntactic reproving is simple: from a solution of a
+problem, extract the used and unused premises.  If there are unused
+premises, throw these away from the problem and try again.  Keep doing
+this until we find that there are no unused premises, i.e., all
+premises are used.
+
+=head2 Semantic reproving
+
+Semantic reproving proceeds by simply deleting premises that are known
+to be unnecessary.  Generally one uses semantic methods (such as using
+finite model finders) to determine underivability, which is a sign
+that a premise really is needed (if it is deleted, then the problem
+becomes countersatisfiable).  Hence the name "semantic reproving".
+
+We work only with SZS statuses.  Thus if the intended SZS status of
+your problem is not B<Theorem>, use the C<--solution-szs-status>
+option to specify it.  We will then try, for each premise, to see
+whether we can reach a solution SZS status that implies the negation
+of the SZS status you provided.
+
+=head1 SEE ALSO
+
+=over 8
+
+=item L<The SZS Ontology|http://www.cs.miami.edu/~tptp/cgi-bin/SeeTPTP?Category=Documents&File=SZSOntology>
+
+=back
 
 =cut

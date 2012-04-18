@@ -48,4 +48,21 @@ __END__
 
 =pod
 
+=head1 NAME
+
+VampireDerivation
+
+=head1 DESCRIPTION
+
+VampireDerivation is a subclass of Derivation that extracts used
+premises from proofs output by the Vampire theorem prover.
+
+=head1 SEE ALSO
+
+=over 8
+
+=item L<The Vampire theorem prover|http://www.vprover.org/>
+
+=back
+
 =cut

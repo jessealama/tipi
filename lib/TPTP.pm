@@ -11,6 +11,8 @@ use IPC::Cmd qw(can_run);
 use IPC::Run qw(run start timer harness timeout);
 use Carp qw(croak carp);
 use Readonly;
+use Pod::Find qw(pod_where);
+use Pod::Usage;
 use charnames qw(:full);
 use English qw(-no_match_vars);
 use Data::Dumper;
@@ -372,5 +374,22 @@ sub incompatible_szs_statuses {
 __END__
 
 =pod
+
+=head1 NAME
+
+TPTP
+
+=head1 DESCRIPTION
+
+This package contains some utilities for working with TPTP problem
+files (theories).
+
+=head1 SEE ALSO
+
+=over 8
+
+=item L<The TPTP and TSTP Quick Guide|http://www.cs.miami.edu/~tptp/TPTP/QuickGuide/>
+
+=back
 
 =cut

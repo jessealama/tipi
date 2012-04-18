@@ -1,6 +1,8 @@
 package EproverDerivation;
 
 use Moose;
+use Pod::Find qw(pod_where);
+use Pod::Usage;
 use Regexp::DefaultFlags;
 use charnames qw(:full);
 use English qw(-no_match_vars);
@@ -40,5 +42,22 @@ sub BUILD {
 __END__
 
 =pod
+
+=head1 NAME
+
+EproverDerivation
+
+=head1 DESCRIPTION
+
+EproverDerivation is a subclass of Derivation that extracts used
+premises from proofs output by the E theorem prover.
+
+=head1 SEE ALSO
+
+=over 8
+
+=item L<The E theorem prover|http://www.eprover.org/>
+
+=back
 
 =cut
