@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-require 5.10; # for the 'say' feature
+require v5.10.0; # for the 'say' feature
 use feature 'say';
 
 use Getopt::Long qw(:config gnu_compat pass_through);
