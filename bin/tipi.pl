@@ -141,7 +141,7 @@ my $eval_message = $EVAL_ERROR;
 if (defined $eval_command) {
     exit 0;
 } elsif (defined $eval_message) {
-    print {*STDERR} error_message ('Something went wrong executing the command \'', $command_name, '\'');
+    print {*STDERR} error_message ('Something went wrong executing', $SPACE, $command_name);
     if (scalar @ARGV == 0) {
 	say STDERR (' (without any further arguments).');
     } else {
