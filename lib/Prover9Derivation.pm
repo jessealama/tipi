@@ -51,8 +51,6 @@ sub BUILD {
 
     my @used_formulas = keys %used_premises;
 
-    # carp 'Used formulas are thus:', $LF, Dumper (@used_formulas);
-
     $self->_set_used_premises (\@used_formulas);
 
     return $self;
