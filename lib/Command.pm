@@ -16,4 +16,12 @@ __END__
 
 =pod
 
+=head1 NAME
+
+Command
+
+=head1 DESCRIPTION
+
+This is the base class of all Tipi commands.  It does not do anything.
+
 =cut
