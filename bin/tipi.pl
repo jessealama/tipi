@@ -136,7 +136,7 @@ my $command = $COMMANDS{$command_name};
 shift @ARGV;
 
 my $eval_command = eval { $command->execute (@ARGV) };
-my $eval_message = $@;
+my $eval_message = $EVAL_ERROR;
 
 if (defined $eval_command) {
     exit 0;
