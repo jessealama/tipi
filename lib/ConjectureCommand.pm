@@ -27,7 +27,7 @@ Readonly my $TWO_SPACES => q{  };
 Readonly my $SPACE => q{ };
 Readonly my $USED_PREMISE_COLOR => 'blue';
 Readonly my $UNUSED_PREMISE_COLOR => 'bright_black';
-Readonly my $DESCRIPTION => 'Prove a conjecture again, perhaps using different premises.';
+Readonly my $DESCRIPTION => 'Print the conjecture(s) of a TPTP problem file.';
 Readonly my $GOOD_COLOR => 'green';
 Readonly my $BAD_COLOR => 'red';
 
