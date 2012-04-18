@@ -14,6 +14,7 @@ use version;
 use Regexp::DefaultFlags;
 use List::MoreUtils qw(all);
 use Term::ANSIColor;
+use English qw(-no_match_vars);
 
 use FindBin qw($RealBin);
 use lib "$RealBin/../lib";
