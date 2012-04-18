@@ -47,7 +47,9 @@ sub BUILD {
 	}
     }
 
-    my @used_formulas = map { $theory->formula_with_name ($_) } keys %used_premises;
+    # my @used_formulas = map { $theory->formula_with_name ($_) } keys %used_premises;
+
+    my @used_formulas = keys %used_premises;
 
     # carp 'Used formulas are thus:', $LF, Dumper (@used_formulas);
 

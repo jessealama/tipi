@@ -337,6 +337,19 @@ sub get_axioms_by_name {
     }
 }
 
+sub get_formulas_by_name {
+    my $self = shift;
+
+    my @formulas = $self->get_formulas (1);
+    my @formula_names = map { $_->get_name () } @formulas;
+
+    if (wantarray) {
+	return @formula_names;
+    } else {
+	return \@formula_names;
+    }
+}
+
 sub has_conjecture_formula {
     my $self = shift;
     my @formulas = $self->get_formulas (1);
@@ -1220,6 +1233,18 @@ sub run_simultaneously_till_first_success {
 
     return \%statuses;
 
+}
+
+sub is_known_formula_name {
+    my $self = shift;
+    my $name = shift;
+    my @formulas = $self->get_formulas_by_name ();
+
+    if (scalar @formulas == 0) {
+	return 0;
+    } else {
+	return any { $_ eq $name } @formulas;
+    }
 }
 
 1;

@@ -30,13 +30,14 @@ sub BUILD {
 	}
     }
 
-    my @axioms = $theory->get_axioms ();
+    my @used_formulas = keys %used_premises;
 
-    my @used_formulas = ();
-    foreach my $formula_name (keys %used_premises) {
-	my $formula = $theory->formula_with_name ($formula_name);
-	push (@used_formulas, $formula);
-    }
+
+    # my @axioms = $theory->get_axioms ();
+    # foreach my $formula_name (keys %used_premises) {
+    # 	my $formula = $theory->formula_with_name ($formula_name);
+    # 	push (@used_formulas, $formula);
+    # }
 
     $self->_set_used_premises (\@used_formulas);
 

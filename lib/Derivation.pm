@@ -14,10 +14,8 @@ use feature 'say';
 Readonly my $LF => "\N{LF}";
 
 has 'background_theory' => (
-    isa => 'Theory',
     is => 'ro',
     reader => 'get_background_theory',
-    required => 1,
 );
 
 has 'raw_text' => (
@@ -46,13 +44,12 @@ sub get_used_premises {
 
 sub get_unused_premises {
     my $self = shift;
+
     my $background = $self->get_background_theory ();
 
-    my @axioms = $background->get_axioms (1);
-    my @used = $self->get_used_premises ();
-
+    my @axioms = defined $background ? $background->get_axioms (1) : ();
     my @axiom_names = map { $_->get_name () } @axioms;
-    my @used_names = map { $_->get_name () } @used;
+    my @used_names = $self->get_used_premises ();
 
     my %unused = ();
     foreach my $axiom (@axiom_names) {
@@ -63,7 +60,7 @@ sub get_unused_premises {
 	delete $unused{$formula};
     }
 
-    my @unused = map { $background->formula_with_name ($_) } keys %unused;
+    my @unused = keys %unused;
 
     if (wantarray) {
 	return @unused;
@@ -76,6 +73,11 @@ sub theory_from_used_premises {
     my $self = shift;
 
     my $theory = $self->get_background_theory ();
+
+    if (! defined $theory) {
+	confess 'We do not yet handle creating a theory from used premises in the absense of a background theory.';
+    }
+
     my @used_premises = @{$self->get_used_premises ()};
     my @used_premise_names = map { $_->get_name () } @used_premises;
 

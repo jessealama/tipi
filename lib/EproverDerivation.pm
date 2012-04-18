@@ -22,14 +22,15 @@ sub BUILD {
 	}
     }
 
-    my $theory = $self->get_background_theory ();
-    my @axioms = $theory->get_axioms (1);
+    my @used_formulas = keys %used_premises;
 
-    my @used_formulas = ();
-    foreach my $formula_name (keys %used_premises) {
-	my $formula = $theory->formula_with_name ($formula_name);
-	push (@used_formulas, $formula);
-    }
+    # my $theory = $self->get_background_theory ();
+    # my @axioms = $theory->get_axioms (1);
+
+    # foreach my $formula_name (keys %used_premises) {
+    # 	my $formula = $theory->formula_with_name ($formula_name);
+    # 	push (@used_formulas, $formula);
+    # }
 
     $self->_set_used_premises (\@used_formulas);
 
