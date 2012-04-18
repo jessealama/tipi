@@ -387,3 +387,7 @@ sub asterisk_list {
 
 1;
 __END__
+
+=pod
+
+=cut

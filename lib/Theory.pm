@@ -1249,3 +1249,7 @@ sub is_known_formula_name {
 
 1;
 __END__
+
+=pod
+
+=cut

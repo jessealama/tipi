@@ -18,3 +18,7 @@ has 'background_theory' => (
 
 1;
 __END__
+
+=pod
+
+=cut

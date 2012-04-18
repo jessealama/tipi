@@ -875,3 +875,7 @@ sub print_solvable_supertheories {
 
     1;
 __END__
+
+=pod
+
+=cut

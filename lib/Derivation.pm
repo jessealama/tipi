@@ -104,3 +104,7 @@ sub theory_from_used_premises {
 
 1;
 __END__
+
+=pod
+
+=cut

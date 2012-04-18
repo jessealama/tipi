@@ -370,3 +370,7 @@ sub incompatible_szs_statuses {
 }
 
 __END__
+
+=pod
+
+=cut

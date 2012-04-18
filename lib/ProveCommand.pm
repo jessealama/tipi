@@ -235,3 +235,7 @@ sub execute {
 
 1;
 __END__
+
+=pod
+
+=cut

@@ -163,3 +163,7 @@ if (defined $eval_command) {
     exit 1;
 }
 __END__
+
+=pod
+
+=cut

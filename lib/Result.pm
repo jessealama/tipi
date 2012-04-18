@@ -187,3 +187,7 @@ sub output_as_model {
 
 1;
 __END__
+
+=pod
+
+=cut

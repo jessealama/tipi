@@ -560,3 +560,7 @@ sub aggregate_statuses {
 
 1;
 __END__
+
+=pod
+
+=cut
