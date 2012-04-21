@@ -38,6 +38,7 @@ use Utils qw(asterisk_list
 	     warning_message
 	     all_sublists
 	     all_nonempty_sublists
+	     print_formula_names_with_color
 	     remove_duplicate_lists
 	     subtuple
 	     tuple_less_than_wrt_ordering
@@ -96,36 +97,6 @@ sub fill_up_to_column {
     my $str_len = length $str;
     my $padding = $str_len < $column ? $SPACE x ($column - $str_len) : $EMPTY_STRING;
     return ($str . $padding);
-
-}
-
-sub print_formula_names_with_color {
-    my $formulas_ref = shift;
-    my $color = shift;
-    my $parameters_ref = shift;
-
-    my %parameters = defined $parameters_ref ? %{$parameters_ref} : ();
-
-    my $theory = $parameters{'theory'};
-    my $conjecture = defined $theory ? $theory->get_conjecture () : undef;
-    my $conjecture_name = defined $conjecture ? $conjecture->get_name () : undef;
-
-    my @formulas = @{$formulas_ref};
-
-    if (defined $parameters{'sorted'} && $parameters{'sorted'}) {
-	@formulas = sort { $a->get_name () cmp $b->get_name () } @formulas;
-    }
-
-    foreach my $formula (@formulas) {
-	my $formula_name = $formula->get_name ();
-	if (defined $conjecture_name && $formula_name eq $conjecture_name) {
-	    say colored ($formula_name, $color), $SPACE, '(conjecture)';
-	} else {
-	    say colored ($formula_name, $color);
-	}
-    }
-
-    return 1;
 
 }
 

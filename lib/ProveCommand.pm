@@ -24,7 +24,8 @@ use TPTP qw(ensure_tptp4x_available
 	    known_prover
 	    tptp4X_output);
 use Utils qw(error_message
-	     ensure_readable_file);
+	     ensure_readable_file
+	     print_formula_names_with_color);
 use SZS qw(is_szs_success
 	   szs_implies
 	   known_szs_status);
@@ -50,29 +51,6 @@ my $opt_debug = 0;
 my $opt_solution_szs_status = 'Theorem';
 my $opt_prover = 'eprover';
 my $opt_timeout = 30; # seconds
-
-sub print_formula_names_with_color {
-    my $formulas_ref = shift;
-    my $color = shift;
-    my $parameters_ref = shift;
-
-    my %parameters = defined $parameters_ref ? %{$parameters_ref} : ();
-
-    my @formulas = @{$formulas_ref};
-
-    if (defined $parameters{'sorted'} && $parameters{'sorted'}) {
-	my @formulas_sorted = sort @formulas;
-	my @formulas_colored
-	    = map { colored ($_, $color) } @formulas_sorted;
-	say join ("\N{LF}", @formulas_colored);
-    } else {
-	my @formula_names_colored = map { colored ($_, $color) } @formulas;
-	say join ("\N{LF}", @formula_names_colored);
-    }
-
-    return 1;
-
-}
 
 sub BUILD {
     my $self = shift;
