@@ -61,13 +61,12 @@ sub print_formula_names_with_color {
     my @formulas = @{$formulas_ref};
 
     if (defined $parameters{'sorted'} && $parameters{'sorted'}) {
-	my @formula_names = map { $_->get_name () } @formulas;
-	my @formula_names_sorted = sort @formula_names;
-	my @formula_names_colored
-	    = map { colored ($_, $color) } @formula_names_sorted;
-	say join ("\N{LF}", @formula_names_colored);
+	my @formulas_sorted = sort @formulas;
+	my @formulas_colored
+	    = map { colored ($_, $color) } @formulas_sorted;
+	say join ("\N{LF}", @formulas_colored);
     } else {
-	my @formula_names_colored = map { $_->name_with_color ($color) } @formulas;
+	my @formula_names_colored = map { colored ($_, $color) } @formulas;
 	say join ("\N{LF}", @formula_names_colored);
     }
 
