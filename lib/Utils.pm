@@ -1,5 +1,8 @@
 package Utils;
 
+require v5.10.0;
+use feature 'say';
+
 use base qw(Exporter);
 use warnings;
 use strict;
