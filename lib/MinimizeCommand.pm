@@ -343,7 +343,7 @@ sub execute {
 			@used_premises = $derivation->get_used_premises ();
 			foreach my $axiom (@axioms) {
 			    my $axiom_name = $axiom->get_name ();
-			    if (none { $_->get_name eq $axiom_name } @used_premises) {
+			    if (none { $_ eq $axiom_name } @used_premises) {
 				push (@unused_premises, $axiom);
 			    }
 			}
@@ -405,6 +405,7 @@ sub execute {
 	if (is_szs_success ($szs_status)) {
 	    my @used_premises = @{$used_by_prover{$prover}};
 	    my @unused_premises = @{$unused_by_prover{$prover}};
+	    my @unused_premise_names = map { $_->get_name () } @unused_premises;
 
 	    if (scalar @used_premises > 0) {
 		print_formula_names_with_color (\@used_premises,
@@ -413,7 +414,7 @@ sub execute {
 						  'theory' => $theory });
 	    }
 	    if (scalar @unused_premises > 0) {
-		print_formula_names_with_color (\@unused_premises,
+		print_formula_names_with_color (\@unused_premise_names,
 						$UNUSED_PREMISE_COLOR,
 						{ 'sorted' => 1,
 						  'theory' => $theory });
@@ -429,8 +430,8 @@ sub execute {
 	my $szs_status = $initial_proof_szs_status{$prover};
 	if (is_szs_success ($szs_status)) {
 	    my @used_premises = @{$used_by_prover{$prover}};
-	    my @used_premises_names = map { $_->get_name () } @used_premises;
-	    my @used_premises_names_sorted = sort @used_premises_names;
+	    # my @used_premises_names = map { $_->get_name () } @used_premises;
+	    my @used_premises_names_sorted = sort @used_premises;
 	    if (all { my $other_prover = $_;
 		      my $other_prover_szs_status
 			  = $initial_proof_szs_status{$other_prover};

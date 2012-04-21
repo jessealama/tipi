@@ -81,19 +81,19 @@ sub theory_from_used_premises {
     }
 
     my @used_premises = @{$self->get_used_premises ()};
-    my @used_premise_names = map { $_->get_name () } @used_premises;
 
     (my $tmp_theory_fh, my $tmp_theory_path) = tempfile ()
 	or croak 'Failed to create a temporary file.';
 
-    foreach my $formula (@used_premises) {
+    foreach my $formula_name (@used_premises) {
+	my $formula = $theory->formula_with_name ($formula_name);
 	print {$tmp_theory_fh} $formula->tptpify (), "\n";
     }
 
     if ($theory->has_conjecture_formula ()) {
 	my $conjecture = $theory->get_conjecture ();
 	my $conjecture_name = $conjecture->get_name ();
-	if (none { $_->get_name () eq $conjecture_name } @used_premises) {
+	if (none { $_ eq $conjecture_name } @used_premises) {
 	    say {$tmp_theory_fh} $conjecture->tptpify ();
 	}
     }
