@@ -337,7 +337,6 @@ sub solve_greedily {
 
     foreach my $tool (@opt_provers) {
 	my $szs_status = $theory->solve ($tool,
-					 $opt_solution_szs_status,
 					 { 'timeout' => $opt_timeout,
 					   'debug' => $opt_debug });
 	$status{$tool} = $szs_status;
