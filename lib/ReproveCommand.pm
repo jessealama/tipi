@@ -3,7 +3,7 @@ package ReproveCommand;
 require v5.10;
 
 use Moose;
-use Carp qw(croak carp);
+use Carp qw(croak carp cluck);
 use Pod::Find qw(pod_where);
 use Pod::Usage;
 use Readonly;
@@ -46,6 +46,7 @@ Readonly my $COMMA => q{,};
 Readonly my $COLON => q{:};
 Readonly my $SLASH => q{/};
 Readonly my $FULL_STOP => q{.};
+Readonly my $LF => "\N{LF}";
 Readonly my $USED_PREMISE_COLOR => 'blue';
 Readonly my $UNUSED_PREMISE_COLOR => 'yellow';
 Readonly my $DESCRIPTION => 'Prove a conjecture again, focusing in on needed premises.';
@@ -96,15 +97,18 @@ sub print_formula_names_with_color {
 
     my @formulas = @{$formulas_ref};
 
-    if (defined $parameters{'sorted'} && $parameters{'sorted'}) {
-	my @formula_names = map { $_->get_name () } @formulas;
-	my @formula_names_sorted = sort @formula_names;
-	my @formula_names_colored
-	    = map { colored ($_, $color) } @formula_names_sorted;
-	say join ("\N{LF}", @formula_names_colored);
-    } else {
-	my @formula_names_colored = map { $_->name_with_color ($color) } @formulas;
-	say join ("\N{LF}", @formula_names_colored);
+    if (scalar @formulas > 0) {
+
+	if (defined $parameters{'sorted'} && $parameters{'sorted'}) {
+	    my @formula_names_sorted = sort @formulas;
+	    my @formula_names_colored
+		= map { colored ($_, $color) } @formula_names_sorted;
+	    say join ("\N{LF}", @formula_names_colored);
+	} else {
+	    my @formula_names_colored = map { colored ($_, $color) } @formulas;
+	    say join ("\N{LF}", @formula_names_colored);
+	}
+
     }
 
     return 1;
@@ -301,7 +305,7 @@ sub prove {
 sub reprove_syntactically {
     my $theory = shift;
     my @used_premises = ();
-    my @unused_premises = $theory->get_formulas (1);
+    my @unused_premises = $theory->get_formulas_by_name (1);
     my $result = prove ($theory);
     my $derivation = $result->output_as_derivation ();
     my $szs_status = $result->get_szs_status ();
@@ -312,16 +316,16 @@ sub reprove_syntactically {
 	       && szs_implies ($szs_status, $opt_solution_szs_status)
 		   && scalar @unused_premises > 0) {
 
-	if (! $opt_show_only_final_used_premises) {
-	    print_formula_names_with_color (\@unused_premises, $UNUSED_PREMISE_COLOR);
-	}
-
 	$theory = $derivation->theory_from_used_premises ();
 	$result = prove ($theory);
 	$szs_status = $result->get_szs_status ();
 	$derivation = $result->output_as_derivation ();
 	@used_premises = $derivation->get_used_premises ();
 	@unused_premises = $derivation->get_unused_premises ();
+
+	if (! $opt_show_only_final_used_premises) {
+	    print_formula_names_with_color (\@unused_premises, $UNUSED_PREMISE_COLOR);
+	}
 
     }
 
