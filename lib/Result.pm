@@ -1,7 +1,7 @@
 package Result;
 
 use Moose;
-use Carp qw(croak);
+use Carp qw(croak cluck);
 use charnames qw(:full);
 use Regexp::DefaultFlags;
 use Carp qw(croak carp);
@@ -133,21 +133,29 @@ sub get_szs_status {
     my $tool = $self->get_tool ();
     my $output = $self->get_output ();
 
-    if ($tool eq 'prover9') { # ugh
-	my $intended_szs_status = $self->get_intended_szs_status ();
-	if (index $output, $PROVER9_PROOF_TOKEN) {
-	    return $intended_szs_status;
+    if (defined $tool) {
+
+	if ($tool eq 'prover9') { # ugh
+	    my $intended_szs_status = $self->get_intended_szs_status ();
+	    if (index $output, $PROVER9_PROOF_TOKEN) {
+		return $intended_szs_status;
+	    } else {
+		return $SZS_UNKNOWN;
+	    }
+	} elsif ($tool eq 'mace4') { # ugh
+	    my $intended_szs_status = $self->get_intended_szs_status ();
+	    if (index $output, $INTERPFORMAT_MODEL_TOKEN) {
+		return $SZS_SUCCESS;
+	    } else {
+		return $SZS_UNKNOWN;
+	    }
 	} else {
 	    return $SZS_UNKNOWN;
 	}
-    } elsif ($tool eq 'mace4') { # ugh
-	my $intended_szs_status = $self->get_intended_szs_status ();
-	if (index $output, $INTERPFORMAT_MODEL_TOKEN) {
-	    return $SZS_SUCCESS;
-	} else {
-	    return $SZS_UNKNOWN;
-	}
-    } elsif ($output =~ / SZS \N{SPACE} status \N{SPACE} ([a-zA-Z]+) /m) {
+
+    }
+
+    if ($output =~ / SZS \N{SPACE} status \N{SPACE} ([a-zA-Z]+) /m) {
 	my $status = $1;
 	if (known_szs_status ($status)) {
 	    return $status;
