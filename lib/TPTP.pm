@@ -9,7 +9,7 @@ use feature 'say';
 use base qw(Exporter);
 use IPC::Cmd qw(can_run);
 use IPC::Run qw(run start timer harness timeout);
-use Carp qw(croak carp);
+use Carp qw(croak carp cluck);
 use Readonly;
 use Pod::Find qw(pod_where);
 use Pod::Usage;
