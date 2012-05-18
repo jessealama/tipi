@@ -207,6 +207,7 @@ Readonly my @ALL_SZS_CODES => @SUCCESS_CODES .. @NON_SUCCESS_CODES;
 
 Readonly my %isa => (
 
+    # Success ontology
     $UNP => [],
     $SAP => [],
     $ESA => [$UNP, $SAP],
@@ -226,6 +227,38 @@ Readonly my %isa => (
     $CSA => [$UNP],
     $UNS => [$UNP, $CSA],
     $NOC => [$UNP, $SAP, $ESA, $SAT, $CSA],
+
+    # No-Success ontology
+    $NOS => [],
+    $OPN => [$NOS],
+    $UNK => [$NOS],
+    # don't know how to deal with ASS
+    $STP => [$UNK, $NOS],
+    $INP => [$UNK, $NOS],
+    $NTT => [$UNK, $NOS],
+    $ERR => [$STP, $UNK, $NOS],
+    $FOR => [$STP, $UNK, $NOS],
+    $GUP => [$STP, $UNK, $NOS],
+    $NTY => [$NTT, $UNK, $NOS],
+    $OSE => [$ERR, $STP, $UNK, $NOS],
+    $INE => [$ERR, $STP, $UNK, $NOS],
+    $USR => [$FOR, $STP, $UNK, $NOS],
+    $RSO => [$FOR, $GUP, $STP, $UNK, $NOS],
+    $INC => [$GUP, $STP, $UNK, $NOS],
+
+    # Sutcliffe's 2008 paper includes 'ERR' in two distinct positions
+    # in the ongology (ee p. 45); skipping the leaf 'ERR', which would
+    # be accounted for this way:
+    #
+    # $ERR => [$GUP, $STP, $UNK, $NOS],
+
+    $IAP => [$GUP, $STP, $NTT, $UNK, $NOS],
+    $SYE => [$INE, $ERR, $STP, $UNK, $NOS],
+    $SEE => [$INE, $ERR, $STP, $UNK, $NOS],
+    $TMO => [$RSO, $FOR, $GUP, $STP, $UNK, $NOS],
+    $MMO => [$RSO, $FOR, $GUP, $STP, $UNK, $NOS],
+    $TYE => [$SEE, $INE, $ERR, $STP, $UNK, $NOS],
+
 );
 
 Readonly my %nota => (
