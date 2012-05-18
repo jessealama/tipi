@@ -47,7 +47,8 @@ use SZS qw(szs_camelword_for
 	   is_szs_success
 	   szs_implies
 	   szs_contradicts
-	   successful_statuses);
+	   successful_statuses
+	   unsuccessful_statuses);
 
 Readonly my $EMPTY_STRING => q{};
 Readonly my $TWO_SPACES => q{  };
