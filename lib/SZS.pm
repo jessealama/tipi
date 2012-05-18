@@ -408,13 +408,18 @@ sub szs_camelword_implies {
     my $camelword_2 = shift;
     if ($camelword_1 eq $camelword_2) {
 	return 1;
-    } else {
+    } elsif (is_szs_success ($camelword_1) &&
+		 is_szs_success ($camelword_2)
+		     || (! is_szs_success ($camelword_1) &&
+			     ! is_szs_success ($camelword_2))) {
 	if (defined $isa{$camelword_1}) {
 	    my @isa = @{$isa{$camelword_1}};
 	    return (any { $_ eq $camelword_2 } @isa);
 	} else {
 	    croak 'Unable to determine the SZS ontology isa relation for', $SPACE, $camelword_1, $FULL_STOP;
 	}
+    } else {
+	return 0;
     }
 }
 
