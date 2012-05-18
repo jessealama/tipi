@@ -4,6 +4,7 @@ require v5.10.0;
 
 use Moose;
 use Carp qw(croak carp);
+use Pod::Find qw(pod_where);
 use Pod::Usage;
 use Readonly;
 use Getopt::Long qw(GetOptionsFromArray :config gnu_compat);
@@ -66,16 +67,19 @@ around 'execute' => sub {
 	'quick' => \$opt_quick,
 	'with-prover=s' => \@opt_provers,
 	'timeout=i' => \$opt_timeout,
-    ) or pod2usage (2);
+    ) or pod2usage (-exitval => 2,
+		    -input => pod_where({-inc => 1}, __PACKAGE__));
 
     if ($opt_help) {
-        pod2usage(1);
+        pod2usage(-exitval => 1,
+		  -input => pod_where({-inc => 1}, __PACKAGE__));
     }
 
     if ($opt_man) {
         pod2usage(
             -exitstatus => 0,
-            -verbose    => 2
+            -verbose    => 2,
+	    -input => pod_where({-inc => 1}, __PACKAGE__)
         );
     }
 
@@ -86,12 +90,14 @@ around 'execute' => sub {
 
     if (scalar @arguments == 0) {
 	pod2usage (-msg => error_message ('Please supply a TPTP theory file.'),
-		   -exitval => 2);
+		   -exitval => 2,
+		   -input => pod_where({-inc => 1}, __PACKAGE__));
     }
 
     if (scalar @arguments > 1) {
 	pod2usage (-msg => error_message ('Unable to make sense of the prove arguments', "\N{LF}", "\N{LF}", $TWO_SPACES, join ($SPACE, @arguments)),
-		   -exitval => 2);
+		   -exitval => 2,
+		   -input => pod_where({-inc => 1}, __PACKAGE__));
     }
 
     if (scalar @opt_provers == 0) {
@@ -134,12 +140,14 @@ around 'execute' => sub {
 
     if (! defined $opt_timeout) {
 	pod2usage (-msg => error_message ('No timeout was specfied; please supply one.'),
-		   -exitval => 2);
+		   -exitval => 2,
+		   -input => pod_where({-inc => 1}, __PACKAGE__));
     }
 
     if ($opt_timeout < 0) {
 	pod2usage (-msg => error_message ('Invalid value ', $opt_timeout, ' for the --timeout option.'),
-		   -exitval => 2);
+		   -exitval => 2,
+		   -input => pod_where({-inc => 1}, __PACKAGE__));
     }
 
     my $theory_path = $arguments[0];
@@ -252,3 +260,48 @@ sub execute {
 
 1;
 __END__
+
+=pod
+
+=head1 NAME
+
+tipi independence
+
+=head1 SYNOPSIS
+
+tipi independence [--help | --man]
+
+tipi independence [--quick] [--timeout=N] [--with-prover=PROVER] TPTP-file
+
+=head1 DESCRIPTION
+
+B<tipi independence> attempts to show that the set of axioms of the
+supplied TPTP file is independent, which means that no axiom can be
+derived (in classical first-order logic with identity) from the
+others.
+
+For each axiom in the theory, B<tipi independence> attempts to derive
+it from the others, or show that it cannot be derived.  As each axiom
+is considered in turn, B<tipi independence> prints a message
+indicating its status (derivable, underivable, unknown).
+
+The theorem prover specified in the C<--with-prover> option will be used.
+One can repeat this option.  The interpretation is that you are
+specifying a set of theorem provers to be used to determine
+(un)derivability.  If you omit specifying this option, then by
+default, two provers will be used: E and Paradox.  If the
+C<--with-prover> option is used, these defaults will be discarded, and
+all and only the provers you specify will be used.
+
+If C<--quick> is supplied, B<tipi independence> will terminate as soon as
+one axiom is detected that either can be derived from the other axioms
+or which is not known to be underivable (given the resource limits and
+the theorem prover/model finder employed).  By default, all axioms
+will be considered.
+
+If there is a conjecture formula in the given TPTP file, it will be
+discarded.  (The given file will not be altered.  A temporary
+conjecture-free copy will be created, and that file, rather than the
+initially given one, will be worked on.)
+
+=cut

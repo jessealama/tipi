@@ -4,6 +4,7 @@ require v5.10;
 
 use Moose;
 use Carp qw(croak carp);
+use Pod::Find qw(pod_where);
 use Pod::Usage;
 use Readonly;
 use Getopt::Long qw(GetOptionsFromArray :config gnu_compat);
@@ -37,6 +38,7 @@ use Utils qw(asterisk_list
 	     warning_message
 	     all_sublists
 	     all_nonempty_sublists
+	     print_formula_names_with_color
 	     remove_duplicate_lists
 	     subtuple
 	     tuple_less_than_wrt_ordering
@@ -59,7 +61,7 @@ Readonly my $ASTERISK => q{*};
 Readonly my $LF => "\N{LF}";
 Readonly my $USED_PREMISE_COLOR => 'blue';
 Readonly my $UNUSED_PREMISE_COLOR => 'yellow';
-Readonly my $DESCRIPTION => 'Find minimal subtheories.';
+Readonly my $DESCRIPTION => 'Find minimal subtheories of a TPTP theory.';
 Readonly my $GOOD_COLOR => 'green';
 Readonly my $BAD_COLOR => 'red';
 Readonly my $UNKNOWN_COLOR => 'yellow';
@@ -99,36 +101,6 @@ sub fill_up_to_column {
 
 }
 
-sub print_formula_names_with_color {
-    my $formulas_ref = shift;
-    my $color = shift;
-    my $parameters_ref = shift;
-
-    my %parameters = defined $parameters_ref ? %{$parameters_ref} : ();
-
-    my $theory = $parameters{'theory'};
-    my $conjecture = defined $theory ? $theory->get_conjecture () : undef;
-    my $conjecture_name = defined $conjecture ? $conjecture->get_name () : undef;
-
-    my @formulas = @{$formulas_ref};
-
-    if (defined $parameters{'sorted'} && $parameters{'sorted'}) {
-	@formulas = sort { $a->get_name () cmp $b->get_name () } @formulas;
-    }
-
-    foreach my $formula (@formulas) {
-	my $formula_name = $formula->get_name ();
-	if (defined $conjecture_name && $formula_name eq $conjecture_name) {
-	    say colored ($formula_name, $color), $SPACE, '(conjecture)';
-	} else {
-	    say colored ($formula_name, $color);
-	}
-    }
-
-    return 1;
-
-}
-
 around 'execute' => sub {
     my $orig = shift;
     my $self = shift;
@@ -145,16 +117,23 @@ around 'execute' => sub {
 	'timeout=i' => \$opt_timeout,
 	'skip-initial-proof' => \$opt_skip_initial_proof,
 	'confirm' => \$opt_confirm,
-    ) or pod2usage (2);
+    ) or pod2usage (
+	-exitval => 2,
+	-input => pod_where({-inc => 1}, __PACKAGE__),
+    );
 
     if ($opt_help) {
-	pod2usage(1);
+	pod2usage(
+	    -exitval => 1,
+	    -input => pod_where({-inc => 1}, __PACKAGE__),
+	);
     }
 
     if ($opt_man) {
 	pod2usage(
 	    -exitstatus => 0,
-	    -verbose    => 2
+	    -verbose    => 2,
+	    -input => pod_where({-inc => 1}, __PACKAGE__),
 	);
     }
 
@@ -165,33 +144,39 @@ around 'execute' => sub {
 
     if (scalar @arguments == 0) {
 	pod2usage (-msg => error_message ('Please supply a TPTP theory file.'),
-		   -exitval => 2);
+		   -exitval => 2,
+		   -input => pod_where({-inc => 1}, __PACKAGE__));
     }
 
     if (scalar @arguments > 1) {
 	pod2usage (-msg => error_message ('Unable to make sense of the arguments', "\N{LF}", "\N{LF}", $TWO_SPACES, join ($SPACE, @arguments)),
-		   -exitval => 2);
+		   -exitval => 2,
+		   -input => pod_where({-inc => 1}, __PACKAGE__));
     }
 
     if ($opt_solution_szs_status eq $EMPTY_STRING) {
 	pod2usage (-msg => error_message ('The empty string is not an acceptable SZS problem status.'),
-		   -exitval => 2);
+		   -exitval => 2,
+		   -input => pod_where({-inc => 1}, __PACKAGE__));
 
     }
 
     if ($opt_solution_szs_status !~ /\A [A-Za-z]+ \z/) {
 	pod2usage (-msg => error_message ('Unacceptable SZS problem status', "\N{LF}", "\N{LF}", $TWO_SPACES, $opt_solution_szs_status),
-		   -exitval => 2);
+		   -exitval => 2,
+		   -input => pod_where({-inc => 1}, __PACKAGE__));
     }
 
     if ($opt_show_only_final_used_premises && $opt_show_only_final_unused_premises) {
 	pod2usage (-msg => error_message ('One cannot choose to show only the used and unused premises.'),
-		   -exitval => 2);
+		   -exitval => 2,
+		   -input => pod_where({-inc => 1}, __PACKAGE__));
     }
 
     if ($opt_timeout < 0) {
 	pod2usage (-msg => error_message ('Invalid value ', $opt_timeout, ' for the --timeout option.'),
-		   -exitval => 2);
+		   -exitval => 2,
+		   -input => pod_where({-inc => 1}, __PACKAGE__));
     }
 
     if (scalar @opt_provers == 0) {
@@ -359,7 +344,7 @@ sub execute {
 			@used_premises = $derivation->get_used_premises ();
 			foreach my $axiom (@axioms) {
 			    my $axiom_name = $axiom->get_name ();
-			    if (none { $_->get_name eq $axiom_name } @used_premises) {
+			    if (none { $_ eq $axiom_name } @used_premises) {
 				push (@unused_premises, $axiom);
 			    }
 			}
@@ -421,6 +406,7 @@ sub execute {
 	if (is_szs_success ($szs_status)) {
 	    my @used_premises = @{$used_by_prover{$prover}};
 	    my @unused_premises = @{$unused_by_prover{$prover}};
+	    my @unused_premise_names = map { $_->get_name () } @unused_premises;
 
 	    if (scalar @used_premises > 0) {
 		print_formula_names_with_color (\@used_premises,
@@ -429,7 +415,7 @@ sub execute {
 						  'theory' => $theory });
 	    }
 	    if (scalar @unused_premises > 0) {
-		print_formula_names_with_color (\@unused_premises,
+		print_formula_names_with_color (\@unused_premise_names,
 						$UNUSED_PREMISE_COLOR,
 						{ 'sorted' => 1,
 						  'theory' => $theory });
@@ -445,8 +431,8 @@ sub execute {
 	my $szs_status = $initial_proof_szs_status{$prover};
 	if (is_szs_success ($szs_status)) {
 	    my @used_premises = @{$used_by_prover{$prover}};
-	    my @used_premises_names = map { $_->get_name () } @used_premises;
-	    my @used_premises_names_sorted = sort @used_premises_names;
+	    # my @used_premises_names = map { $_->get_name () } @used_premises;
+	    my @used_premises_names_sorted = sort @used_premises;
 	    if (all { my $other_prover = $_;
 		      my $other_prover_szs_status
 			  = $initial_proof_szs_status{$other_prover};
@@ -876,3 +862,67 @@ sub print_solvable_supertheories {
 
     1;
 __END__
+
+=pod
+
+=head1 NAME
+
+tipi minimize
+
+=head1 SYNOPSIS
+
+tipi minimize --help
+
+tipi minimize --man
+
+tipi minimize [--verbose | --debug] [--with-prover=PROVER] [--solution-szs-status=STATUS] [--timeout=N] [--skip-initial-proof] [--confirm]
+
+=head1 DESCRIPTION
+
+B<tipi minimize> searches for minimal subtheories of an initial TPTP
+problem that suffice to solve the problem.
+
+If the C<--timeout> option is absent, a default timeout of 30 seconds
+will be used.
+
+The theorem prover specified in the C<--with-prover> option will be used.
+One can repeat this option.  The interpretation is that you are
+specifying a set of theorem provers to be used to determine
+(un)derivability.  If you omit specifying this option, then by
+default, two provers will be used: E and Paradox.  If the
+C<--with-prover> option is used, these defaults will be discarded, and
+all and only the provers you specify will be used.
+
+The C<--solution-szs-status> option is used to indicate what it means
+to solve the TPTP problem.  The default is B<Theorem>, i.e., the
+problem is successfuly solved if a theorem prover assigns the SZS
+status B<Theorem> to the problem (or some other SZS status that
+implies B<Theorem>).
+
+Since many problems can be solved with fewer premises than are
+available, B<tipi minimize> begins by trying (using all specified the
+theorem provers) to solve the problem from all available premises and
+then continues using only those that were used (known to be
+sufficient).  This initial trimming can speed up the search for
+minimal subtheories dramatically, since for every axiom of the
+original problem that is ignored, we halve the number of combinations
+of premises that need to be considered.  For your purposes, this
+initial pruning may be sufficient.  However, the pruning does
+potentially B<disregard possible solutions of interest>.  If you
+really want to consider all possible combinations of premises, use
+C<--skip-initial-proof>.
+
+If C<--confirm> is specified, B<tipi minimize> will double check its
+own work by trying to show, for each of the minimal solutions that it
+finds, that indeed every premise is needed.  By default, we do not do
+this further checking.
+
+=head1 SEE ALSO
+
+=over 8
+
+=item L<The SZS Ontology|http://www.cs.miami.edu/~tptp/cgi-bin/SeeTPTP?Category=Documents&File=SZSOntology>
+
+=back
+
+=cut

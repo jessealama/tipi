@@ -207,6 +207,7 @@ Readonly my @ALL_SZS_CODES => @SUCCESS_CODES .. @NON_SUCCESS_CODES;
 
 Readonly my %isa => (
 
+    # Success ontology
     $UNP => [],
     $SAP => [],
     $ESA => [$UNP, $SAP],
@@ -226,6 +227,38 @@ Readonly my %isa => (
     $CSA => [$UNP],
     $UNS => [$UNP, $CSA],
     $NOC => [$UNP, $SAP, $ESA, $SAT, $CSA],
+
+    # No-Success ontology
+    $NOS => [],
+    $OPN => [$NOS],
+    $UNK => [$NOS],
+    # don't know how to deal with ASS
+    $STP => [$UNK, $NOS],
+    $INP => [$UNK, $NOS],
+    $NTT => [$UNK, $NOS],
+    $ERR => [$STP, $UNK, $NOS],
+    $FOR => [$STP, $UNK, $NOS],
+    $GUP => [$STP, $UNK, $NOS],
+    $NTY => [$NTT, $UNK, $NOS],
+    $OSE => [$ERR, $STP, $UNK, $NOS],
+    $INE => [$ERR, $STP, $UNK, $NOS],
+    $USR => [$FOR, $STP, $UNK, $NOS],
+    $RSO => [$FOR, $GUP, $STP, $UNK, $NOS],
+    $INC => [$GUP, $STP, $UNK, $NOS],
+
+    # Sutcliffe's 2008 paper includes 'ERR' in two distinct positions
+    # in the ongology (ee p. 45); skipping the leaf 'ERR', which would
+    # be accounted for this way:
+    #
+    # $ERR => [$GUP, $STP, $UNK, $NOS],
+
+    $IAP => [$GUP, $STP, $NTT, $UNK, $NOS],
+    $SYE => [$INE, $ERR, $STP, $UNK, $NOS],
+    $SEE => [$INE, $ERR, $STP, $UNK, $NOS],
+    $TMO => [$RSO, $FOR, $GUP, $STP, $UNK, $NOS],
+    $MMO => [$RSO, $FOR, $GUP, $STP, $UNK, $NOS],
+    $TYE => [$SEE, $INE, $ERR, $STP, $UNK, $NOS],
+
 );
 
 Readonly my %nota => (
@@ -375,13 +408,18 @@ sub szs_camelword_implies {
     my $camelword_2 = shift;
     if ($camelword_1 eq $camelword_2) {
 	return 1;
-    } else {
+    } elsif (is_szs_success ($camelword_1) &&
+		 is_szs_success ($camelword_2)
+		     || (! is_szs_success ($camelword_1) &&
+			     ! is_szs_success ($camelword_2))) {
 	if (defined $isa{$camelword_1}) {
 	    my @isa = @{$isa{$camelword_1}};
 	    return (any { $_ eq $camelword_2 } @isa);
 	} else {
 	    croak 'Unable to determine the SZS ontology isa relation for', $SPACE, $camelword_1, $FULL_STOP;
 	}
+    } else {
+	return 0;
     }
 }
 
@@ -560,3 +598,23 @@ sub aggregate_statuses {
 
 1;
 __END__
+
+=pod
+
+=head1 NAME
+
+SZS
+
+=head1 DESCRIPTION
+
+This package contains utilities for working with SZS statuses.
+
+=head1 SEE ALSO
+
+=over 8
+
+=item L<The SZS Ontology|http://www.cs.miami.edu/~tptp/cgi-bin/SeeTPTP?Category=Documents&File=SZSOntology>
+
+=back
+
+=cut

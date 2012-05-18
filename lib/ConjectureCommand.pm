@@ -4,6 +4,7 @@ require v5.10;
 
 use Moose;
 use Carp qw(croak carp);
+use Pod::Find qw(pod_where);
 use Pod::Usage;
 use Readonly;
 use Getopt::Long qw(GetOptionsFromArray :config gnu_compat);
@@ -27,7 +28,7 @@ Readonly my $TWO_SPACES => q{  };
 Readonly my $SPACE => q{ };
 Readonly my $USED_PREMISE_COLOR => 'blue';
 Readonly my $UNUSED_PREMISE_COLOR => 'bright_black';
-Readonly my $DESCRIPTION => 'Prove a conjecture again, perhaps using different premises.';
+Readonly my $DESCRIPTION => 'Print the conjecture(s) of a TPTP problem file.';
 Readonly my $GOOD_COLOR => 'green';
 Readonly my $BAD_COLOR => 'red';
 
@@ -56,7 +57,8 @@ around 'execute' => sub {
 	'verbose' => \$opt_verbose,
 	'help|?' => \$opt_help,
 	'name-only' => \$opt_name_only,
-    ) or pod2usage (2);
+    ) or pod2usage (-exitval => 2,
+		    -input => pod_where({-inc => 1}, __PACKAGE__));
 
     if ($opt_help) {
         pod2usage(1);
@@ -65,7 +67,8 @@ around 'execute' => sub {
     if ($opt_man) {
         pod2usage(
             -exitstatus => 0,
-            -verbose    => 2
+            -verbose    => 2,
+	    -input => pod_where({-inc => 1}, __PACKAGE__),
         );
     }
 
@@ -76,12 +79,14 @@ around 'execute' => sub {
 
     if (scalar @arguments == 0) {
 	pod2usage (-msg => error_message ('Please supply a TPTP theory file.'),
-		   -exitval => 2);
+		   -exitval => 2,
+		   -input => pod_where({-inc => 1}, __PACKAGE__));
     }
 
     if (scalar @arguments > 1) {
 	pod2usage (-msg => error_message ('Unable to make sense of the premises arguments', "\N{LF}", "\N{LF}", $TWO_SPACES, join ($SPACE, @arguments)),
-		   -exitval => 2);
+		   -exitval => 2,
+		   -input => pod_where({-inc => 1}, __PACKAGE__));
     }
 
     if (! ensure_tptp4x_available ()) {
@@ -128,3 +133,24 @@ sub execute {
 
 1;
 __END__
+
+=pod
+
+=head1 NAME
+
+tipi conjecture
+
+=head1 SYNOPSIS
+
+tipi conjecure [--man | --help]
+
+tipi conjecture [--name-only] TPTP-file
+
+=head1 DESCRIPTION
+
+Given a TPTP problem file, B<tipi conjecture> extracts the conjecture,
+if present.  It prints the whole TPTP formula representing the
+conjecture.  If the C<--name-only> option is given, only the name of
+the conjecture formula is printed.
+
+=cut

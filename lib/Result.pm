@@ -1,7 +1,7 @@
 package Result;
 
 use Moose;
-use Carp qw(croak);
+use Carp qw(croak cluck);
 use charnames qw(:full);
 use Regexp::DefaultFlags;
 use Carp qw(croak carp);
@@ -133,32 +133,45 @@ sub get_szs_status {
     my $tool = $self->get_tool ();
     my $output = $self->get_output ();
 
-    if ($tool eq 'prover9') { # ugh
-	my $intended_szs_status = $self->get_intended_szs_status ();
-	if (index $output, $PROVER9_PROOF_TOKEN) {
-	    return $intended_szs_status;
-	} else {
-	    return $SZS_UNKNOWN;
-	}
-    } elsif ($tool eq 'mace4') { # ugh
-	my $intended_szs_status = $self->get_intended_szs_status ();
-	if (index $output, $INTERPFORMAT_MODEL_TOKEN) {
-	    return $SZS_SUCCESS;
+    if (defined $tool) {
+
+	if ($tool eq 'prover9') { # ugh
+	    my $intended_szs_status = $self->get_intended_szs_status ();
+	    if (index $output, $PROVER9_PROOF_TOKEN) {
+		return $intended_szs_status;
+	    } else {
+		return $SZS_UNKNOWN;
+	    }
+	} elsif ($tool eq 'mace4') { # ugh
+	    my $intended_szs_status = $self->get_intended_szs_status ();
+	    if (index $output, $INTERPFORMAT_MODEL_TOKEN) {
+		return $SZS_SUCCESS;
+	    } else {
+		return $SZS_UNKNOWN;
+	    }
+	} elsif ($output =~ / SZS \N{SPACE} status \N{SPACE} ([a-zA-Z]+) /m) {
+	    my $status = $1;
+	    if (known_szs_status ($status)) {
+		return $status;
+	    } else {
+		carp 'Unknown SZS status \'', $status, '\'; defaulting to \'Unknown\'.';
+		return $SZS_UNKNOWN;
+	    }
+	} elsif ($self->timed_out ()) {
+	    return $SZS_TIMEOUT;
+	} elsif (! $self->exited_cleanly ()) {
+	    return $SZS_ERROR;
 	} else {
 	    return $SZS_UNKNOWN;
 	}
     } elsif ($output =~ / SZS \N{SPACE} status \N{SPACE} ([a-zA-Z]+) /m) {
-	my $status = $1;
-	if (known_szs_status ($status)) {
-	    return $status;
-	} else {
-	    carp 'Unknown SZS status \'', $status, '\'; defaulting to \'Unknown\'.';
-	    return $SZS_UNKNOWN;
-	}
-    } elsif ($self->timed_out ()) {
-	return $SZS_TIMEOUT;
-    } elsif (! $self->exited_cleanly ()) {
-	return $SZS_ERROR;
+	    my $status = $1;
+	    if (known_szs_status ($status)) {
+		return $status;
+	    } else {
+		carp 'Unknown SZS status \'', $status, '\'; defaulting to \'Unknown\'.';
+		return $SZS_UNKNOWN;
+	    }
     } else {
 	return $SZS_UNKNOWN;
     }
@@ -187,3 +200,23 @@ sub output_as_model {
 
 1;
 __END__
+
+=pod
+
+=head1 NAME
+
+Result
+
+=head1 DESCRIPTION
+
+This is a simple class for containing results of applying theorem provers.
+
+=head1 DEPENDENCIES
+
+=over 8
+
+=item L<Moose|http://search.cpan.org/~doy/Moose-2.0403/lib/Moose.pm>
+
+=back
+
+=cut

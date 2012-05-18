@@ -1,5 +1,8 @@
 package Utils;
 
+require v5.10.0;
+use feature 'say';
+
 use base qw(Exporter);
 use warnings;
 use strict;
@@ -17,6 +20,7 @@ our @EXPORT_OK = qw(ensure_readable_file
 		    ensure_executable
 	            write_string_to_file
 	            extension
+		    print_formula_names_with_color
 		    strip_extension
 		    slurp
 		    error_message
@@ -385,5 +389,46 @@ sub asterisk_list {
     return $list;
 }
 
+sub print_formula_names_with_color {
+    my $formulas_ref = shift;
+    my $color = shift;
+    my $parameters_ref = shift;
+
+    my %parameters = defined $parameters_ref ? %{$parameters_ref} : ();
+
+    my $theory = $parameters{'theory'};
+    my $conjecture = defined $theory ? $theory->get_conjecture () : undef;
+    my $conjecture_name = defined $conjecture ? $conjecture->get_name () : undef;
+
+    my @formulas = @{$formulas_ref};
+
+    if (defined $parameters{'sorted'} && $parameters{'sorted'}) {
+	@formulas = sort  @formulas;
+    }
+
+    foreach my $formula (@formulas) {
+	if (defined $conjecture_name && $formula eq $conjecture_name) {
+	    say colored ($formula, $color), $SPACE, '(conjecture)';
+	} else {
+	    say colored ($formula, $color);
+	}
+    }
+
+    return 1;
+
+}
+
 1;
 __END__
+
+=pod
+
+=head1 NAME
+
+Utils
+
+=head1 DESCRIPTION
+
+This is just a place where I put all my "useful" junk.
+
+=cut

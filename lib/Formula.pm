@@ -1,6 +1,8 @@
 package Formula;
 
 use Moose;
+use Pod::Find qw(pod_where);
+use Pod::Usage;
 use Regexp::DefaultFlags;
 use charnames qw(:full);
 use Carp qw(croak);
@@ -154,3 +156,32 @@ sub is_first_order {
 
 1;
 __END__
+
+=pod
+
+=head1 NAME
+
+=head1 DESCRIPTION
+
+Formula is a package (specifically, a Moose class) that contains some
+functionality for working with TPTP formulas.
+
+=head1 DEPENDENCIES
+
+=over 8
+
+=item L<Moose|http://search.cpan.org/~doy/Moose-2.0403/lib/Moose.pm>
+
+=back
+
+=head1 SEE ALSO
+
+=over 8
+
+=item L<Getting started with TPTP and TSTP/http://www.cs.miami.edu/~tptp/TPTP/QuickGuide/>
+
+One can see here how TPTP formulas are specified and used.
+
+=back
+
+=cut

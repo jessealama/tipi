@@ -337,6 +337,19 @@ sub get_axioms_by_name {
     }
 }
 
+sub get_formulas_by_name {
+    my $self = shift;
+
+    my @formulas = $self->get_formulas (1);
+    my @formula_names = map { $_->get_name () } @formulas;
+
+    if (wantarray) {
+	return @formula_names;
+    } else {
+	return \@formula_names;
+    }
+}
+
 sub has_conjecture_formula {
     my $self = shift;
     my @formulas = $self->get_formulas (1);
@@ -1222,5 +1235,37 @@ sub run_simultaneously_till_first_success {
 
 }
 
+sub is_known_formula_name {
+    my $self = shift;
+    my $name = shift;
+    my @formulas = $self->get_formulas_by_name ();
+
+    if (scalar @formulas == 0) {
+	return 0;
+    } else {
+	return any { $_ eq $name } @formulas;
+    }
+}
+
 1;
 __END__
+
+=pod
+
+=head1 NAME
+
+Theory
+
+=head1 DESCRIPTION
+
+This is a Moose class that represents TPTP theories (problem files).
+
+=head1 DEPENDENCIES
+
+=over 8
+
+=item L<Moose|http://search.cpan.org/~doy/Moose-2.0403/lib/Moose.pm>
+
+=back
+
+=cut

@@ -4,6 +4,7 @@ require v5.10;
 
 use Moose;
 use Carp qw(croak carp);
+use Pod::Find qw(pod_where);
 use Pod::Usage;
 use Readonly;
 use Getopt::Long qw(GetOptionsFromArray :config gnu_compat);
@@ -77,16 +78,23 @@ around 'execute' => sub {
 	'timeout=i' => \$opt_timeout,
 	'semantically' => \$opt_semantically,
 	'syntactically' => \$opt_syntactically,
-    ) or pod2usage (2);
+    ) or pod2usage (
+	-exitval => 2,
+	-input => pod_where({-inc => 1}, __PACKAGE__)
+    );
 
     if ($opt_help) {
-        pod2usage(1);
+        pod2usage(
+	    -exitval => 1,
+	    -input => pod_where({-inc => 1}, __PACKAGE__),
+	);
     }
 
     if ($opt_man) {
         pod2usage(
             -exitstatus => 0,
-            -verbose    => 2
+            -verbose    => 2,
+	    -input => pod_where({-inc => 1}, __PACKAGE__),
         );
     }
 
@@ -96,13 +104,19 @@ around 'execute' => sub {
     }
 
     if ($opt_solution_szs_status eq $EMPTY_STRING) {
-	pod2usage (-msg => error_message ('The empty string is not an acceptable SZS problem status.'),
-		   -exitval => 2);
+	pod2usage (
+	    -msg => error_message ('The empty string is not an acceptable SZS problem status.'),
+	    -exitval => 2,
+	    -input => pod_where({-inc => 1}, __PACKAGE__),
+	);
     }
 
     if ($opt_solution_szs_status !~ /\A [A-Za-z]+ \z/) {
-	pod2usage (-msg => error_message ('Unacceptable SZS problem status', "\N{LF}", "\N{LF}", $TWO_SPACES, $opt_solution_szs_status),
-		   -exitval => 2);
+	pod2usage (
+	    -msg => error_message ('Unacceptable SZS problem status', "\N{LF}", "\N{LF}", $TWO_SPACES, $opt_solution_szs_status),
+	    -exitval => 2,
+	    -input => pod_where({-inc => 1}, __PACKAGE__),
+	);
     }
 
     if ($opt_timeout < 0) {
@@ -122,13 +136,19 @@ around 'execute' => sub {
     }
 
     if (scalar @arguments == 0) {
-	pod2usage (-msg => error_message ('Please supply a premise name and a TPTP theory file (in that order).'),
-		   -exitval => 2);
+	pod2usage (
+	    -msg => error_message ('Please supply a premise name and a TPTP theory file (in that order).'),
+	    -exitval => 2,
+	    -input => pod_where({-inc => 1}, __PACKAGE__),
+	);
     }
 
     if (scalar @arguments != 2) {
-	pod2usage (-msg => error_message ('Unable to make sense of the arguments', "\N{LF}", "\N{LF}", $TWO_SPACES, join ($SPACE, @arguments)),
-		   -exitval => 2);
+	pod2usage (
+	    -msg => error_message ('Unable to make sense of the arguments', "\N{LF}", "\N{LF}", $TWO_SPACES, join ($SPACE, @arguments)),
+	    -exitval => 2,
+	    -input => pod_where({-inc => 1}, __PACKAGE__),
+	);
     }
 
     if (! ensure_tptp4x_available ()) {
@@ -247,3 +267,51 @@ sub execute {
 
 1;
 __END__
+
+=pod
+
+=head1 NAME
+
+tipi needed
+
+=head1 SYNOPSIS
+
+tipi needed --help
+
+tipi needed --man
+
+tipi needed [--solution-szs-status=STATUS] [--with-prover] [--timeout=N] premise-name TPTP-file
+
+=head1 DESCRIPTION
+
+B<tipi needed> attempts to determine whether a given premise is needed
+for a TPTP problem to be successful.
+
+To say what "successful" means, use the C<--solution-szs-status>
+option.  If you do not specify this, the SZS status B<Theorem> is
+used.
+
+If the C<--timeout> option is absent, a default timeout of 30 seconds
+will be used.
+
+The theorem prover specified in the C<--with-prover> option will be used.
+One can repeat this option.  The interpretation is that you are
+specifying a set of theorem provers to be used to determine
+(un)derivability.  If you omit specifying this option, then by
+default, two provers will be used: E and Paradox.  If the
+C<--with-prover> option is used, these defaults will be discarded, and
+all and only the provers you specify will be used.
+
+It is an error if the given premise is not actually the name of a
+formula in the given TPTP file.
+
+=head1 SEE ALSO
+
+=over 8
+
+=item L<The SZS Ontology|http://www.cs.miami.edu/~tptp/cgi-bin/SeeTPTP?Category=Documents&File=SZSOntology>
+
+=back
+
+
+=cut

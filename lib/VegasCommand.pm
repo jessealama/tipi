@@ -4,6 +4,7 @@ require v5.10;
 
 use Moose;
 use Carp qw(croak carp);
+use Pod::Find qw(pod_where);
 use Pod::Usage;
 use Readonly;
 use Getopt::Long qw(GetOptionsFromArray :config gnu_compat);
@@ -125,16 +126,22 @@ around 'execute' => sub {
 	'timeout=i' => \$opt_timeout,
 	'min-subset-size=i' => \$opt_min_subset_size,
 	'max-subset-size=i' => \$opt_max_subset_size,
-    ) or pod2usage (2);
+    ) or pod2usage (
+	-exitval => 2,
+	-input => pod_where({-inc => 1}, __PACKAGE__));
 
     if ($opt_help) {
-        pod2usage(1);
+        pod2usage(
+	    -exitval => 1,
+	    -input => pod_where({-inc => 1}, __PACKAGE__),
+	);
     }
 
     if ($opt_man) {
         pod2usage(
             -exitstatus => 0,
-            -verbose    => 2
+            -verbose    => 2,
+	    -input => pod_where({-inc => 1}, __PACKAGE__),
         );
     }
 
@@ -144,18 +151,26 @@ around 'execute' => sub {
     }
 
     if ($opt_timeout < 0) {
-	pod2usage (-msg => error_message ($opt_timeout, $SPACE, 'is an inappropriate value for the prover timeout.'),
-		   -exitval => 2);
+	pod2usage (
+	    -msg => error_message ($opt_timeout, $SPACE, 'is an inappropriate value for the prover timeout.'),
+	    -exitval => 2,
+	    -input => pod_where({-inc => 1}, __PACKAGE__),
+	);
     }
 
     if ($opt_solution_szs_status eq $EMPTY_STRING) {
-	pod2usage (-msg => error_message ('The empty string is not an acceptable SZS problem status.'),
-		   -exitval => 2);
+	pod2usage (
+	    -msg => error_message ('The empty string is not an acceptable SZS problem status.'),
+	    -exitval => 2,
+	    -input => pod_where({-inc => 1}, __PACKAGE__));
     }
 
     if ($opt_solution_szs_status !~ /\A [A-Za-z]+ \z/) {
-	pod2usage (-msg => error_message ('Unacceptable SZS problem status', "\N{LF}", "\N{LF}", $TWO_SPACES, $opt_solution_szs_status),
-		   -exitval => 2);
+	pod2usage (
+	    -msg => error_message ('Unacceptable SZS problem status', "\N{LF}", "\N{LF}", $TWO_SPACES, $opt_solution_szs_status),
+	    -exitval => 2,
+	    -input => pod_where({-inc => 1}, __PACKAGE__),
+	);
     }
 
     if (scalar @opt_provers == 0) {
@@ -190,28 +205,42 @@ around 'execute' => sub {
     }
 
     if (scalar @arguments == 0) {
-	pod2usage (-msg => error_message ('Please supply a TPTP theory file.'),
-		   -exitval => 2);
+	pod2usage (
+	    -msg => error_message ('Please supply a TPTP theory file.'),
+	    -exitval => 2,
+	    -input => pod_where({-inc => 1}, __PACKAGE__),
+	);
     }
 
     if ($opt_min_subset_size < 0) {
-	pod2usage (-msg => error_message ($opt_min_subset_size, $SPACE, 'is not an appropriate value for the --min-subset-size option.'),
-		   -exitval => 2);
+	pod2usage (
+	    -msg => error_message ($opt_min_subset_size, $SPACE, 'is not an appropriate value for the --min-subset-size option.'),
+	    -exitval => 2,
+	    -input => pod_where({-inc => 1}, __PACKAGE__));
     }
 
     if (defined $opt_max_subset_size && $opt_max_subset_size < 0) {
-	pod2usage (-msg => error_message ($opt_min_subset_size, $SPACE, 'is not an appropriate value for the --max-subset-size option.'),
-		   -exitval => 2);
+	pod2usage  (
+	    -msg => error_message ($opt_min_subset_size, $SPACE, 'is not an appropriate value for the --max-subset-size option.'),
+	    -exitval => 2,
+	    -input => pod_where({-inc => 1}, __PACKAGE__),
+	    );
     }
 
     if (defined $opt_max_subset_size && $opt_max_subset_size < $opt_min_subset_size) {
-	pod2usage (-msg => error_message ('The maximum subset size is less than the minimum subset size.'),
-		   -exitval => 2);
+	pod2usage (
+	    -msg => error_message ('The maximum subset size is less than the minimum subset size.'),
+	    -exitval => 2,
+	    -input => pod_where({-inc => 1}, __PACKAGE__),
+	);
     }
 
     if (scalar @arguments > 1) {
-	pod2usage (-msg => error_message ('Unable to make sense of the prove arguments', "\N{LF}", "\N{LF}", $TWO_SPACES, join ($SPACE, @arguments)),
-		   -exitval => 2);
+	pod2usage (
+	    -msg => error_message ('Unable to make sense of the prove arguments', "\N{LF}", "\N{LF}", $TWO_SPACES, join ($SPACE, @arguments)),
+	    -exitval => 2,
+	    -input => pod_where({-inc => 1}, __PACKAGE__),
+	);
     }
 
     if (! ensure_tptp4x_available ()) {
@@ -271,8 +300,11 @@ around 'execute' => sub {
     $num_to_keep = scalar @opt_keep;
 
     if (defined $opt_max_subset_size && scalar @opt_keep > $opt_max_subset_size) {
-	pod2usage (-msg => error_message ('We were asked to keep', $SPACE, $num_to_keep, $SPACE, 'formulas, but this exceeds the value of the --max-subset-size option.'),
-		   -exitval => 2);
+	pod2usage (
+	    -msg => error_message ('We were asked to keep', $SPACE, $num_to_keep, $SPACE, 'formulas, but this exceeds the value of the --max-subset-size option.'),
+	    -exitval => 2,
+	    -input => pod_where({-inc => 1}, __PACKAGE__),
+	);
     }
 
     my %axioms_minus_keepers = ();
@@ -305,7 +337,6 @@ sub solve_greedily {
 
     foreach my $tool (@opt_provers) {
 	my $szs_status = $theory->solve ($tool,
-					 $opt_solution_szs_status,
 					 { 'timeout' => $opt_timeout,
 					   'debug' => $opt_debug });
 	$status{$tool} = $szs_status;
@@ -576,3 +607,58 @@ sub execute {
 
 1;
 __END__
+
+=pod
+
+=head1 NAME
+
+tipi vegas
+
+=head1 SYNOPSIS
+
+tipi vegas [ --help | --man ]
+
+tipi vegas [ --verbose | --debug] [ --solution-szs-status=STATUS ] [ --with-prover=PROVER] [ --keep=FORMULA-NAME ] [ --timeout=N ] [ --min-subset-size=N ] [ --max-subset-size=N ] TPTP-file
+
+=head1 DESCRIPTION
+
+B<tipi vegas> is simply a Las Vegas algorithm for solving a TPTP
+problem.  We simply enumerate random combinations of premises from the
+given TPTP problem and try to solve the problem using those premises.
+If we can solve the problem, we win.  Otherwise, we just keep going.
+
+If the C<--timeout> option is absent, a default timeout of 30 seconds
+will be used.
+
+The theorem prover specified in the C<--with-prover> option will be used.
+One can repeat this option.  The interpretation is that you are
+specifying a set of theorem provers to be used to determine
+(un)derivability.  If you omit specifying this option, then by
+default, two provers will be used: E and Paradox.  If the
+C<--with-prover> option is used, these defaults will be discarded, and
+all and only the provers you specify will be used.
+
+The C<--solution-szs-status> option is used to indicate what it means
+to solve the TPTP problem.  The default is B<Theorem>, i.e., the
+problem is successfuly solved if a theorem prover assigns the SZS
+status B<Theorem> to the problem (or some other SZS status that
+implies B<Theorem>).
+
+Use C<--keep> to ensure that we do not consider subsets that lack a
+certain formula.  This option can be repeated to specify that multiple
+formulas should be kept.
+
+By default, the minimum subset size we consider is 0, and the maximum
+is the cardinality of the set of premises of the given TPTP file.  Use
+C<--min-subset-size> and C<--max-subset-size> to constrain the
+possibilities.
+
+=head1 SEE ALSO
+
+=over 8
+
+=item L<Las Vegas algorithms (Wikipedia)|http://en.wikipedia.org/wiki/Las_vegas_algorithm>
+
+=back
+
+=cut

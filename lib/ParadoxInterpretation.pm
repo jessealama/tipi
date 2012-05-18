@@ -32,3 +32,32 @@ sub describe {
 
 1;
 __END__
+
+=pod
+
+=head1 NAME
+
+ParadoxInterpretation
+
+=head1 DESCRIPTION
+
+This is a subclass of the Interpretation class devoted to extracting
+information from the output of the Paradox *model finding program.
+
+=head1 DEPENDENCIES
+
+=over 8
+
+=item L<Moose|http://search.cpan.org/~doy/Moose-2.0403/lib/Moose.pm>
+
+=back
+
+=head1 SEE ALSO
+
+=over 8
+
+=item L<New techniques that improve MACE-style finite model finding|http://www.cs.miami.edu/~geoff/Conferences/CADE/Archive/CADE-19/WS4/04.pdf>
+
+=back
+
+=cut

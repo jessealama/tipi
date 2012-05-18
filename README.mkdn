@@ -49,6 +49,8 @@ To run **Tipi** you will need:
 
 	* [Moose](http://search.cpan.org/~doy/Moose-2.0403/lib/Moose.pm "Moose") version 2.0403 or newer
 
+	* [Pod::Find](http://search.cpan.org/~marekr/Pod-Parser-1.51/lib/Pod/Find.pm "Pod::Find") version 1.51 or newer
+
 	* [Pod::Usage](http://search.cpan.org/~marekr/Pod-Parser-1.51/lib/Pod/Usage.pm "Pod::Usage") version 1.51 or newer
 
 	* [Regexp::DefaultFlags](http://search.cpan.org/~autrijus/Regexp-DefaultFlags-0.01/lib/Regexp/DefaultFlags.pm "Regexp::DefaultFlags") version 0.01 or newer

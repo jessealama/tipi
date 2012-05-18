@@ -24,7 +24,8 @@ use TPTP qw(ensure_tptp4x_available
 	    known_prover
 	    tptp4X_output);
 use Utils qw(error_message
-	     ensure_readable_file);
+	     ensure_readable_file
+	     print_formula_names_with_color);
 use SZS qw(is_szs_success
 	   szs_implies
 	   known_szs_status);
@@ -50,30 +51,6 @@ my $opt_debug = 0;
 my $opt_solution_szs_status = 'Theorem';
 my $opt_prover = 'eprover';
 my $opt_timeout = 30; # seconds
-
-sub print_formula_names_with_color {
-    my $formulas_ref = shift;
-    my $color = shift;
-    my $parameters_ref = shift;
-
-    my %parameters = defined $parameters_ref ? %{$parameters_ref} : ();
-
-    my @formulas = @{$formulas_ref};
-
-    if (defined $parameters{'sorted'} && $parameters{'sorted'}) {
-	my @formula_names = map { $_->get_name () } @formulas;
-	my @formula_names_sorted = sort @formula_names;
-	my @formula_names_colored
-	    = map { colored ($_, $color) } @formula_names_sorted;
-	say join ("\N{LF}", @formula_names_colored);
-    } else {
-	my @formula_names_colored = map { $_->name_with_color ($color) } @formulas;
-	say join ("\N{LF}", @formula_names_colored);
-    }
-
-    return 1;
-
-}
 
 sub BUILD {
     my $self = shift;
@@ -235,3 +212,47 @@ sub execute {
 
 1;
 __END__
+
+=pod
+
+=head1 NAME
+
+tipi prove
+
+=head1 SYNOPSIS
+
+tipi prove --help
+
+tipi prove --man
+
+tipi prove [--verbose | --debug] [--solution-szs-status=STATUS] [--timeout=N] [--with-prover=PROVER] TPTP-file
+
+=head1 DESCRIPTION
+
+tipi prove simply attempts to solve a reasoning problem specified in
+the TPTP file.
+
+To say what "solve" means, use the C<--solution-szs-status> option.
+If you do not specify this, the SZS status B<Theorem> is used by
+default.
+
+If the C<--timeout> option is absent, a default timeout of 30 seconds
+will be used.
+
+The theorem prover specified in the C<--with-prover> option will be used.
+One can repeat this option.  The interpretation is that you are
+specifying a set of theorem provers to be used to determine
+(un)derivability.  If you omit specifying this option, then by
+default, two provers will be used: E and Paradox.  If the
+C<--with-prover> option is used, these defaults will be discarded, and
+all and only the provers you specify will be used.
+
+=head1 SEE ALSO
+
+=over 8
+
+=item L<The SZS Ontology|http://www.cs.miami.edu/~tptp/cgi-bin/SeeTPTP?Category=Documents&File=SZSOntology>
+
+=back
+
+=cut

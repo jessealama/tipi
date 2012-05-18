@@ -1,6 +1,8 @@
 package EproverDerivation;
 
 use Moose;
+use Pod::Find qw(pod_where);
+use Pod::Usage;
 use Regexp::DefaultFlags;
 use charnames qw(:full);
 use English qw(-no_match_vars);
@@ -22,14 +24,15 @@ sub BUILD {
 	}
     }
 
-    my $theory = $self->get_background_theory ();
-    my @axioms = $theory->get_axioms (1);
+    my @used_formulas = keys %used_premises;
 
-    my @used_formulas = ();
-    foreach my $formula_name (keys %used_premises) {
-	my $formula = $theory->formula_with_name ($formula_name);
-	push (@used_formulas, $formula);
-    }
+    # my $theory = $self->get_background_theory ();
+    # my @axioms = $theory->get_axioms (1);
+
+    # foreach my $formula_name (keys %used_premises) {
+    # 	my $formula = $theory->formula_with_name ($formula_name);
+    # 	push (@used_formulas, $formula);
+    # }
 
     $self->_set_used_premises (\@used_formulas);
 
@@ -37,3 +40,24 @@ sub BUILD {
 
 1;
 __END__
+
+=pod
+
+=head1 NAME
+
+EproverDerivation
+
+=head1 DESCRIPTION
+
+EproverDerivation is a subclass of Derivation that extracts used
+premises from proofs output by the E theorem prover.
+
+=head1 SEE ALSO
+
+=over 8
+
+=item L<The E theorem prover|http://www.eprover.org/>
+
+=back
+
+=cut
