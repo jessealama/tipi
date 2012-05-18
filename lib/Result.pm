@@ -149,24 +149,29 @@ sub get_szs_status {
 	    } else {
 		return $SZS_UNKNOWN;
 	    }
+	} elsif ($output =~ / SZS \N{SPACE} status \N{SPACE} ([a-zA-Z]+) /m) {
+	    my $status = $1;
+	    if (known_szs_status ($status)) {
+		return $status;
+	    } else {
+		carp 'Unknown SZS status \'', $status, '\'; defaulting to \'Unknown\'.';
+		return $SZS_UNKNOWN;
+	    }
+	} elsif ($self->timed_out ()) {
+	    return $SZS_TIMEOUT;
+	} elsif (! $self->exited_cleanly ()) {
+	    return $SZS_ERROR;
 	} else {
 	    return $SZS_UNKNOWN;
 	}
-
-    }
-
-    if ($output =~ / SZS \N{SPACE} status \N{SPACE} ([a-zA-Z]+) /m) {
-	my $status = $1;
-	if (known_szs_status ($status)) {
-	    return $status;
-	} else {
-	    carp 'Unknown SZS status \'', $status, '\'; defaulting to \'Unknown\'.';
-	    return $SZS_UNKNOWN;
-	}
-    } elsif ($self->timed_out ()) {
-	return $SZS_TIMEOUT;
-    } elsif (! $self->exited_cleanly ()) {
-	return $SZS_ERROR;
+    } elsif ($output =~ / SZS \N{SPACE} status \N{SPACE} ([a-zA-Z]+) /m) {
+	    my $status = $1;
+	    if (known_szs_status ($status)) {
+		return $status;
+	    } else {
+		carp 'Unknown SZS status \'', $status, '\'; defaulting to \'Unknown\'.';
+		return $SZS_UNKNOWN;
+	    }
     } else {
 	return $SZS_UNKNOWN;
     }
