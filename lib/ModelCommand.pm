@@ -167,7 +167,6 @@ sub execute {
 
     my $result = TPTP::prove ($theory,
 			      $opt_model_finder,
-			      $SZS_SATISFIABLE,
 			      { 'timeout' => $opt_timeout });
 
     if ($result->timed_out ()) {
