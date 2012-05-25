@@ -279,7 +279,8 @@ sub execute {
     my $theory = Theory->new (path => $theory_path);
 
     my @axioms = $theory->get_axioms (1);
-    my @original_axioms = @axioms;
+    my @original_axioms = @axioms; # a copy
+    my @formulas = $theory->get_formulas (1);
 
     my $theory_has_conjecture = $theory->has_conjecture_formula ();
     my $conjecture = undef;
@@ -362,8 +363,10 @@ sub execute {
 			    }
 			}
 
-			@used_premises = @axioms;
+			@used_premises = map { $_->get_name () } @formulas;
 		    }
+
+		    @used_premises = sort @used_premises;
 
 		    $used_by_prover{$prover} = \@used_premises;
 		    $unused_by_prover{$prover} = \@unused_premises;
@@ -431,8 +434,7 @@ sub execute {
 	my $szs_status = $initial_proof_szs_status{$prover};
 	if (is_szs_success ($szs_status)) {
 	    my @used_premises = @{$used_by_prover{$prover}};
-	    # my @used_premises_names = map { $_->get_name () } @used_premises;
-	    my @used_premises_names_sorted = sort @used_premises;
+
 	    if (all { my $other_prover = $_;
 		      my $other_prover_szs_status
 			  = $initial_proof_szs_status{$other_prover};
@@ -440,16 +442,12 @@ sub execute {
 			  || ! (is_szs_success ($other_prover_szs_status))
 			      || eval { my @other_used_premises
 					    = @{$used_by_prover{$other_prover}};
-					my @other_used_premises_names
-					    = map { $_->get_name () } @other_used_premises;
-					my @other_used_premises_names_sorted
-					    = sort @other_used_premises_names;
-					subtuple (\@used_premises_names_sorted,
-						  \@other_used_premises_names_sorted)
-					    || ! subtuple (\@other_used_premises_names_sorted,
-							   \@used_premises_names_sorted) } }
+					subtuple (\@used_premises,
+						  \@other_used_premises)
+					    || ! subtuple (\@other_used_premises,
+							   \@used_premises) } }
 		    @opt_provers) {
-		push (@minimal_used_premise_sets, \@used_premises_names_sorted);
+		push (@minimal_used_premise_sets, \@used_premises);
 	    }
 
 	}
