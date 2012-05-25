@@ -350,9 +350,12 @@ sub execute {
 			    }
 			}
 		    } else {
-			say warning_message ('Although the proof attempt with', $SPACE, $prover, $SPACE, 'succeeded (the SZS status was', $SPACE, $initial_proof_szs_status, '),');
+			say $LF, warning_message ('Although the proof attempt with', $SPACE, $prover, $SPACE, 'succeeded (the SZS status was', $SPACE, $initial_proof_szs_status, '),');
 			say 'we failed to extract a derivation, so we were unable to determine used premises.';
-			say 'We will now proceed as though', $SPACE, $prover, $SPACE, 'used all available premises.';
+			# say 'While attempting to extract the derivation, we obtained this output:';
+			# say $LF, $derivation_message, $LF;
+
+			say 'We will proceed as though', $SPACE, $prover, $SPACE, 'used all available premises.';
 
 			if ($opt_debug) {
 			    if ($derivation_message eq $EMPTY_STRING) {
