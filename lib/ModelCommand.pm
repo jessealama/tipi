@@ -200,8 +200,6 @@ sub execute {
     if (is_szs_success ($szs_status)) {
 	if (szs_implies ($szs_status, $SZS_SATISFIABLE)) {
 
-	    say colored ($szs_status, $GOOD_COLOR);
-
 	    if ($opt_show_model) {
 		my $model_description = eval { $model->describe () };
 		if (defined $model_description) {
@@ -211,6 +209,8 @@ sub execute {
 		    say $szs_status, ', we failed to extract a description of a model.';
 		    exit 1;
 		}
+	    } else {
+		say colored ($szs_status, $GOOD_COLOR);
 	    }
 	} else {
 	    say colored ($szs_status, $BAD_COLOR);
