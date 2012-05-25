@@ -507,8 +507,6 @@ sub execute {
 	@axioms = @non_conjecture_axioms;
     }
 
-    # carp 'Axioms now:', Dumper (@axioms);
-
     my %needed = ();
     my %unneeded = ();
     my %unknown = ();
