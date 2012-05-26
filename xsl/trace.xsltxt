@@ -1,0 +1,15 @@
+stylesheet "1.0";
+
+tpl [*] mode="trace" {
+  apply [.] mode="trace-recursive";
+}
+
+tpl [*] mode="trace-recursive" {
+  $n = `name (.)`;
+  $position = `count (preceding-sibling::*[name() = $n]) + 1`;
+  if [parent::*] {
+    apply [..] mode="trace-recursive";
+  }
+  $message = `concat ($n, "[", $position, "]")`;
+  msg $message;
+}

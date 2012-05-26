@@ -1,0 +1,69 @@
+stylesheet "1.0";
+import "copy.xsl";
+import "die.xsl";
+output method="xml" indent="yes";
+
+//////////////////////////////////////////////////////////////////////
+// Stylesheet parameters
+//////////////////////////////////////////////////////////////////////
+
+#skolem-prefix = { "sK"; }
+
+#item-prefix = { "item"; }
+
+//////////////////////////////////////////////////////////////////////
+// Templates
+//////////////////////////////////////////////////////////////////////
+
+tpl [*] {
+  $n = `name (.)`;
+  $message = `concat ("Unknown ", $n, " element (default mode).")`;
+  apply [.] (#message = $message) mode="die";
+}
+
+tpl [/] {
+  if [tstp] {
+    apply [tstp];
+  } else {
+    msg terminate="yes" "Error: the required tstp document element is missing.";
+  }
+}
+
+tpl build-diagram (#objects) {
+  if [$objects] {
+    // need to do something here
+  } else {
+    for-each [ancestor::tstp] {
+      for-each [formula[@status = "fi_functions"
+                        and not (starts-with (@name, $skolem-prefix))]] {
+        apply [.];
+      }
+      for-each [formula[@status = "fi_predicates"]] {
+        apply [.];
+      }
+    }
+  }
+}
+
+tpl [string] {
+  $n = `@name`;
+  <function {
+    @"name" = `concat ($item-prefix, $n)`;
+  }
+}
+
+tpl [tstp] {
+  if [not(formula[@name = "domain"])] {
+    msg terminate="yes" "Error: there required domain formula is missing.";
+  }
+  <tstp {
+    <formula {
+      @syntax = "formula";
+      @status = "axiom";
+      @"name" = "diagram";
+      for-each [formula[@name = "fi_domain"]] {
+        build-diagram (#object = `descendant::string`);
+      }
+    }
+  }
+}

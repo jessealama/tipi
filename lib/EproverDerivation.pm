@@ -18,7 +18,7 @@ sub BUILD {
     my @lines = split / \N{LF} /, $raw_text;
 
     foreach my $line (@lines) {
-	if ($line =~ / initial \( "[^"]+", \N{SPACE} (.+) \) \z/) {
+	if ($line =~ / initial \( "[^"]+", \N{SPACE} (.+) \) /) {
 	    my $used_formula_name = $1;
 	    $used_premises{$used_formula_name} = 0;
 	}

@@ -93,11 +93,21 @@ sub process_commandline {
 
     my $first_arg = $ARGV[0];
 
-    if ($first_arg eq 'help'  || $first_arg eq 'man') {
-	pod2usage(0);
+    if ($first_arg eq 'help'  || $first_arg eq '--help') {
+	pod2usage(
+	    -verbose => 1,
+	    -exitval => 0,
+	);
     }
 
-    if ($opt_version) {
+    if ($first_arg eq 'man'  || $first_arg eq '--man') {
+	pod2usage(
+	    -verbose => 2,
+	    -exitval => 0,
+	);
+    }
+
+    if ($first_arg eq '--version') {
         say $VERSION;
         exit 0;
     }

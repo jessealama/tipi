@@ -1,0 +1,25 @@
+stylesheet "1.0";
+import "copy.xsl";
+output method="xml" indent="yes";
+
+tpl [/] {
+  if [tstp] {
+    apply [tstp];
+  } else {
+    msg terminate="yes" "Error: the required tstp document element is missing.";
+  }
+}
+
+tpl [tstp] {
+  <tstp {
+    apply [formula];
+  }
+}
+
+tpl [formula] {
+  <formula {
+    for-each [@*] { copy-of `.`; }
+    @"name" = `count (preceding-sibling::formula) + 1`;
+    apply [*] mode="copy";
+  }
+}
