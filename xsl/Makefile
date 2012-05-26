@@ -2,6 +2,11 @@ JAVA = java
 XSLTXT = xsltxt.jar
 CAT = cat
 
+all: paradox-diagram.xsl
 
 %.xsl: %.xsltxt
-	$(JAVA) -jar $(XSLTXT) toXSL $*.xsltxt | sed -e 's/<!\-\- *\(<\/*xsl:document.*\) *\-\->/\1/g' > $*.xsl
+	which $(JAVA)
+	$(JAVA) -jar $(XSLTXT) toXSL $*.xsltxt $*.xsl || rm $*.xsl;
+
+clean:
+	rm -f *.xsl
