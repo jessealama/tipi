@@ -1,0 +1,7 @@
+stylesheet "1.0";
+import "trace.xsl";
+
+tpl [*] (#message) mode="die" {
+  apply [.] mode="trace";
+  msg terminate="yes" $message;
+}
