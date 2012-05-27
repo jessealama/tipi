@@ -1,0 +1,3 @@
+[submodule "xsl/utils"]
+	path = xsl/utils
+	url = git://github.com/jessealama/xslutils.git
