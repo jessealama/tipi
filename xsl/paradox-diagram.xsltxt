@@ -10,46 +10,78 @@ output method="xml" indent="yes";
 
 #skolem-prefix = { "sK"; }
 
-#item-prefix = { "item"; }
+#item-prefix = { "item_"; }
+
+// If '1', the TPTP formula that we will output will have the status
+// of a conjecture.  Otherwise, it will have the status of an axiom.
+#conjecture = { "0"; }
+
+// The name of the TPTP formula we will emit.
+#formula-name = { "diagram"; }
 
 //////////////////////////////////////////////////////////////////////
 // Templates
 //////////////////////////////////////////////////////////////////////
 
+// By default, just copy (ignoring text nodes)
 tpl [*] {
   $n = `name (.)`;
-  $message = `concat ("Unknown ", $n, " element (default mode).")`;
-  apply [.] (#message = $message) mode="die";
+  <$n {
+    for-each [@*] { copy-of `.`; }
+    apply [*];
+  }
 }
 
 tpl [/] {
   if [tstp] {
-    apply [tstp];
+    choose {
+      when [$formula-name = ""] {
+        msg terminate="yes" "Error: the empty string is not an acceptable value for the name of the TPTP formula to be generated.";
+      }
+      when [contains ($formula-name, " ")] {
+        msg terminate="yes" "Error: the name of the TPTP formula to be generated cannot contain a space character.";
+      }
+      otherwise {
+        $starts-with-capital = starts-with-capital-letter (#string = $formula-name);
+        if [$starts-with-capital = "1"] {
+          msg terminate="yes" "Error: the name of the TPTP formula to be generated cannot start with a capital letter.";
+        } else {
+          apply [tstp];
+        }
+      }
+    }
   } else {
     msg terminate="yes" "Error: the required tstp document element is missing.";
   }
 }
 
-tpl build-diagram (#objects) {
-  if [$objects] {
-    // need to do something here
-  } else {
-    for-each [ancestor::tstp] {
-      for-each [formula[@status = "fi_functions"
-                        and not (starts-with (@name, $skolem-prefix))]] {
-        apply [.];
+tpl all-different (#objects) {
+  if [$objects[2]] {
+    $object = `$objects[1]`;
+    $other-objects = `$objects[position () > 1]`;
+    if [$objects[3]] {
+      <conjunction {
+        for-each [$other-objects] {
+          <negation {
+            <predicate {
+              @"name" = "=";
+              apply [$object];
+              apply [.];
+            }
+          }
+        }
+        all-different (#objects = $other-objects);
       }
-      for-each [formula[@status = "fi_predicates"]] {
-        apply [.];
+    } else {
+      $other-object = `$objects[2]`;
+      <negation {
+        <predicate {
+          @"name" = "=";
+          apply [$object];
+          apply [$other-object];
+        }
       }
     }
-  }
-}
-
-tpl [string] {
-  $n = `@name`;
-  <function {
-    @"name" = `concat ($item-prefix, $n)`;
   }
 }
 
@@ -60,11 +92,57 @@ tpl [tstp] {
   <tstp {
     <formula {
       @syntax = "formula";
-      @status = "axiom";
+      if [$conjecture = "1"] {
+        @status = "conjecture";
+      } else {
+        @status = "axiom";
+      }
       @"name" = "diagram";
-      for-each [formula[@name = "fi_domain"]] {
-        build-diagram (#object = `descendant::string`);
+      for-each [formula[@name = "domain"]] {
+        for-each [*[1]] {
+          <quantifier {
+            @type = "existential";
+            for-each [descendant::string] {
+              apply [.];
+            }
+            <conjunction {
+              all-different (#objects = `descendant::string`);
+              apply [.];
+              for-each [ancestor::tstp] {
+                for-each [formula[@status = "fi_functions"
+                                  and not(starts-with (@name, $skolem-prefix))]] {
+                  apply [.];
+                }
+                for-each [formula[@status = "fi_predicates"]] {
+                  apply [.];
+                }
+              }
+            }
+          }
+        }
       }
     }
+  }
+}
+
+tpl [string] {
+  $n = `@name`;
+  <variable {
+    $capitalized-name = capitalize (#string = `concat ($item-prefix, $n)`);
+    @"name" = $capitalized-name;
+  }
+}
+
+tpl [formula] {
+  apply [*[1]];  // we care only for the logical content of the formula
+}
+
+tpl [equivalence[*[2][self::defined-predicate[@name = "true"]]]] {
+  apply [*[1]];
+}
+
+tpl [equivalence[*[2][self::defined-predicate[@name = "false"]]]] {
+  <negation {
+    apply [*[1]];
   }
 }
