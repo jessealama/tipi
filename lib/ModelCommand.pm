@@ -44,7 +44,6 @@ my $opt_man = 0;
 my $opt_verbose = 0;
 my $opt_debug = 0;
 my $opt_with_conjecture_as = undef;
-my $opt_show_model = 0;
 my $opt_timeout = 30; # seconds
 my $opt_model_finder = 'paradox';
 
@@ -65,7 +64,6 @@ around 'execute' => sub {
 	'verbose' => \$opt_verbose,
 	'help|?' => => \$opt_help,
 	'with-conjecture-as=s' => \$opt_with_conjecture_as,
-	'show-model' => \$opt_show_model,
 	'timeout=i' => \$opt_timeout,
 	'model-finder=s' => \$opt_model_finder,
     ) or pod2usage (
@@ -200,17 +198,13 @@ sub execute {
     if (is_szs_success ($szs_status)) {
 	if (szs_implies ($szs_status, $SZS_SATISFIABLE)) {
 
-	    if ($opt_show_model) {
-		my $model_description = eval { $model->describe () };
-		if (defined $model_description) {
-		    say $model_description;
-		} else {
-		    say {*STDERR} error_message ('Although', $SPACE, $opt_model_finder, $SPACE, 'terminated cleanly and gives the SZS status');
-		    say $szs_status, ', we failed to extract a description of a model.';
-		    exit 1;
-		}
+	    my $model_description = eval { $model->describe () };
+	    if (defined $model_description) {
+		say $model_description;
 	    } else {
-		say colored ($szs_status, $GOOD_COLOR);
+		say {*STDERR} error_message ('Although', $SPACE, $opt_model_finder, $SPACE, 'terminated cleanly and gives the SZS status');
+		say $szs_status, ', we failed to extract a description of a model.';
+		exit 1;
 	    }
 	} else {
 	    say colored ($szs_status, $BAD_COLOR);
