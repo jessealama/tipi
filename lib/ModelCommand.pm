@@ -1,6 +1,7 @@
 package ModelCommand;
 
-require v5.10;
+require v5.10; # for the 'say' feature
+use feature 'say';
 
 use Moose;
 use Carp qw(croak carp);
@@ -12,7 +13,6 @@ use charnames qw(:full);
 use English qw(-no_match_vars);
 use Data::Dumper;
 use Term::ANSIColor qw(colored);
-use feature 'say';
 
 extends 'Command';
 
