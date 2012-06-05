@@ -1,3 +1,6 @@
 [submodule "xsl/utils"]
 	path = xsl/utils
 	url = git://github.com/jessealama/xslutils.git
+[submodule "xsl"]
+	path = xsl
+	url = git://github.com/jessealama/xsl4tptp.git
