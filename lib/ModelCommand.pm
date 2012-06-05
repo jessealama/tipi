@@ -198,7 +198,7 @@ sub execute {
     if (is_szs_success ($szs_status)) {
 	if (szs_implies ($szs_status, $SZS_SATISFIABLE)) {
 
-	    my $model_description = eval { $model->describe () };
+	    my $model_description = $model->describe ();
 	    if (defined $model_description) {
 		say $model_description;
 	    } else {
