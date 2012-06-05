@@ -3,8 +3,23 @@ package ParadoxInterpretation;
 use Moose;
 use charnames qw(:full);
 use Regexp::DefaultFlags;
+use FindBin qw($RealBin);
+use Readonly;
+use File::Temp;
+use Carp qw(carp confess);
+
+use Utils qw(tptp_xmlize
+	     apply_stylesheet);
 
 extends 'Interpretation';
+
+# Strings
+Readonly my $LF => "\N{LF}";
+
+# Stylesheets
+Readonly my $STYLESHEET_HOME => "$RealBin/../xsl";
+Readonly my $PARADOX_INTERPRETATION_STYLESHEET
+    => "${STYLESHEET_HOME}/paradox-interpretation.xsl";
 
 sub describe {
     my $self = shift;
@@ -25,7 +40,20 @@ sub describe {
 	}
     }
 
-    my $description = join ("\N{LF}", @model_lines);
+    my $tstp_model = join ($LF, @model_lines);
+
+    my $paradox_model_xml = tptp_xmlize ($tstp_model);
+
+    # carp 'paradox model xml =', $LF, $paradox_model_xml;
+
+    my $description = apply_stylesheet
+	($PARADOX_INTERPRETATION_STYLESHEET,
+	 $paradox_model_xml,
+	 undef, # don't save the results to an output file; just give us a string
+	 {
+	     'ignore-skolems' => '1',
+	 }
+     );
 
     return $description;
 }
