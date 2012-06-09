@@ -227,7 +227,7 @@ tipi model --help
 
 tipi model --man
 
-tipi model [--show-model] [--timeout=N] TPTP-file
+tipi model [--timeout=N] TPTP-file
 
 =head1 DESCRIPTION
 
@@ -236,14 +236,6 @@ the TPTP problem.
 
 At most --timeout seconds are spent searching for such an
 interpretation (by default, the timeout is 30 seconds).
-
-If --show-model is not specified, we simply print whether the TPTP
-problem is satisfiable (or we print the first SZS status we obtained
-that implies that the problem is satisfiable, or whether some other
-error or non-success condition arose during the search).  If
---show-model is specified and we were able to determine that the TPTP
-problem is indeed satisfiable, we will output a description of the
-model that witnesss this.
 
 =head1 SEE ALSO
 
