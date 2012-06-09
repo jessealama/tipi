@@ -12,5 +12,4 @@
   :maintainer "Jesse Alama <jesse.alama@gmail.com>"
   :depends-on (:named-readtables)
   :serial t
-  :components ((:file "packages")
-	       (:file "tptp-readtable")))
+  :components ((:file "packages")))
