@@ -159,7 +159,7 @@ sub execute {
 		$theory = $theory->promote_conjecture_to_false_axiom ();
 	    }
 	} else {
-	    $theory = $theory->strip_conjecture ();
+	    # $theory = $theory->strip_conjecture ();
 	}
     }
 
