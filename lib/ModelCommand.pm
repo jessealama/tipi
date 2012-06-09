@@ -196,18 +196,13 @@ sub execute {
     my $szs_status = $result->get_szs_status ();
 
     if (is_szs_success ($szs_status)) {
-	if (szs_implies ($szs_status, $SZS_SATISFIABLE)) {
-
-	    my $model_description = $model->describe ();
-	    if (defined $model_description) {
-		say $model_description;
-	    } else {
-		say {*STDERR} error_message ('Although', $SPACE, $opt_model_finder, $SPACE, 'terminated cleanly and gives the SZS status');
-		say $szs_status, ', we failed to extract a description of a model.';
-		exit 1;
-	    }
+	my $model_description = $model->describe ();
+	if (defined $model_description) {
+	    say $model_description;
 	} else {
-	    say colored ($szs_status, $BAD_COLOR);
+	    say {*STDERR} error_message ('Although', $SPACE, $opt_model_finder, $SPACE, 'terminated cleanly and gives the SZS status');
+	    say $szs_status, ', we failed to extract a description of a model.';
+	    exit 1;
 	}
     } else {
 	say colored ($szs_status, $BAD_COLOR);
