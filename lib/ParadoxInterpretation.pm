@@ -52,6 +52,7 @@ sub describe {
 	 undef, # don't save the results to an output file; just give us a string
 	 {
 	     'ignore-skolems' => '1',
+	     'no-false' => '1',
 	 }
      );
 
