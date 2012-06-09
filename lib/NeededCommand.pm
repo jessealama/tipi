@@ -206,7 +206,6 @@ sub execute {
 
 	my $prover_result = TPTP::prove ($theory,
 					 $opt_prover,
-					 $opt_solution_szs_status,
 					 { 'timeout' => $opt_timeout });
 
 
