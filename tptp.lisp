@@ -34,20 +34,38 @@
 				       (xmlize-tptp tptp-file)
 				       nil
 				       nil)))
-    (let ((*readtable* (find-readtable :modern)))
-      (read-from-string lisp-string))))
+    (with-readtable (find-readtable :modern)
+      (let ((tptp-form (handler-case (read-from-string lisp-string)
+			 (error (c) (error "Unable to make sense of~%~%~a~%~%as a Lisp representation of~%~%  ~a~%~%The error was:~%~%  ~a" lisp-string (namestring tptp-file) c)))))
+	(let ((problem (make-instance 'tptp-problem)))
+	  (setf (formulas problem)
+		(mapcar #'make-tptp-formula tptp-form)))))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Problems
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defclass tptp-problem ()
+  ((formulas :type list
+	     :accessor formulas)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Formulas
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defclass tptp-formula ()
-  ((name :type string)
-   (syntax :type string)
-   (status :type string)
-   (formula :type formula)
-   (source :type list)
-   (useful-info :type list)))
+  ((name :type string
+	 :initarg :name)
+   (syntax :type string
+	   :initarg :syntax)
+   (status :type string
+	   :initarg :status)
+   (formula :type formula
+	    :initarg :formula)
+   (source :type list
+	   :initarg source)
+   (useful-info :type list
+		:initarg useful-info)))
 
 (defgeneric make-tptp-formula (thing))
 
