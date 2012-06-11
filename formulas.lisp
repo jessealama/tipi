@@ -52,9 +52,9 @@
 ;; quantifiers
 
 (defclass generalization (composite-formula)
-  ((bound-variable :initarg :bound-variable
-		   :accessor bound-variable
-		   :type variable-term)
+  ((bindings :initarg :bindings
+	     :accessor bindings
+	     :type list)
    (matrix :initarg :matrix
 	   :accessor matrix
 	   :type formula)))
@@ -137,7 +137,7 @@
 (defmethod render-plainly :around ((gen generalization))
   (concatenate 'string
 	       (call-next-method)
-	       (render-plainly (bound-variable gen))
+	       (render-plainly (bindings gen))
 	       "["
 	       (render-plainly (matrix gen))
 	       "]"))
@@ -145,7 +145,7 @@
 (defmethod render-fancily :around ((gen generalization))
   (format nil "~a~a[~a]"
 	  (call-next-method)
-	  (render-fancily (bound-variable gen))
+	  (render-fancily (bindings gen))
 	  (render-fancily (matrix gen))))
 
 (defmethod render-plainly ((formula binary-conjunction))
@@ -444,10 +444,9 @@ class ATOMIC-FORMULA.  This function expresses that disjointedness."
 	      (make-conjunction conjuncts))))))
 
 (defmethod print-object :after ((gen generalization) stream)
-  (call-next-method)
   (format stream
 	  "~A[~A]"
-	  (bound-variable gen)
+	  (bindings gen)
 	  (matrix gen)))
 
 (defun universal-generalization? (thing)
@@ -462,15 +461,15 @@ class ATOMIC-FORMULA.  This function expresses that disjointedness."
 (defmethod print-object ((exi-gen existential-generalization) stream)
   (format stream "exists"))
 
-(defun make-universal (var formula)
+(defun make-universal (bindings formula)
   (make-instance 'universal-generalization
-		 :bound-variable var
+		 :bindings bindings
 		 :matrix formula))
 
-(defun make-existential (var formula)
+(defun make-existential (bindings matrix)
   (make-instance 'existential-generalization
-		 :bound-variable var
-		 :matrix formula))
+		 :bindings bindings
+		 :matrix matrix))
 
 (defun equation? (formula)
   (eq (car formula) '=))
@@ -483,6 +482,22 @@ class ATOMIC-FORMULA.  This function expresses that disjointedness."
 
 (defgeneric op-and-args->term (operator arguments)
   (:documentation "Try to understand a symbol OPERATOR and a list ARGUMENTS as a term."))
+
+;; By default, make atoms
+(defmethod op-and-args->formula ((op symbol) arguments)
+  (apply #'make-atomic-formula op arguments))
+
+(defmethod op-and-args->formula ((op (eql 'exists)) arguments)
+  (destructuring-bind (bindings matrix)
+      arguments
+    (make-existential bindings
+		      (form->formula matrix))))
+
+(defmethod op-and-args->formula ((op (eql 'all)) arguments)
+  (destructuring-bind (bindings matrix)
+      arguments
+    (make-universal bindings
+		    (form->formula matrix))))
 
 (defmethod op-and-args->formula ((op (eql 'or)) arguments)
   (if (null arguments)
@@ -544,48 +559,6 @@ class ATOMIC-FORMULA.  This function expresses that disjointedness."
 	      (let ((lhs (form->formula (car arguments)))
 		    (rhs (form->formula (cadr arguments))))
 		(make-equivalence lhs rhs))
-	      (error 'parse-form-exactly-two-args-expected-but-at-least-three-supplied-error
-		     :operator op)))))
-
-(defmethod op-and-args->formula ((op (eql 'all)) arguments)
-  (if (null arguments)
-      (error 'parse-form-empty-argument-list-error :operator op)
-      (if (null (cdr arguments))
-	  (error 'parse-form-at-least-two-args-expected-but-only-one-supplied-error
-		 :operator op)
-	  (if (null (cddr arguments))
-	      (let ((var (form->term (car arguments))))
-		(if (eql (class-of var) 'unsorted-variable-term)
-		    (let ((matrix (form->formula (cadr arguments))))
-		      (if (eql (class-of matrix) 'formula)
-			  (make-universal var matrix)
-			  (error 'parse-form-formula-expected-error
-				 :operator op
-				 :form (cadr arguments))))
-		    (error 'parse-form-variable-expected
-			   :operator op
-			   :form (car arguments))))
-	      (error 'parse-form-exactly-two-args-expected-but-at-least-three-supplied-error
-		     :operator op)))))
-
-(defmethod op-and-args->formula ((op (eql 'exists)) arguments)
-  (if (null arguments)
-      (error 'parse-form-empty-argument-list-error :operator op)
-      (if (null (cdr arguments))
-	  (error 'parse-form-at-least-two-args-expected-but-only-one-supplied-error
-		 :operator op)
-	  (if (null (cddr arguments))
-	      (let ((var (form->formula (car arguments))))
-		(if (eql (class-of var) 'unsorted-variable-term)
-		    (let ((matrix (form->term (cadr arguments))))
-		      (if (eql (class-of matrix) 'formula)
-			  (make-universal var matrix)
-			  (error 'parse-form-formula-expected-error
-				 :operator op
-				 :form (cadr arguments))))
-		    (error 'parse-form-variable-expected
-			   :operator op
-			   :form (car arguments))))
 	      (error 'parse-form-exactly-two-args-expected-but-at-least-three-supplied-error
 		     :operator op)))))
 
