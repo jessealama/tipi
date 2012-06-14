@@ -97,28 +97,41 @@
 	    :initarg :formula
 	    :accessor formula
 	    :initform (error "A TPTP formula requires a formula proper."))
-   (source :type list
-	   :accessor source
-	   :initarg source)
+   (source
+    :accessor source
+    :initarg :source)
    (useful-info :type list
 		:accessor useful-info
-		:initarg useful-info)))
+		:initarg :useful-info)))
 
 (defmethod print-object ((formula tptp-formula) stream)
   (print-unreadable-object
       (formula stream :identity t :type t)
-    (format stream "~a : ~a" (name formula) (formula formula))))
+    (if (slot-boundp formula 'source)
+	(format stream "~a : ~a [source: ~a]" (name formula) (formula formula) (source formula))
+	(format stream "~a : ~a" (name formula) (formula formula)))))
 
 (defgeneric make-tptp-formula (thing))
 
 (defmethod make-tptp-formula ((thing list))
   (destructuring-bind (syntax name status formula . more-stuff)
       thing
-    (declare (ignore more-stuff))
-    (make-instance 'tptp-formula
+    (if more-stuff
+	(destructuring-bind (source . useful-info)
+	    more-stuff
+	  (make-instance 'tptp-formula
 		   :name (if (symbolp name)
 			     (symbol-name name)
 			     (format nil "~a" name))
 		   :syntax (symbol-name syntax)
 		   :status (symbol-name status)
-		   :formula (form->formula formula))))
+		   :formula (form->formula formula)
+		   :source source
+		   :useful-info useful-info))
+	(make-instance 'tptp-formula
+		   :name (if (symbolp name)
+			     (symbol-name name)
+			     (format nil "~a" name))
+		   :syntax (symbol-name syntax)
+		   :status (symbol-name status)
+		   :formula (form->formula formula)))))
