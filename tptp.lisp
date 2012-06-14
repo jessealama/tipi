@@ -106,10 +106,10 @@
 
 (defmethod print-object ((formula tptp-formula) stream)
   (print-unreadable-object
-      (formula stream :identity t :type t)
+      (formula stream :identity nil :type t)
     (if (slot-boundp formula 'source)
-	(format stream "~a : ~a [source: ~a]" (name formula) (formula formula) (source formula))
-	(format stream "~a : ~a" (name formula) (formula formula)))))
+	(format stream "~a (~a): ~a [source: ~a]" (name formula) (status formula) (formula formula) (source formula))
+	(format stream "~a (~a): ~a" (name formula) (status formula) (formula formula)))))
 
 (defgeneric make-tptp-formula (thing))
 
