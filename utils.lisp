@@ -67,3 +67,10 @@
 (defmacro with-readtable (readtable &body body)
   `(let ((*readtable* ,readtable))
      ,@body))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Hash tables
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun hash-table-keys (table)
+  (loop for k being the hash-keys in table collect k))
