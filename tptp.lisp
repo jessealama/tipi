@@ -56,6 +56,7 @@
 
 (defclass tptp-problem ()
   ((formulas :type list
+	     :initarg :formulas
 	     :accessor formulas
 	     :initform nil)
    (path
@@ -75,6 +76,12 @@
 		 (formulas problem)
 		 :key #'status
 		 :test #'string=)))
+
+(defun remove-conjecture (problem)
+  (make-instance 'tptp-problem
+		 :formulas (remove-if #'(lambda (status) (string= status "conjecture"))
+				      (formulas problem)
+				      :key #'status)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Formulas
