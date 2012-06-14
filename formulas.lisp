@@ -3,6 +3,18 @@
 (in-package :tipi)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Operators
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defparameter *all-symbol* (symbolify-here "all"))
+(defparameter *exists-symbol* (symbolify-here "exists"))
+(defparameter *or-symbol* (symbolify-here "or"))
+(defparameter *and-symbol* (symbolify-here "and"))
+(defparameter *negation-symbol* (symbolify-here "not"))
+(defparameter *implication-symbol* (symbolify-here "implies"))
+(defparameter *equivalence-symbol* (symbolify-here "iff"))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Formulas
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -209,13 +221,10 @@
 
 (defgeneric make-atomic-formula (predicate &rest arguments))
 
-(let ((atomic-formula-store (make-hash-table)))
-  (defmethod make-atomic-formula ((predicate symbol) &rest arguments)
-    (or (gethash predicate atomic-formula-store)
-	(setf (gethash predicate atomic-formula-store)
-	      (make-instance 'atomic-formula
-			     :predicate predicate
-			     :args arguments)))))
+(defmethod make-atomic-formula ((predicate symbol) &rest arguments)
+  (make-instance 'atomic-formula
+		 :predicate predicate
+		 :args (mapcar #'form->term arguments)))
 
 (defparameter contradiction (make-atomic-formula 'bottom))
 
@@ -261,7 +270,7 @@ class ATOMIC-FORMULA.  This function expresses that disjointedness."
   (typep thing 'negation))
 
 (defmethod print-object ((neg negation) stream)
-  (format stream "¬"))
+  (format stream "~a" #\~))
 
 (defgeneric negate (thing))
 
@@ -296,7 +305,7 @@ class ATOMIC-FORMULA.  This function expresses that disjointedness."
   (typep thing 'implication))
 
 (defmethod print-object ((implication implication) stream)
-  (format stream "-->"))
+  (format stream "=>"))
 
 (defgeneric make-implication (antecedent consequent))
 
@@ -318,7 +327,7 @@ class ATOMIC-FORMULA.  This function expresses that disjointedness."
   (typep thing 'equivalence))
 
 (defmethod print-object ((equiv equivalence) stream)
-  (format stream "<-->"))
+  (format stream "<=>"))
 
 (defun make-equivalence (lhs rhs)
   (make-instance 'equivalence
@@ -331,7 +340,7 @@ class ATOMIC-FORMULA.  This function expresses that disjointedness."
   (typep thing 'binary-disjunction))
 
 (defmethod print-object ((bin-dis binary-disjunction) stream)
-  (format stream "or"))
+  (format stream "|"))
 
 (defgeneric make-binary-disjunction (lhs rhs))
 
@@ -346,7 +355,7 @@ class ATOMIC-FORMULA.  This function expresses that disjointedness."
   (eql (class-of thing) 'multiple-arity-disjunction))
 
 (defmethod print-object ((mad multiple-arity-disjunction) stream)
-  (format stream "or"))
+  (format stream "|"))
 
 (defmethod make-binary-disjunction ((lhs formula) (rhs formula))
   (make-instance 'binary-disjunction
@@ -393,7 +402,7 @@ class ATOMIC-FORMULA.  This function expresses that disjointedness."
   (typep thing 'binary-conjunction))
 
 (defmethod print-object ((con binary-conjunction) stream)
-  (format stream "and"))
+  (format stream "&"))
 
 (defclass multiple-arity-conjunction (multiple-arity-connective-formula)
   nil)
@@ -406,7 +415,7 @@ class ATOMIC-FORMULA.  This function expresses that disjointedness."
   (eql (class-of thing) 'multiple-arity-conjunction))
 
 (defmethod print-object ((mac multiple-arity-conjunction) stream)
-  (format stream "and"))
+  (format stream "&"))
 
 (defun make-binary-conjunction (lhs rhs)
   (make-instance 'binary-conjunction
@@ -443,23 +452,17 @@ class ATOMIC-FORMULA.  This function expresses that disjointedness."
 						    (make-conjunction (cdr ds))))))
 	      (make-conjunction conjuncts))))))
 
-(defmethod print-object :after ((gen generalization) stream)
-  (format stream
-	  "~A[~A]"
-	  (bindings gen)
-	  (matrix gen)))
-
 (defun universal-generalization? (thing)
   (eql (class-of thing) 'universal-generalization))
 
 (defmethod print-object ((uni-gen universal-generalization) stream)
-  (format stream "all"))
+  (format stream "(! [~{~a~^,~}] : ~a)" (bindings uni-gen) (matrix uni-gen)))
 
 (defun existential-generalization? (thing)
   (eql (class-of thing) 'existential-generalization))
 
 (defmethod print-object ((exi-gen existential-generalization) stream)
-  (format stream "exists"))
+  (format stream "(? [~{~a~^,~}] : ~a)" (bindings exi-gen) (matrix exi-gen)))
 
 (defun make-universal (bindings formula)
   (make-instance 'universal-generalization
@@ -487,19 +490,19 @@ class ATOMIC-FORMULA.  This function expresses that disjointedness."
 (defmethod op-and-args->formula ((op symbol) arguments)
   (apply #'make-atomic-formula op arguments))
 
-(defmethod op-and-args->formula ((op (eql 'exists)) arguments)
+(defmethod op-and-args->formula ((op (eql *exists-symbol*)) arguments)
   (destructuring-bind (bindings matrix)
       arguments
-    (make-existential bindings
+    (make-existential (mapcar #'form->term bindings)
 		      (form->formula matrix))))
 
-(defmethod op-and-args->formula ((op (eql 'all)) arguments)
+(defmethod op-and-args->formula ((op (eql *all-symbol*)) arguments)
   (destructuring-bind (bindings matrix)
       arguments
-    (make-universal bindings
+    (make-universal (mapcar #'form->term bindings)
 		    (form->formula matrix))))
 
-(defmethod op-and-args->formula ((op (eql 'or)) arguments)
+(defmethod op-and-args->formula ((op (eql *or-symbol*)) arguments)
   (if (null arguments)
       (error 'parse-form-empty-argument-list-error :operator op)
       (if (null (cdr arguments))
@@ -513,20 +516,20 @@ class ATOMIC-FORMULA.  This function expresses that disjointedness."
 	      (let ((disjuncts (mapcar #'form->formula arguments)))
 		(apply #'make-multiple-arity-disjunction disjuncts))))))
 
-(defmethod op-and-args->formula ((op (eql 'and)) arguments)
+(defmethod op-and-args->formula ((op (eql *and-symbol*)) arguments)
   (if (null arguments)
       (error 'parse-form-empty-argument-list-error :operator op)
       (if (null (cdr arguments))
 	  (error 'parse-form-at-least-two-args-expected-but-only-one-supplied-error
 		 :operator op)
 	  (if (null (cddr arguments))
-	      (let ((first-conjunct (form->formula (car arguments)))
-		    (second-conjunct (form->formula (cadr arguments))))
+	      (let ((first-conjunct (form->formula (first arguments)))
+		    (second-conjunct (form->formula (second arguments))))
 		(make-binary-conjunction first-conjunct second-conjunct))
 	      (let ((conjuncts (mapcar #'form->formula arguments)))
 		(apply #'make-multiple-arity-conjunction conjuncts))))))
 
-(defmethod op-and-args->formula ((op (eql 'not)) arguments)
+(defmethod op-and-args->formula ((op (eql *negation-symbol*)) arguments)
   (if (null arguments)
       (error 'parse-form-empty-argument-list-error :operator op)
       (if (null (cdr arguments))
@@ -535,7 +538,7 @@ class ATOMIC-FORMULA.  This function expresses that disjointedness."
 	  (error 'parse-form-unary-operator-multiple-arguments-error
 		 :operator op))))
 
-(defmethod op-and-args->formula ((op (eql 'implies)) arguments)
+(defmethod op-and-args->formula ((op (eql *implication-symbol*)) arguments)
   (if (null arguments)
       (error 'parse-form-empty-argument-list-error :operator op)
       (if (null (cdr arguments))
@@ -549,7 +552,7 @@ class ATOMIC-FORMULA.  This function expresses that disjointedness."
 		     :operator op
 		     :args arguments)))))
 
-(defmethod op-and-args->formula ((op (eql 'iff)) arguments)
+(defmethod op-and-args->formula ((op (eql *equivalence-symbol*)) arguments)
   (if (null arguments)
       (error 'parse-form-empty-argument-list-error :operator op)
       (if (null (cdr arguments))
@@ -577,25 +580,6 @@ class ATOMIC-FORMULA.  This function expresses that disjointedness."
 
 (defmethod form->formula ((sym symbol))
   (make-atomic-formula (symbolify-here sym)))
-
-(defgeneric form->term (form)
-  (:documentation "Attempt to understand FORM as a term."))
-
-(defmethod form->term ((list list))
-  (if (null list)
-      (error 'parse-form-empty-list-supplied-error)
-      (op-and-args->term (symbolify-here (car list))
-			 (cdr list))))
-
-(defmethod form->term ((sym symbol))
-  (let ((name (symbol-name sym)))
-    (if (empty-string? name)
-	(error 'parse-form-empty-string-supplied)
-	(let ((first-char (char name 0)))
-	  (if (char= first-char #\?)
-	      (make-instance 'variable
-			     :name (subseq name 1))
-	      (make-function-term name))))))
 
 (defmethod negate ((sym symbol))
   (negate (form->formula sym)))

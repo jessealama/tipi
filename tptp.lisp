@@ -12,15 +12,12 @@
       (error "There is no file at '~a'." (namestring tptp-file))))
 
 (defmethod xmlize-tptp ((tptp-file pathname))
-  (let ((tptp-process (run-program "tptp4X"
-				   (list "-c" "-x" "-fxml" (namestring tptp-file))
-				   :search t
-				   :wait t
-				   :output :stream
-				   :input nil)))
-    (let ((output-stream (process-output tptp-process)))
-      (let ((output-lines (stream-lines output-stream)))
-	(format nil "~{~a~%~}" output-lines)))))
+  (with-output-to-string (stdout)
+    (run-program "tptp4X"
+		 (list "-c" "-x" "-fxml" "--")
+		 :wait t
+		 :output stdout
+		 :input tptp-file)))
 
 (defgeneric read-tptp (tptp-thing))
 
@@ -39,7 +36,8 @@
 			 (error (c) (error "Unable to make sense of~%~%~a~%~%as a Lisp representation of~%~%  ~a~%~%The error was:~%~%  ~a" lisp-string (namestring tptp-file) c)))))
 	(let ((problem (make-instance 'tptp-problem)))
 	  (setf (formulas problem)
-		(mapcar #'make-tptp-formula tptp-form)))))))
+		(mapcar #'make-tptp-formula tptp-form))
+	  problem)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Problems
@@ -47,7 +45,22 @@
 
 (defclass tptp-problem ()
   ((formulas :type list
-	     :accessor formulas)))
+	     :accessor formulas
+	     :initform nil)))
+
+(defmethod print-object ((problem tptp-problem) stream)
+  (print-unreadable-object
+      (problem stream :type t :identity t)
+    (let ((formulas (formulas problem)))
+      (if formulas
+	  (format stream "~{~a~%~}" formulas)
+	  (format stream "(empty list of formulas/clauses)")))))
+
+(defun has-conjecture-formula? (problem)
+  (first (member "conjecture"
+		 (formulas problem)
+		 :key #'status
+		 :test #'string=)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Formulas
@@ -55,17 +68,32 @@
 
 (defclass tptp-formula ()
   ((name :type string
-	 :initarg :name)
+	 :initarg :name
+	 :accessor name
+	 :initform (error "A TPTP formula requires a name."))
    (syntax :type string
-	   :initarg :syntax)
+	   :initarg :syntax
+	   :accessor syntax
+	   :initform (error "A TPTP formula requires a syntax."))
    (status :type string
-	   :initarg :status)
+	   :initarg :status
+	   :accessor status
+	   :initform (error "A TPTP formula requires a status/role."))
    (formula :type formula
-	    :initarg :formula)
+	    :initarg :formula
+	    :accessor formula
+	    :initform (error "A TPTP formula requires a formula proper."))
    (source :type list
+	   :accessor source
 	   :initarg source)
    (useful-info :type list
+		:accessor useful-info
 		:initarg useful-info)))
+
+(defmethod print-object ((formula tptp-formula) stream)
+  (print-unreadable-object
+      (formula stream :identity t :type t)
+    (format stream "~a : ~a" (name formula) (formula formula))))
 
 (defgeneric make-tptp-formula (thing))
 

@@ -6,6 +6,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun run-program (program args &key search input output error wait if-output-exists)
+  (declare (ignorable search))
   #+sbcl
   (sb-ext:run-program program
 		      args

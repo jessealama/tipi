@@ -14,6 +14,8 @@
   :serial t
   :components ((:file "packages")
 	       (:file "utils")
+	       (:file "xslt")
+	       (:file "run")
 	       (:file "terms")
 	       (:file "formulas")
 	       (:file "tptp")))

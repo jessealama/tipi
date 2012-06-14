@@ -1,11 +1,13 @@
 
 (in-package :tipi)
 
-(defun symbolify (str &optional (package *package*))
-  (intern (string-upcase str) package))
+(defgeneric symbolify-here (thing))
 
-(defun symbolify-here (str)
-  (symbolify str (find-package :tipi)))
+(defmethod symbolify-here ((thing symbol))
+  (intern (symbol-name thing) (find-package :tipi)))
+
+(defmethod symbolify-here ((thing string))
+  (intern thing (find-package :tipi)))
 
 (defun empty-string? (thing)
   (when (stringp thing)
