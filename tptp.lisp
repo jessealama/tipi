@@ -36,8 +36,19 @@
 			 (error (c) (error "Unable to make sense of~%~%~a~%~%as a Lisp representation of~%~%  ~a~%~%The error was:~%~%  ~a" lisp-string (namestring tptp-file) c)))))
 	(let ((problem (make-instance 'tptp-problem)))
 	  (setf (formulas problem)
-		(mapcar #'make-tptp-formula tptp-form))
+		(mapcar #'make-tptp-formula tptp-form)
+		(path problem)
+		tptp-file)
 	  problem)))))
+
+(defmethod read-tptp ((tptp-string string))
+  (let ((temp (temporary-file)))
+    (with-open-file (tptp-file temp
+			       :direction :output
+			       :if-does-not-exist :create
+			       :if-exists :supersede)
+      (format tptp-file "~a" tptp-string))
+    (read-tptp temp)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Problems
@@ -46,7 +57,10 @@
 (defclass tptp-problem ()
   ((formulas :type list
 	     :accessor formulas
-	     :initform nil)))
+	     :initform nil)
+   (path
+    :type pathname
+    :accessor path)))
 
 (defmethod print-object ((problem tptp-problem) stream)
   (print-unreadable-object
@@ -102,7 +116,9 @@
       thing
     (declare (ignore more-stuff))
     (make-instance 'tptp-formula
-		   :name (symbol-name name)
+		   :name (if (symbolp name)
+			     (symbol-name name)
+			     (format nil "~a" name))
 		   :syntax (symbol-name syntax)
 		   :status (symbol-name status)
 		   :formula (form->formula formula))))
