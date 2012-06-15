@@ -115,10 +115,9 @@
 (defun promote-conjecture-to-axiom (problem)
   (let ((conjecture (has-conjecture-formula? problem)))
     (if conjecture
-	(let ((non-conjectures (non-conjecture-formulas problem)))
-	  (make-instance 'tptp-problem
-			 :formulas (cons (change-status conjecture "axiom")
-					 non-conjectures)))
+	(make-instance 'tptp-problem
+		       :formulas (cons (change-status conjecture "axiom")
+				       (non-conjecture-formulas problem)))
 	problem)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
