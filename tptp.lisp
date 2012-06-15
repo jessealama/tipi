@@ -65,7 +65,7 @@
 
 (defmethod print-object ((problem tptp-problem) stream)
   (print-unreadable-object
-      (problem stream :type t :identity t)
+      (problem stream :type t :identity nil)
     (let ((formulas (formulas problem)))
       (if formulas
 	  (format stream "~{~a~%~}" formulas)
