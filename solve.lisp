@@ -13,6 +13,16 @@
 (defparameter *eprover* (make-instance 'solver
 				       :name "The E theorem prover"))
 
+(defparameter *paradox* (make-instance 'solver
+				       :name "Paradox"))
+
+(defmethod solve :before (prover (problem tptp-problem))
+  (declare (ignore prover))
+  (unless (slot-boundp problem 'path)
+    (let ((temp (temporary-file)))
+      (write-string-into-file (render problem) temp)
+      (setf (path problem) temp))))
+
 (defmethod solve ((eprover (eql *eprover*)) (problem tptp-problem))
   (let ((eprover-text
 	 (with-output-to-string (eprover-out)
@@ -31,16 +41,23 @@
 	     (let ((eprover-exit-code (process-exit-code eprover-process)))
 	       (unless (zerop eprover-exit-code)
 		 (error "eprover did not exit cleanly (its exit code was ~a).  The error output:~%~%~a" eprover-exit-code (stream-lines (process-error eprover-process)))))))))
-    (let ((epclextract-text
-	   (with-input-from-string (eprover-out eprover-text)
-	     (with-output-to-string (epclextract-out)
-	       (let ((epclextract-process (run-program "epclextract"
-						       (list "--tstp-out")
-						       :input eprover-out
-						       :output epclextract-out
-						       :error :stream
-						       :wait t)))
-		 (let ((epclextract-exit-code (process-exit-code epclextract-process)))
-		   (unless (zerop epclextract-exit-code)
-		     (error "epclextract did not exit cleanly (its exit code was ~a).  The error output:~%~%~a" epclextract-exit-code (stream-lines (process-error epclextract-process))))))))))
-      (read-tptp epclextract-text))))
+    (make-instance 'eprover-result
+		   :text eprover-text)))
+
+(defmethod solve ((paradox (eql *paradox*)) (problem tptp-problem))
+  (let ((paradox-text
+	 (with-output-to-string (paradox-out)
+	   (let ((paradox-process (run-program "paradox"
+					       (list "--model"
+						     "--tstp"
+						     (namestring (path problem)))
+					       :search t
+					       :input nil
+					       :output paradox-out
+					       :error :stream
+					       :wait t)))
+	     (let ((paradox-exit-code (process-exit-code paradox-process)))
+	       (unless (zerop paradox-exit-code)
+		 (error "paradox did not exit cleanly (its exit code was ~a).  The error output:~%~%~a" paradox-exit-code (stream-lines (process-error paradox-process)))))))))
+    (make-instance 'paradox-result
+		   :text paradox-text)))
