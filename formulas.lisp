@@ -77,19 +77,20 @@
 (defclass existential-generalization (generalization)
   nil)
 
+(defun equation? (formula)
+  (when (atomic-formula? formula)
+    (let ((pred (predicate formula)))
+      (string= (symbol-name pred) "="))))
+
 (defmethod print-object ((atom atomic-formula) stream)
   (let ((pred (predicate atom))
 	(args (arguments atom)))
-    (if (null args)
-	(format stream "~A" pred)
-	(progn
-	  (format stream "~A" pred)
-	  (format stream "(")
-	  (format stream "~A" (first args))
-	  (loop for arg in (cdr args)
-	     do
-	       (format stream ",~A" arg))
-	  (format stream ")")))))
+    (cond ((null args)
+	   (format stream "~a" pred))
+	  ((equation? atom)
+	   (format stream "(~a = ~a)" (first args) (second args)))
+	  (t
+	   (format stream "~a(~{~a~^,~})" pred args)))))
 
 (defgeneric render-plainly (statement))
 
