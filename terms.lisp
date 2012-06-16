@@ -31,16 +31,16 @@
 		 :function function
 		 :args args))
 
-(defclass variable (term)
+(defclass variable-term (term)
   ((name :initarg :name
 	 :accessor variable-name
 	 :type string)))
 
-(defmethod print-object ((var variable) stream)
+(defmethod print-object ((var variable-term) stream)
   (format stream "~a" (variable-name var)))
 
 (defun variable? (thing)
-  (typep thing 'variable))
+  (typep thing 'variable-term))
 
 (defgeneric form->term (form)
   (:documentation "Attempt to understand FORM as a term."))
@@ -51,13 +51,16 @@
       (op-and-args->term (symbolify-here (car list))
 			 (cdr list))))
 
+(defmethod form->term ((term string))
+  (list term))
+
 (defmethod form->term ((sym symbol))
   (let ((name (symbol-name sym)))
     (if (empty-string? name)
 	(error 'parse-form-empty-string-supplied)
 	(let ((first-char (char name 0)))
 	  (if (char= first-char #\?)
-	      (make-instance 'variable
+	      (make-instance 'variable-term
 			     :name (subseq name 1))
 	      (make-function-term name))))))
 
