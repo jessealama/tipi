@@ -155,6 +155,20 @@
 	(format stream "~a (~a): ~a [source: ~a]" (name formula) (status formula) (formula formula) (source formula))
 	(format stream "~a (~a): ~a" (name formula) (status formula) (formula formula)))))
 
+(defun render-syntax (formula)
+  (let ((syntax (syntax formula)))
+    (cond ((string= syntax "formula") "fof")
+	  ((string= syntax "clause") "cnf")
+	  (t
+	   (error "Don't know how to render formulas whose syntax is '~a'." syntax)))))
+
+(defmethod render ((formula tptp-formula))
+  (format nil "~a(~a,~a,~a)."
+	  (render-syntax formula)
+	  (name formula)
+	  (status formula)
+	  (formula formula)))
+
 (defgeneric make-tptp-formula (thing))
 
 (defmethod make-tptp-formula ((thing list))
