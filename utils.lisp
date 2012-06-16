@@ -74,3 +74,10 @@
 
 (defun hash-table-keys (table)
   (loop for k being the hash-keys in table collect k))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Strings
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun split-lines (text)
+  (split #\Newline text))
