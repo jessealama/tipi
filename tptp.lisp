@@ -193,3 +193,6 @@
 		   :syntax (symbol-name syntax)
 		   :status (symbol-name status)
 		   :formula (form->formula formula)))))
+
+(defmethod render ((problem tptp-problem))
+  (format nil "~{~a~%~}" (mapcar #'render (formulas problem))))
