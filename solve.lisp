@@ -5,6 +5,7 @@
   ((name
     :type string
     :initarg :name
+    :accessor name
     :initform (error "To specify a solver, a name is mandatory."))))
 
 (defgeneric solve (solver tptp-problem))
