@@ -218,7 +218,8 @@
        do
 	 (when (slot-boundp solution-formula 'source)
 	   (let ((source (source solution-formula)))
-	     (let ((used-names (atoms-in-list source background-premises)))
+	     (let ((used-names (atoms-in-list source background-premises
+					      :test #'equal-as-strings?)))
 	       (loop
 		  for used in used-names
 		  do (setf (gethash used used-table) 0))))))
