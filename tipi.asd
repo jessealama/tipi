@@ -22,4 +22,5 @@
 	       (:file "result")
 	       (:file "tptp")
 	       (:file "solve")
-	       (:file "model")))
+	       (:file "model")
+	       (:file "consequence")))
