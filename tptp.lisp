@@ -71,6 +71,9 @@
 	  (format stream "~{~a~%~}" formulas)
 	  (format stream "(empty list of formulas/clauses)")))))
 
+(defmethod render ((problem tptp-problem))
+  (format nil "~{~a~%~}" (mapcar #'render (formulas problem))))
+
 (defgeneric proper-formulas (problem))
 
 (defmethod proper-formulas ((problem tptp-problem))
@@ -201,6 +204,3 @@
 		   :syntax (symbol-name syntax)
 		   :status (symbol-name status)
 		   :formula (form->formula formula)))))
-
-(defmethod render ((problem tptp-problem))
-  (format nil "~{~a~%~}" (mapcar #'render (formulas problem))))
