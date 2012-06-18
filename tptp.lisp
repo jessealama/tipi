@@ -88,9 +88,12 @@
 		 :key #'status
 		 :test #'string=)))
 
+(defun conjecture-string? (string)
+  (string= string "conjecture"))
+
 (defun remove-conjecture (problem)
   (make-instance 'tptp-problem
-		 :formulas (remove-if #'(lambda (status) (string= status "conjecture"))
+		 :formulas (remove-if #'conjecture-string?
 				      (formulas problem)
 				      :key #'status)))
 
