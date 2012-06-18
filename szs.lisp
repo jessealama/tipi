@@ -96,10 +96,10 @@
 (defgeneric szs-implies? (szs-status-1 szs-status-2))
 
 (defmethod szs-implies? ((status-1 string) status-2)
-  (szs-implies (lookup-szs-status status-1) status-2))
+  (szs-implies? (lookup-szs-status status-1) status-2))
 
 (defmethod szs-implies? (status-1 (status-2 string))
-  (szs-implies status-1 (lookup-szs-status status-2)))
+  (szs-implies? status-1 (lookup-szs-status status-2)))
 
 (defmethod szs-implies? ((szs-status-1 szs-status)
 			(szs-status-2 szs-status))
