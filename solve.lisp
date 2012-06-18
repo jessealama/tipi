@@ -42,7 +42,18 @@
 	       (unless (zerop eprover-exit-code)
 		 (error "eprover did not exit cleanly (its exit code was ~a).  The error output:~%~%~a" eprover-exit-code (stream-lines (process-error eprover-process)))))))))
     (make-instance 'eprover-result
-		   :text eprover-text)))
+		   :text (with-output-to-string (epclextract-out)
+			   (with-input-from-string (eprover-out eprover-text)
+			     (let ((epclextract-process (run-program "epclextract"
+								     (list "--tstp-out"
+									   "--forward-comments")
+								     :input eprover-out
+								     :output epclextract-out
+								     :error :stream
+								     :wait t)))
+			       (let ((epclextract-exit-code (process-exit-code epclextract-process)))
+				 (unless (zerop epclextract-exit-code)
+				   (error "epclextract did not exit cleanly (its exit code was ~a).  The error output:~%~%~a" epclextract-exit-code (stream-lines (process-error epclextract-process)))))))))))
 
 (defmethod solve ((paradox (eql *paradox*)) (problem tptp-problem))
   (let ((paradox-text

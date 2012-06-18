@@ -17,20 +17,7 @@
   nil)
 
 (defmethod interpret ((result eprover-result))
-  (let ((epclextract-text
-	 (with-input-from-string (eprover-out (text result))
-	   (with-output-to-string (epclextract-out)
-	     (let ((epclextract-process (run-program "epclextract"
-						     (list "--tstp-out"
-							   "--forward-comments")
-						     :input eprover-out
-						     :output epclextract-out
-						     :error :stream
-						     :wait t)))
-	       (let ((epclextract-exit-code (process-exit-code epclextract-process)))
-		 (unless (zerop epclextract-exit-code)
-		   (error "epclextract did not exit cleanly (its exit code was ~a).  The error output:~%~%~a" epclextract-exit-code (stream-lines (process-error epclextract-process))))))))))
-    (read-tptp epclextract-text)))
+  (read-tptp (text result)))
 
 (defun filter-paradox-text (text)
   "The non-TPTP header and footer lines of TEXT."
@@ -56,10 +43,10 @@
 (defmethod szs-status :around ((result result))
   (let ((status (call-next-method)))
     (or status
-	(error "We failed to extract an SZS status from ~a." result))))
+	(error "We failed to extract an SZS status from the results~%~%~a~%" (text result)))))
 
 (defmethod szs-status ((result result))
   (let ((text (text result)))
     (register-groups-bind (status)
-	("SZS status ([A-Za-z]+) for " text)
+	("SZS status ([A-Za-z]+)" text)
       (lookup-szs-status status))))
