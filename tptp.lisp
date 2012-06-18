@@ -71,6 +71,14 @@
 	  (format stream "~{~a~%~}" formulas)
 	  (format stream "(empty list of formulas/clauses)")))))
 
+(defgeneric proper-formulas (problem))
+
+(defmethod proper-formulas ((problem tptp-problem))
+  (mapcar #'formula (formulas problem)))
+
+(defun conjecture-formula (problem)
+  (has-conjecture-formula? problem))
+
 (defun has-conjecture-formula? (problem)
   (first (member "conjecture"
 		 (formulas problem)
