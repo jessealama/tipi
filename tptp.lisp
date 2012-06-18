@@ -208,19 +208,31 @@
 		   :status (symbol-name status)
 		   :formula (form->formula formula)))))
 
+(defun formula-names (tptp-db)
+  (mapcar #'name (formulas tptp-db)))
+
+(defgeneric formula-with-name (tptp-db name))
+
+(defmethod formula-with-name ((tptp-db tptp-db) (name symbol))
+  (formula-with-name tptp-db (symbol-name name)))
+
+(defmethod formula-with-name ((tptp-db tptp-db) (name string))
+  (remove-if-not #'(lambda (x) (string= x name))
+		 (formulas tptp-db)
+		 :key #'name))
+
 (defgeneric used-premises (solution premise-pool))
 
 (defmethod used-premises ((solution tptp-db) (background-theory tptp-db))
-  (let ((background-premises (mapcar #'name (formulas background-theory)))
-	(used-table (make-hash-table :test #'equal)))
-    (loop
-       for solution-formula in (formulas solution)
-       do
-	 (when (slot-boundp solution-formula 'source)
-	   (let ((source (source solution-formula)))
-	     (let ((used-names (atoms-in-list source background-premises
-					      :test #'equal-as-strings?)))
-	       (loop
-		  for used in used-names
-		  do (setf (gethash used used-table) 0))))))
-    (hash-table-keys used-table)))
+  (loop
+     with background-premises = (formula-names background-theory)
+     with used-table = (make-hash-table :test #'equal)
+     for solution-formula in (formulas solution)
+     when (slot-boundp solution-formula 'source) do
+       (loop
+	  with used-names = (atoms-in-list (source solution-formula)
+					   background-premises
+					   :test #'equal-as-strings?)
+	  for used in used-names do (setf (gethash used used-table) 0))
+     finally
+       (return (hash-table-keys used-table))))
