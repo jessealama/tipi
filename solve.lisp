@@ -8,7 +8,7 @@
     :accessor name
     :initform (error "To specify a solver, a name is mandatory."))))
 
-(defgeneric solve (solver tptp-problem))
+(defgeneric solve (solver tptp-db))
 
 (defparameter *eprover* (make-instance 'solver
 				       :name "The E theorem prover"))
@@ -16,14 +16,14 @@
 (defparameter *paradox* (make-instance 'solver
 				       :name "Paradox"))
 
-(defmethod solve :before (prover (problem tptp-problem))
+(defmethod solve :before (prover (problem tptp-db))
   (declare (ignore prover))
   (unless (slot-boundp problem 'path)
     (let ((temp (temporary-file)))
       (write-string-into-file (render problem) temp)
       (setf (path problem) temp))))
 
-(defmethod solve ((eprover (eql *eprover*)) (problem tptp-problem))
+(defmethod solve ((eprover (eql *eprover*)) (problem tptp-db))
   (let ((eprover-text
 	 (with-output-to-string (eprover-out)
 	   (let ((eprover-process (run-program "eprover"
@@ -55,7 +55,7 @@
 				 (unless (zerop epclextract-exit-code)
 				   (error "epclextract did not exit cleanly (its exit code was ~a).  The error output:~%~%~a" epclextract-exit-code (stream-lines (process-error epclextract-process)))))))))))
 
-(defmethod solve ((paradox (eql *paradox*)) (problem tptp-problem))
+(defmethod solve ((paradox (eql *paradox*)) (problem tptp-db))
   (let ((paradox-text
 	 (with-output-to-string (paradox-out)
 	   (let ((paradox-process (run-program "paradox"

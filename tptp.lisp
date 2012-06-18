@@ -51,10 +51,10 @@
     (read-tptp temp)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Problems
+;; TPTP databases
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defclass tptp-problem ()
+(defclass tptp-db ()
   ((formulas :type list
 	     :initarg :formulas
 	     :accessor formulas
@@ -63,7 +63,7 @@
     :type pathname
     :accessor path)))
 
-(defmethod print-object ((problem tptp-problem) stream)
+(defmethod print-object ((problem tptp-db) stream)
   (print-unreadable-object
       (problem stream :type t :identity nil)
     (let ((formulas (formulas problem)))
@@ -71,12 +71,12 @@
 	  (format stream "~{~a~%~}" formulas)
 	  (format stream "(empty list of formulas/clauses)")))))
 
-(defmethod render ((problem tptp-problem))
+(defmethod render ((problem tptp-db))
   (format nil "~{~a~%~}" (mapcar #'render (formulas problem))))
 
 (defgeneric proper-formulas (problem))
 
-(defmethod proper-formulas ((problem tptp-problem))
+(defmethod proper-formulas ((problem tptp-db))
   (mapcar #'formula (formulas problem)))
 
 (defun conjecture-formula (problem)
@@ -92,7 +92,7 @@
   (string= string "conjecture"))
 
 (defun remove-conjecture (problem)
-  (make-instance 'tptp-problem
+  (make-instance 'tptp-db
 		 :formulas (remove-if #'conjecture-string?
 				      (formulas problem)
 				      :key #'status)))
@@ -129,7 +129,7 @@
 (defun promote-conjecture-to-axiom (problem)
   (let ((conjecture (has-conjecture-formula? problem)))
     (if conjecture
-	(make-instance 'tptp-problem
+	(make-instance 'tptp-db
 		       :formulas (cons (change-status conjecture "axiom")
 				       (non-conjecture-formulas problem)))
 	problem)))
@@ -210,7 +210,7 @@
 
 (defgeneric used-premises (solution premise-pool))
 
-(defmethod used-premises ((solution tptp-problem) (background-theory tptp-problem))
+(defmethod used-premises ((solution tptp-db) (background-theory tptp-db))
   (let ((background-premises (mapcar #'name (formulas background-theory)))
 	(used-table (make-hash-table :test #'equal)))
     (loop

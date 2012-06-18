@@ -12,11 +12,11 @@
     (consequence-of? tptp-formula premises)))
 
 (defmethod consequence-of? ((formula tptp-formula) (premises null))
-  (let ((problem (make-instance 'tptp-problem
+  (let ((problem (make-instance 'tptp-db
 				:formulas (list formula))))
     (solve *eprover* problem)))
 
-(defmethod consequence-of? ((formula tptp-formula) (problem tptp-problem))
+(defmethod consequence-of? ((formula tptp-formula) (problem tptp-db))
   (let ((conjecture-as-axiom (promote-conjecture-to-axiom problem)))
     (let ((proper-formulas (proper-formulas conjecture-as-axiom))
 	  (formula-proper (formula formula)))
@@ -37,7 +37,7 @@
 				     :syntax "formula"
 				     :status "conjecture"
 				     :formula formula)))
-      (let ((problem (make-instance 'tptp-problem
+      (let ((problem (make-instance 'tptp-db
 				    :formulas (cons conjecture formulas))))
 	(let ((result (solve *eprover* problem)))
 	  (let ((status (szs-status result)))
