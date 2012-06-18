@@ -86,17 +86,6 @@
 ;; Lists
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defgeneric flatten (thing))
-
-(defmethod flatten ((thing t))
-  (list thing))
-
-(defmethod flatten ((thing null))
-  nil)
-
-(defmethod flatten ((thing list))
-  (reduce #'append (mapcar #'flatten thing)))
-
 (defun atoms-in-list (thing list &key test)
   "All atoms under THING that belong to LIST.  TEST is used to determine membership.  It is permitted that THING is an atom."
   (if (null list)
