@@ -13,6 +13,10 @@
   (when (stringp thing)
     (string= thing "")))
 
+(defun equal-as-strings? (thing-1 thing-2)
+  (string= (format nil "~a" thing-1)
+	   (format nil "~a" thing-2)))
+
 (defun stream-lines (stream)
   (when stream
     (let (lines)
