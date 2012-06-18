@@ -34,7 +34,7 @@
     (with-readtable (find-readtable :modern)
       (let ((tptp-form (handler-case (read-from-string lisp-string)
 			 (error (c) (error "Unable to make sense of~%~%~a~%~%as a Lisp representation of~%~%  ~a~%~%The error was:~%~%  ~a" lisp-string (namestring tptp-file) c)))))
-	(let ((problem (make-instance 'tptp-problem)))
+	(let ((problem (make-instance 'tptp-db)))
 	  (setf (formulas problem)
 		(mapcar #'make-tptp-formula tptp-form)
 		(path problem)
