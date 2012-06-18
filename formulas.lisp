@@ -475,9 +475,6 @@ class ATOMIC-FORMULA.  This function expresses that disjointedness."
 		 :bindings bindings
 		 :matrix matrix))
 
-(defun equation? (formula)
-  (eq (car formula) '=))
-
 (defgeneric form->formula (thing)
   (:documentation "Given THING, try to make sense of it as a formula."))
 
