@@ -207,3 +207,19 @@
 		   :syntax (symbol-name syntax)
 		   :status (symbol-name status)
 		   :formula (form->formula formula)))))
+
+(defgeneric used-premises (solution premise-pool))
+
+(defmethod used-premises ((solution tptp-problem) (background-theory tptp-problem))
+  (let ((background-premises (mapcar #'name (formulas background-theory)))
+	(used-table (make-hash-table :test #'equal)))
+    (loop
+       for solution-formula in (formulas solution)
+       do
+	 (when (slot-boundp solution-formula 'source)
+	   (let ((source (source solution-formula)))
+	     (let ((used-names (atoms-in-list source background-premises)))
+	       (loop
+		  for used in used-names
+		  do (setf (gethash used used-table) 0))))))
+    (hash-table-keys used-table)))
