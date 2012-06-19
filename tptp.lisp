@@ -63,6 +63,12 @@
     :type pathname
     :accessor path)))
 
+(defclass derivability-problem (tptp-db)
+  ((conjecture
+    :initarg :conjecture
+    :accessor conjecture
+    :initform (error "To specify a derivability problem, a conjecture must be supplied."))))
+
 (defmethod print-object ((problem tptp-db) stream)
   (print-unreadable-object
       (problem stream :type t :identity nil)
