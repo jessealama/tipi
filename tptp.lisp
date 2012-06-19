@@ -103,6 +103,18 @@
 				      (formulas problem)
 				      :key #'status)))
 
+(defgeneric remove-formula (formulas formula))
+
+(defmethod remove-formula ((formulas tptp-db) (formula-name string))
+  "Remove any formula in FORMULAS whose name is FORMULA-NAME."
+  (make-instance 'tptp-db
+		 :formulas (remove-if #'(lambda (x) (string= x formula-name))
+				      (formulas formulas)
+				      :key #'name)))
+
+(defmethod remove-formula ((formulas tptp-db) (formula tptp-formula))
+  (remove-formula formulas (name formula)))
+
 (defun formulas-with-status (problem status)
   (remove-if-not #'(lambda (stat) (string= stat status))
 		 (formulas problem)
@@ -140,80 +152,6 @@
 				       (non-conjecture-formulas problem)))
 	problem)))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Formulas
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defclass tptp-formula ()
-  ((name :type string
-	 :initarg :name
-	 :accessor name
-	 :initform (error "A TPTP formula requires a name."))
-   (syntax :type string
-	   :initarg :syntax
-	   :accessor syntax
-	   :initform (error "A TPTP formula requires a syntax."))
-   (status :type string
-	   :initarg :status
-	   :accessor status
-	   :initform (error "A TPTP formula requires a status/role."))
-   (formula :type formula
-	    :initarg :formula
-	    :accessor formula
-	    :initform (error "A TPTP formula requires a formula proper."))
-   (source
-    :accessor source
-    :initarg :source)
-   (useful-info :type list
-		:accessor useful-info
-		:initarg :useful-info)))
-
-(defmethod print-object ((formula tptp-formula) stream)
-  (print-unreadable-object
-      (formula stream :identity nil :type t)
-    (if (slot-boundp formula 'source)
-	(format stream "~a (~a): ~a [source: ~a]" (name formula) (status formula) (formula formula) (source formula))
-	(format stream "~a (~a): ~a" (name formula) (status formula) (formula formula)))))
-
-(defun render-syntax (formula)
-  (let ((syntax (syntax formula)))
-    (cond ((string= syntax "formula") "fof")
-	  ((string= syntax "clause") "cnf")
-	  (t
-	   (error "Don't know how to render formulas whose syntax is '~a'." syntax)))))
-
-(defmethod render ((formula tptp-formula))
-  (format nil "~a(~a,~a,~a)."
-	  (render-syntax formula)
-	  (name formula)
-	  (status formula)
-	  (formula formula)))
-
-(defgeneric make-tptp-formula (thing))
-
-(defmethod make-tptp-formula ((thing list))
-  (destructuring-bind (syntax name status formula . more-stuff)
-      thing
-    (if more-stuff
-	(destructuring-bind (source . useful-info)
-	    more-stuff
-	  (make-instance 'tptp-formula
-		   :name (if (symbolp name)
-			     (symbol-name name)
-			     (format nil "~a" name))
-		   :syntax (symbol-name syntax)
-		   :status (symbol-name status)
-		   :formula (form->formula formula)
-		   :source source
-		   :useful-info useful-info))
-	(make-instance 'tptp-formula
-		   :name (if (symbolp name)
-			     (symbol-name name)
-			     (format nil "~a" name))
-		   :syntax (symbol-name syntax)
-		   :status (symbol-name status)
-		   :formula (form->formula formula)))))
-
 (defun formula-names (tptp-db)
   (mapcar #'name (formulas tptp-db)))
 
@@ -223,22 +161,11 @@
   (formula-with-name tptp-db (symbol-name name)))
 
 (defmethod formula-with-name ((tptp-db tptp-db) (name string))
-  (remove-if-not #'(lambda (x) (string= x name))
-		 (formulas tptp-db)
-		 :key #'name))
+  (first (remove-if-not #'(lambda (x) (string= x name))
+			(formulas tptp-db)
+			:key #'name)))
 
-(defgeneric used-premises (solution premise-pool))
+(defgeneric premises (problem))
 
-(defmethod used-premises ((solution tptp-db) (background-theory tptp-db))
-  (loop
-     with background-premises = (formula-names background-theory)
-     with used-table = (make-hash-table :test #'equal)
-     for solution-formula in (formulas solution)
-     when (slot-boundp solution-formula 'source) do
-       (loop
-	  with used-names = (atoms-in-list (source solution-formula)
-					   background-premises
-					   :test #'equal-as-strings?)
-	  for used in used-names do (setf (gethash used used-table) 0))
-     finally
-       (return (hash-table-keys used-table))))
+(defmethod premises ((db tptp-db))
+  (non-conjecture-formulas db))

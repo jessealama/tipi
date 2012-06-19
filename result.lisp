@@ -6,7 +6,24 @@
     :type string
     :initarg :text
     :initform (error "To specify a result, text must be supplied.")
-    :accessor text)))
+    :accessor text)
+   (szs-status
+    :type szs-status
+    :initarg :szs-status
+    :initform (lookup-szs-status "Unknown")
+    :accessor szs-status)))
+
+(defmethod initialize-instance :after ((result result) &rest initargs &key &allow-other-keys)
+  (declare (ignore initargs))
+  (let ((text (text result)))
+    (let ((current-szs-status (szs-status result)))
+      (when (eql current-szs-status (lookup-szs-status "Unknown"))
+	(let ((extracted-status (register-groups-bind (status)
+				    ("SZS status ([A-Za-z]+)" text)
+				  (lookup-szs-status status))))
+	  (if extracted-status
+	      (setf (szs-status result) extracted-status))))))
+  result)
 
 (defgeneric interpret (result))
 
@@ -37,16 +54,3 @@
 
 (defmethod interpret ((result paradox-result))
   (read-tptp (filter-paradox-text (text result))))
-
-(defgeneric szs-status (result))
-
-(defmethod szs-status :around ((result result))
-  (let ((status (call-next-method)))
-    (or status
-	(error "We failed to extract an SZS status from the results~%~%~a~%" (text result)))))
-
-(defmethod szs-status ((result result))
-  (let ((text (text result)))
-    (register-groups-bind (status)
-	("SZS status ([A-Za-z]+)" text)
-      (lookup-szs-status status))))

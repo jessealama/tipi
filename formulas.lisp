@@ -634,4 +634,78 @@ class ATOMIC-FORMULA.  This function expresses that disjointedness."
 (defmacro neg (argument)
   `(negate ,argument))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Formulas
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defclass tptp-formula ()
+  ((name :type string
+	 :initarg :name
+	 :accessor name
+	 :initform (error "A TPTP formula requires a name."))
+   (syntax :type string
+	   :initarg :syntax
+	   :accessor syntax
+	   :initform (error "A TPTP formula requires a syntax."))
+   (status :type string
+	   :initarg :status
+	   :accessor status
+	   :initform (error "A TPTP formula requires a status/role."))
+   (formula :type formula
+	    :initarg :formula
+	    :accessor formula
+	    :initform (error "A TPTP formula requires a formula proper."))
+   (source
+    :accessor source
+    :initarg :source)
+   (useful-info :type list
+		:accessor useful-info
+		:initarg :useful-info)))
+
+(defmethod print-object ((formula tptp-formula) stream)
+  (print-unreadable-object
+      (formula stream :identity nil :type t)
+    (if (slot-boundp formula 'source)
+	(format stream "~a (~a): ~a [source: ~a]" (name formula) (status formula) (formula formula) (source formula))
+	(format stream "~a (~a): ~a" (name formula) (status formula) (formula formula)))))
+
+(defun render-syntax (formula)
+  (let ((syntax (syntax formula)))
+    (cond ((string= syntax "formula") "fof")
+	  ((string= syntax "clause") "cnf")
+	  (t
+	   (error "Don't know how to render formulas whose syntax is '~a'." syntax)))))
+
+(defmethod render ((formula tptp-formula))
+  (format nil "~a(~a,~a,~a)."
+	  (render-syntax formula)
+	  (name formula)
+	  (status formula)
+	  (formula formula)))
+
+(defgeneric make-tptp-formula (thing))
+
+(defmethod make-tptp-formula ((thing list))
+  (destructuring-bind (syntax name status formula . more-stuff)
+      thing
+    (if more-stuff
+	(destructuring-bind (source . useful-info)
+	    more-stuff
+	  (make-instance 'tptp-formula
+		   :name (if (symbolp name)
+			     (symbol-name name)
+			     (format nil "~a" name))
+		   :syntax (symbol-name syntax)
+		   :status (symbol-name status)
+		   :formula (form->formula formula)
+		   :source source
+		   :useful-info useful-info))
+	(make-instance 'tptp-formula
+		   :name (if (symbolp name)
+			     (symbol-name name)
+			     (format nil "~a" name))
+		   :syntax (symbol-name syntax)
+		   :status (symbol-name status)
+		   :formula (form->formula formula)))))
+
 ;;; formulas.lisp ends here

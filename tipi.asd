@@ -23,4 +23,5 @@
 	       (:file "tptp")
 	       (:file "solve")
 	       (:file "model")
-	       (:file "consequence")))
+	       (:file "consequence")
+	       (:file "needed")))

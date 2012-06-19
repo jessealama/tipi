@@ -184,7 +184,7 @@
 
 (defgeneric is-szs-success? (szs-thing))
 
-(defmethod is-szs-success ((szs-string string))
+(defmethod is-szs-success? ((szs-string string))
   (multiple-value-bind (ok ok?)
       (gethash (lookup-szs-status szs-string) *szs-success-statuses*)
     (declare (ignore ok))
