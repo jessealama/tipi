@@ -8,6 +8,10 @@
     :accessor name
     :initform (error "To specify a solver, a name is mandatory."))))
 
+(defmethod print-object ((solver solver) stream)
+  (print-unreadable-object (solver stream :type t :identity nil)
+    (format stream "~a" (name solver))))
+
 (defgeneric solve (solver tptp-db))
 
 (defparameter *eprover* (make-instance 'solver
@@ -24,7 +28,23 @@
       (setf (path problem) temp))))
 
 (defmethod solve ((solver-list null) problem)
+  (declare (ignore problem))
   (values nil (lookup-szs-status "Unknown")))
+
+(defmethod solve ((solver-list list) problem)
+  (let ((solutions (make-hash-table :test #'equal)))
+    (dolist (solver solver-list)
+      (setf (gethash (name solver) solutions) (lookup-szs-status "NotTriedYet")))
+    (loop
+       for solver in solver-list
+       for result = (solve solver problem)
+       for szs-status = (szs-status result)
+       do
+	 (setf (gethash (name solver) solutions) szs-status)
+	 (when (is-szs-success? szs-status)
+	   (return (aggregate-szs-statuses (hash-table-values solutions))))
+       finally
+	 (return (lookup-szs-status "Unknown")))))
 
 (defmethod solve ((eprover (eql *eprover*)) (problem tptp-db))
   (block eprover

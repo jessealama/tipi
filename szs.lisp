@@ -285,3 +285,18 @@
 (setf (nevera-list *szs-thm*) (list *szs-csa*))
 (setf (nevera-list *szs-sca*) (list *szs-unp*))
 (setf (nevera-list *szs-csa*) (list *szs-thm*))
+
+(defun strongest-szs-status (status-list)
+  (when status-list
+    (remove-if #'(lambda (status)
+		   (some #'(lambda (other-status)
+			     (and (not (eql status other-status))
+				  (szs-implies? other-status status)))
+			 status-list))
+	       status-list)))
+
+(defun aggregate-szs-statuses (statuses)
+  (let ((successes (remove-if-not #'is-szs-success? statuses)))
+    (if successes
+	(first (strongest-szs-status successes))
+	(first (strongest-szs-status statuses)))))

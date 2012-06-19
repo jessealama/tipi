@@ -29,15 +29,12 @@
       (let ((problem (make-instance 'tptp-db
 				    :formulas (cons theorem-as-conjecture
 						    (formulas trimmed-db)))))
-	(let ((result (solve *eprover* problem)))
-	  (if result
-	      (let ((szs-status (szs-status result)))
-		(let ((implies-theorem (szs-implies? szs-status
-						     (lookup-szs-status "Theorem"))))
-		  (if implies-theorem
-		      (values (not implies-theorem) szs-status)
-		      (values t szs-status))))
-	      (values nil nil)))))))
+	(let ((szs-status (solve (list *eprover* *paradox*) problem)))
+	  (let ((implies-theorem (szs-implies? szs-status
+					       (lookup-szs-status "Theorem"))))
+	    (if implies-theorem
+		(values (not implies-theorem) szs-status)
+		(values t szs-status))))))))
 
 (defmethod needed-premise? ((formula-name string)
 			   theorem
