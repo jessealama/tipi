@@ -73,7 +73,7 @@
 			    (let ((paradox-process (run-program "paradox"
 								(list "--model"
 								      "--tstp"
-								      "--time" "1"
+								      "--time" "5"
 								      (namestring (path problem)))
 								:search t
 								:input nil
