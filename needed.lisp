@@ -17,38 +17,23 @@
      finally
        (return (hash-table-keys used-table))))
 
-(defgeneric needed-premise? (formula theorem premises)
-  (:documentation "Is it true that PREMISES, minus FORMULA, entails THEOREM?"))
+(defgeneric needed-premise? (premise problem)
+  (:documentation "Can PROBLEM be solved without PREMISE?"))
 
-(defmethod needed-premise? ((formula tptp-formula)
-			    (theorem tptp-formula)
-			    (premises tptp-db))
-  (let ((premises-no-conjecture (remove-conjecture premises))
-	(theorem-as-conjecture (change-status theorem "conjecture")))
-    (let ((trimmed-db (remove-formula premises-no-conjecture formula)))
-      (let ((problem (make-instance 'tptp-db
-				    :formulas (cons theorem-as-conjecture
-						    (formulas trimmed-db)))))
-	(let ((szs-status (solve (list *eprover* *paradox*) problem)))
-	  (let ((implies-theorem (szs-implies? szs-status
-					       (lookup-szs-status "Theorem"))))
-	    (if implies-theorem
-		(values (not implies-theorem) szs-status)
-		(values t szs-status))))))))
+(defmethod needed-premise? ((premise tptp-formula)
+			    (problem derivability-problem))
+  (let* ((problem (remove-formula problem premise))
+	 (szs-status (solve (list *eprover* *paradox*) problem))
+	 (implies-theorem (szs-implies? szs-status
+					(lookup-szs-status "Theorem"))))
+    (values (not implies-theorem) szs-status)))
 
 (defmethod needed-premise? ((formula-name string)
-			   theorem
 			   (premises tptp-db))
-  (needed-premise? (formula-with-name premises formula-name) theorem premises))
+  (needed-premise? (formula-with-name premises formula-name) premises))
 
-(defmethod needed-premise? ((formula symbol) theorem premises)
-  (needed-premise? (symbol-name formula) theorem premises))
-
-(defmethod needed-premise? (formula (theorem-name string) (premises tptp-db))
-  (let ((formula-in-db (formula-with-name premises theorem-name)))
-    (if formula-in-db
-	(needed-premise? formula formula-in-db premises)
-	(error "There is no formula in ~a by the name '~a'." premises theorem-name))))
+(defmethod needed-premise? ((formula symbol) premises)
+  (needed-premise? (symbol-name formula) premises))
 
 (defgeneric extraneous-premises (solution theorem background-theory))
 
@@ -61,25 +46,22 @@
 
 (defmethod extraneous-premises ((solution list)
 				(conjecture tptp-formula)
-				(background-premises tptp-db))
+				(background-premises derivability-problem))
   (remove-if #'(lambda (premise)
-		 (needed-premise? premise conjecture background-premises))
+		 (needed-premise? premise background-premises))
 	     (remove-if #'(lambda (sol) (equal-as-strings? sol
 							   (name conjecture)))
 			solution)))
 
-(defgeneric needed-premises (conjecture premises))
+(defgeneric needed-premises (problem))
 
-(defmethod needed-premises ((conjecture tptp-formula)
-			    (premises tptp-db))
+(defmethod needed-premises ((problem derivability-problem))
   (loop
      with needed-premises = nil
-     for premise in (formulas (remove-conjecture premises))
+     for premise in (formulas problem)
      do
        (multiple-value-bind (needed? szs-status)
-	   (needed-premise? premise
-			    conjecture
-			    (remove-formula premises premise))
+	   (needed-premise? premise problem)
 	 (if (is-szs-success? szs-status)
 	     (progn
 	       (when needed?
