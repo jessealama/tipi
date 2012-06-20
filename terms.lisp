@@ -24,7 +24,7 @@
 	(args (arguments function)))
     (if (null args)
 	(format stream "~a" func)
-	(format stream "~a(~{~a,~})" func args))))
+	(format stream "~a(~{~a~^,~})" func args))))
 
 (defun make-function-term (function &rest args)
   (make-instance 'function-term
