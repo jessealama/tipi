@@ -131,6 +131,18 @@
 				      (formulas formulas)
 				      :key #'name)))
 
+(defmethod remove-formula ((problem derivability-problem) (formula tptp-formula))
+  (let ((name-to-remove (name formula))
+	(conjecture-name (name (conjecture problem))))
+    (if (string= name-to-remove conjecture-name)
+	(make-instance 'tptp-db
+		       :formulas (formulas problem))
+	(make-instance 'derivability-problem
+		       :conjecture (conjecture problem)
+		       :formulas (remove-if #'(lambda (x) (string= x name-to-remove))
+					    (formulas problem)
+					    :key #'name)))))
+
 (defmethod remove-formula ((formulas tptp-db) (formula tptp-formula))
   (remove-formula formulas (name formula)))
 
