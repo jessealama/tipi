@@ -25,6 +25,15 @@
 	      (setf (szs-status result) extracted-status))))))
   result)
 
+(defmethod print-object ((result result) stream)
+  (print-unreadable-object (result stream :type t :identity nil)
+    (format stream "SZS Status: ~a" (szs-status result))
+    (terpri stream)
+    (let ((text (text result)))
+      (if (string= text "")
+	  (format stream "Text: (none)")
+	  (format stream "Text:~%~a" text)))))
+
 (defgeneric interpret (result))
 
 (defclass eprover-result (result)

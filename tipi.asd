@@ -24,4 +24,5 @@
 	       (:file "solve")
 	       (:file "model")
 	       (:file "consequence")
-	       (:file "needed")))
+	       (:file "needed")
+	       (:file "minimal")))

@@ -63,12 +63,6 @@
     :type pathname
     :accessor path)))
 
-(defclass derivability-problem (tptp-db)
-  ((conjecture
-    :initarg :conjecture
-    :accessor conjecture
-    :initform (error "To specify a derivability problem, a conjecture must be supplied."))))
-
 (defmethod print-object ((problem tptp-db) stream)
   (print-unreadable-object
       (problem stream :type t :identity nil)
@@ -76,6 +70,31 @@
       (if formulas
 	  (format stream "~{~a~%~}" formulas)
 	  (format stream "(empty list of formulas/clauses)")))))
+
+(defclass derivability-problem (tptp-db)
+  ((conjecture
+    :initarg :conjecture
+    :accessor conjecture
+    :initform (error "To specify a derivability problem, a conjecture must be supplied."))))
+
+(defmethod print-object ((problem derivability-problem) stream)
+  (print-unreadable-object (problem stream :type t :identity nil)
+    (let ((conjecture (conjecture problem))
+	  (formulas (formulas problem)))
+      (format stream "Conjecture: ~a" conjecture)
+      (if formulas
+	  (format stream "Premises:~%~{~a~%~}" formulas)
+	  (format stream "Premises: (none)")))))
+
+(defgeneric make-derivability-problem (formulas))
+
+(defmethod make-derivability-problem ((formulas tptp-db))
+  (let ((conjecture (conjecture-formula formulas)))
+    (if conjecture
+	(make-instance 'derivability-problem
+		       :formulas (non-conjecture-formulas formulas)
+		       :conjecture conjecture)
+	(error "There is no conjecture formula in ~a." formulas))))
 
 (defmethod render ((problem tptp-db))
   (format nil "~{~a~%~}" (mapcar #'render (formulas problem))))

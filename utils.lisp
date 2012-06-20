@@ -40,7 +40,7 @@
 			  (if (directory-p real-tmp-dir)
 			      (loop
 				 with real-tmp-dir-name = (namestring real-tmp-dir)
-				 for i from 1 upto 1000
+				 for i from 1 upto 100000
 				 for tmp-path = (if (string= real-ext "")
 						    (format nil "~a/~a~d" real-tmp-dir-name base i)
 						    (format nil "~a/~a~d.~a" real-tmp-dir-name base i real-ext))
