@@ -6,4 +6,6 @@
 	:alexandria
 	:cl-ppcre
 	:com.gigamonkeys.pathnames
-	:named-readtables))
+	:named-readtables)
+  (:export
+   #:MINIMIZE))

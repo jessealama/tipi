@@ -63,13 +63,7 @@
        (multiple-value-bind (needed? szs-status)
 	   (needed-premise? premise problem)
 	 (if (is-szs-success? szs-status)
-	     (progn
-	       (when needed?
-		 (push premise needed-premises))
-	       (if needed?
-		   (format t "Premise ~a is needed (SZS status ~a)." (name premise) szs-status)
-		   (format t "Premise ~a is not needed (SZS status ~a)." (name premise) szs-status)))
-	     (format t "It is not known whether premise ~a is needed (SZS status ~a)" (name premise) szs-status)))
-       (terpri)
+	     (when needed?
+	       (push premise needed-premises))))
      finally
        (return needed-premises)))

@@ -35,12 +35,10 @@
 	  (if (szs-implies? status (lookup-szs-status "Theorem"))
 	      (let ((result-as-db (interpret initial-result)))
 		(let ((used-premises (used-premises result-as-db problem)))
-		  (format t "The initial derivability problem of ~d premises has a solution using ~a premises" (length (formulas problem)) (length used-premises))
 		  (let ((trimmed-problem (make-instance 'derivability-problem
 							:conjecture (conjecture problem)
 							:formulas (mapcar #'(lambda (name) (formula-with-name problem name)) used-premises))))
 		    (let ((needed (needed-premises trimmed-problem)))
-		      (format t "These premises are needed:~%~{~a~%~}" needed)
 		      (minimize trimmed-problem
 				:skip-initial-proof t
 				:keep needed)))))
@@ -66,16 +64,9 @@
 		       (if (is-szs-success? szs-status)
 			   (if (szs-implies? szs-status
 					     (lookup-szs-status "Theorem"))
-			       (progn
-				 (push subset solutions)
-				 (format t "Solution: ~a" (mapcar #'name subset)))
-			       (progn
-				 (push subset non-solutions)
-				 (format t "Non-solution: ~a" (mapcar #'name subset))))
-			   (progn
-			     (push subset unknown)
-			     (format t "Unknown: ~a" (mapcar #'name subset))))
-		       (terpri)))))))
+			       (push subset solutions)
+			       (push subset non-solutions))
+			   (push subset unknown))))))))
       (loop
 	 for n from 0 upto (length premises)
 	 do
