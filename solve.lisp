@@ -1,6 +1,11 @@
 
 (in-package :tipi)
 
+(define-constant +default-timeout+
+    5
+  :test #'=
+  :documentation "The number of seconds given to a solver, by default.")
+
 (defclass solver ()
   ((name
     :type string
@@ -17,14 +22,14 @@
   (print-unreadable-object (solver stream :type t :identity nil)
     (format stream "~a" (name solver))))
 
-(defgeneric solve (solver tptp-db))
+(defgeneric solve (solver tptp-db &key timeout))
 
 (defparameter *eprover*
   (make-instance
    'solver
    :name "The E theorem prover"
    :solve-function
-   (lambda (problem)
+   (lambda (problem timeout)
      (block eprover
        (let ((eprover-text
 	      (with-output-to-string (eprover-out)
@@ -34,7 +39,7 @@
 							  "-l4"
 							  "-R"
 							  "--tptp3-in"
-							  "--cpu-limit=5"
+							  (format nil "--cpu-limit=~d" timeout)
 							  (namestring (path problem)))
 						    :search t
 						    :input nil
@@ -69,14 +74,15 @@
    'solver
    :name "Paradox"
    :solve-function
-   (lambda (problem)
+   (lambda (problem timeout)
      (block paradox
        (let ((paradox-text
 	      (with-output-to-string (paradox-out)
 		(let ((paradox-process (run-program "paradox"
 						    (list "--model"
 							  "--tstp"
-							  "--time" "5"
+							  "--no-progress"
+							  "--time" (format nil "~d" timeout)
 							  (namestring (path problem)))
 						    :search t
 						    :input nil
@@ -92,8 +98,8 @@
 	 (make-instance 'paradox-result
 			:text paradox-text))))))
 
-(defmethod solve :around (prover (problem tptp-db))
-  (declare (ignore prover))
+(defmethod solve :around (prover (problem tptp-db) &key timeout)
+  (declare (ignore prover timeout))
   (if (slot-boundp problem 'path)
       (call-next-method)
       (let ((temp (temporary-file)))
@@ -103,17 +109,19 @@
 	    (call-next-method)
 	  (delete-file temp)))))
 
-(defmethod solve ((solver-list null) problem)
-  (declare (ignore problem))
+(defmethod solve ((solver-list null) problem &key timeout)
+  (declare (ignore problem timeout))
   (values nil (lookup-szs-status "Unknown")))
 
-(defmethod solve ((solver-list list) problem)
+(defmethod solve ((solver-list list) problem &key timeout)
+  (unless timeout
+    (setf timeout +default-timeout+))
   (let ((solutions (make-hash-table :test #'equal)))
     (dolist (solver solver-list)
       (setf (gethash (name solver) solutions) (lookup-szs-status "NotTriedYet")))
     (loop
        for solver in solver-list
-       for result = (solve solver problem)
+       for result = (solve solver problem :timeout timeout)
        for szs-status = (szs-status result)
        do
 	 (setf (gethash (name solver) solutions) szs-status)
@@ -122,11 +130,20 @@
        finally
 	 (return (lookup-szs-status "Unknown")))))
 
-(defmethod solve ((solver solver) (problem derivability-problem))
+(defmethod solve ((solver solver) (problem derivability-problem) &key timeout)
+  (unless timeout
+    (setf timeout +default-timeout+))
+  (unless (integerp timeout)
+    (error "Invalid value ~a for the timeout parameter." timeout))
+  (when (< timeout 1)
+    (error "Invalid value ~a for the timeout parameter." timeout))
   (let ((db (make-instance 'tptp-db
 			   :formulas (cons (conjecture problem)
 					   (formulas problem)))))
-    (solve solver db)))
+    (solve solver db :timeout timeout)))
 
-(defmethod solve ((solver solver) (problem tptp-db))
-  (funcall (solve-function solver) problem))
+(defmethod solve ((solver solver) (problem tptp-db) &key timeout)
+  (funcall (solve-function solver) problem timeout))
+
+(defmethod solve (solver (problem pathname) &key timeout)
+  (solve solver (read-tptp problem) :timeout timeout))
