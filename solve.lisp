@@ -20,48 +20,49 @@
 (defgeneric solve (solver tptp-db))
 
 (defparameter *eprover*
-  (make-instance 'solver
-		 :name "The E theorem prover"
-		 :solve-function
-		 (lambda (problem)
-		   (block eprover
-		     (let ((eprover-text
-			    (with-output-to-string (eprover-out)
-			      (let ((eprover-process (run-program "eprover"
-								  (list "-tAuto"
-									"-xAuto"
-									"-l4"
-									"-R"
-									"--tptp3-in"
-									"--cpu-limit=5"
-									(namestring (path problem)))
-								  :search t
-								  :input nil
-								  :output eprover-out
-								  :error :stream
-								  :wait t)))
-				(let ((eprover-exit-code (process-exit-code eprover-process)))
-				  (unless (zerop eprover-exit-code)
-				    (return-from eprover
-				      (make-instance 'eprover-result
-						     :text ""
-						     :szs-status (lookup-szs-status
-								  (if (= eprover-exit-code 6)
-								      "Timeout"
-								      "Error"))))))))))
-		       (make-instance 'eprover-result
-				      :text (with-output-to-string (epclextract-out)
-					      (with-input-from-string (eprover-out eprover-text)
-						(let ((epclextract-process (run-program "epclextract"
-											(list "--tstp-out"
-											      "--forward-comments")
-											:input eprover-out
-											:output epclextract-out
-											:error :stream
-											:wait t)))
-						  (let ((epclextract-exit-code (process-exit-code epclextract-process)))
-						    (unless (zerop epclextract-exit-code)
-						      (error "epclextract did not exit cleanly (its exit code was ~a).  The error output:~%~%~a" epclextract-exit-code (stream-lines (process-error epclextract-process))))))))))))))
+  (make-instance
+   'solver
+   :name "The E theorem prover"
+   :solve-function
+   (lambda (problem)
+     (block eprover
+       (let ((eprover-text
+	      (with-output-to-string (eprover-out)
+		(let ((eprover-process (run-program "eprover"
+						    (list "-tAuto"
+							  "-xAuto"
+							  "-l4"
+							  "-R"
+							  "--tptp3-in"
+							  "--cpu-limit=5"
+							  (namestring (path problem)))
+						    :search t
+						    :input nil
+						    :output eprover-out
+						    :error :stream
+						    :wait t)))
+		  (let ((eprover-exit-code (process-exit-code eprover-process)))
+		    (unless (zerop eprover-exit-code)
+		      (return-from eprover
+			(make-instance 'eprover-result
+				       :text ""
+				       :szs-status (lookup-szs-status
+						    (if (= eprover-exit-code 6)
+							"Timeout"
+							"Error"))))))))))
+	 (make-instance 'eprover-result
+			:text (with-output-to-string (epclextract-out)
+				(with-input-from-string (eprover-out eprover-text)
+				  (let ((epclextract-process (run-program "epclextract"
+									  (list "--tstp-out"
+										"--forward-comments")
+									  :input eprover-out
+									  :output epclextract-out
+									  :error :stream
+									  :wait t)))
+				    (let ((epclextract-exit-code (process-exit-code epclextract-process)))
+				      (unless (zerop epclextract-exit-code)
+					(error "epclextract did not exit cleanly (its exit code was ~a).  The error output:~%~%~a" epclextract-exit-code (stream-lines (process-error epclextract-process))))))))))))))
 
 (defparameter *paradox*
   (make-instance 'solver
