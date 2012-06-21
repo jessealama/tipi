@@ -70,6 +70,50 @@ remove all search paths."
 Possible values are yes, no or try. If try, no errors are reported."
 	       :enum '(:try)))))
 
+(defun error-message (format-string &rest format-args)
+  (format *error-output* "~C[;31mError~C[0;m" #\Escape #\Escape)
+  (format *error-output* "~a" #\Space)
+  (apply #'format *error-output* format-string format-args))
+
+(defgeneric minimize (problem timeout))
+
+(defmethod minimize ((problem string) timeout)
+  (minimize (pathname problem) timeout))
+
+(defmethod minimize :around ((problem pathname) timeout)
+  (declare (ignore timeout))
+  (cond ((probe-file problem)
+	 (call-next-method))
+	(t
+	 (error-message "There is no file at~%~%  ~a~%" (namestring problem))
+	 (clon:exit 1))))
+
+(defmethod minimize ((problem pathname) timeout)
+  (destructuring-bind (solutions non-solutions unknown)
+      (tipi:minimize problem :timeout timeout)
+    (declare (ignore non-solutions))
+    (destructuring-bind (common-premises . unique-solutions)
+	(tipi::extract-common-elements #'string= solutions)
+      (format t "~d minimal solution(s) found.~%" (length solutions))
+      (cond ((rest solutions)
+	     (format t "Premises common to every minimal solution:~%")
+	     (if common-premises
+		 (format t "~{~a~%~}" common-premises)
+		 (format t "(none)"))
+	     (loop
+		for i from 1 upto (length unique-solutions)
+		for minimization in unique-solutions
+		do
+		  (format t "~%Minimization ~d:~%~{~a~%~}" i minimization)))
+	    (solutions
+	   (format t "~%Minimization 1:~%~{~a~%~}" (first solutions))))
+      (terpri)
+      (if unknown
+	  (if (rest unknown)
+	      (format t "There were ~d combinations of premises for which we were unable to come to a decision." (length unknown))
+	      (format t "There was 1 combination of premises for which we were unable to come to a decision."))
+	  (format t "We were able to make a decision about every subset of premises.")))))
+
 (defun main ()
   "Entry point for the standalone application."
   (clon:make-context)
@@ -79,40 +123,7 @@ Possible values are yes, no or try. If try, no errors are reported."
 	 (clon:help))
 	((clon:remainder)
 	 (let ((tptp-file (first (clon:remainder))))
-	   (let ((minimizations (tipi:minimize (pathname tptp-file))))
-	     (if minimizations
-		 (if (rest minimizations)
-		     (let ((all-premises (make-hash-table :test #'equal))
-			   (common-premises nil))
-		       (dolist (minimization minimizations)
-			 (dolist (premise minimization)
-			   (setf (gethash (tipi::name premise) all-premises) 0)))
-		       (dolist (premise (tipi::hash-table-keys all-premises))
-			 (when (every #'(lambda (minimization)
-					  (member premise minimization
-						  :test #'string=
-						  :key #'tipi::name))
-				      minimizations)
-			   (push premise common-premises)))
-		       (setf common-premises (sort common-premises #'string<))
-		       (format t "Premises common to every minimal solution:~%")
-		       (if common-premises
-			   (format t "~{~a~%~}" common-premises)
-			   (format t "(none)"))
-		       (loop
-			  for i from 1 upto (length minimizations)
-			  for minimization in minimizations
-			  do
-			    (format t "~%Minimization ~d:~%" i)
-			    (let ((sorted-minimization (sort (mapcar #'tipi::name minimization) #'string<)))
-			      (dolist (premise sorted-minimization)
-				(unless (member premise common-premises :test #'string=)
-				  (format t "~a~%" premise))))))
-		     (let ((minimization (first minimizations)))
-		       (setf minimization (sort (mapcar #'tipi::name minimization) #'string<))
-		       (format t "~%Minimization 1:~%")
-		       (format t "~{~a~%~}~%" minimization)))
-		 (format t "It seems that something went wrong: we found no minimizations at all.~%")))))
+	   (minimize tptp-file 5)))
 	(t
 	 (clon:help)))
   (clon:exit))
