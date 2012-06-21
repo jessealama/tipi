@@ -113,3 +113,19 @@
        (map-combinations function list :length n)
      finally
        (return t)))
+
+(defun extract-common-elements (test lists)
+  (let ((all-elements-table (make-hash-table :test #'equal))
+	(common-elements nil))
+    (dolist (list lists)
+      (dolist (elt list)
+	(setf (gethash elt all-elements-table) 0)))
+    (dolist (elt (hash-table-keys all-elements-table))
+      (when (every #'(lambda (list) (member elt list :test test)) lists)
+	(push elt common-elements)))
+    (cons common-elements
+	  (mapcar #'(lambda (list)
+		      (remove-if #'(lambda (elt)
+				     (member elt common-elements :test test))
+				 list))
+		  lists))))
