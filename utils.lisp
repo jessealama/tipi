@@ -101,8 +101,10 @@
 	     when (member atom list :test test) collect atom into atoms
 	     finally (return atoms))))))
 
-(defun some-subset (set set-of-sets)
-  (some #'(lambda (other-set) (subsetp other-set set)) set-of-sets))
+(defun some-subset (set set-of-sets &key test key)
+  (some #'(lambda (other-set)
+	    (subsetp other-set set :test test :key key))
+	set-of-sets))
 
 (defun map-all-combinations (function list)
   (loop
