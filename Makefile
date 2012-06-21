@@ -32,6 +32,7 @@ $(DEMOS): %: %.lisp
 	$($(LISP)_PATH) $(EVAL_CONFIG) $($(LISP)_DUMP) $<
 
 tipi: %: %.lisp
+	which $($(LISP)_PATH)
 	$($(LISP)_PATH) $(EVAL_CONFIG) $($(LISP)_DUMP) $<
 
 all: tipi
