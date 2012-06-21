@@ -65,31 +65,32 @@
 					(error "epclextract did not exit cleanly (its exit code was ~a).  The error output:~%~%~a" epclextract-exit-code (stream-lines (process-error epclextract-process))))))))))))))
 
 (defparameter *paradox*
-  (make-instance 'solver
-		 :name "Paradox"
-		 :solve-function
-		 (lambda (problem)
-		   (block paradox
-		     (let ((paradox-text
-			    (with-output-to-string (paradox-out)
-			      (let ((paradox-process (run-program "paradox"
-								  (list "--model"
-									"--tstp"
-									"--time" "5"
-									(namestring (path problem)))
-								  :search t
-								  :input nil
-								  :output paradox-out
-								  :error :stream
-								  :wait t)))
-				(let ((paradox-exit-code (process-exit-code paradox-process)))
-				  (unless (zerop paradox-exit-code)
-				    (return-from paradox
-				      (make-instance 'paradox-result
-						     :text ""
-						     :szs-status (lookup-szs-status "Error")))))))))
-		     (make-instance 'paradox-result
-				    :text paradox-text))))))
+  (make-instance
+   'solver
+   :name "Paradox"
+   :solve-function
+   (lambda (problem)
+     (block paradox
+       (let ((paradox-text
+	      (with-output-to-string (paradox-out)
+		(let ((paradox-process (run-program "paradox"
+						    (list "--model"
+							  "--tstp"
+							  "--time" "5"
+							  (namestring (path problem)))
+						    :search t
+						    :input nil
+						    :output paradox-out
+						    :error :stream
+						    :wait t)))
+		  (let ((paradox-exit-code (process-exit-code paradox-process)))
+		    (unless (zerop paradox-exit-code)
+		      (return-from paradox
+			(make-instance 'paradox-result
+				       :text ""
+				       :szs-status (lookup-szs-status "Error")))))))))
+	 (make-instance 'paradox-result
+			:text paradox-text))))))
 
 (defmethod solve :around (prover (problem tptp-db))
   (declare (ignore prover))
