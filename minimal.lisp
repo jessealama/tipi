@@ -24,13 +24,13 @@
 			     (background-premises tptp-db))
   (null (extraneous-premises used-premises conjecture background-premises)))
 
-(defgeneric minimize (problem &key skip-initial-proof keep))
+(defgeneric minimize (problem &key skip-initial-proof keep timeout))
 
-(defmethod minimize :around ((problem derivability-problem) &key skip-initial-proof keep)
+(defmethod minimize :around ((problem derivability-problem) &key skip-initial-proof keep timeout)
   (declare (ignore keep))
   (if skip-initial-proof
       (call-next-method)
-      (let* ((initial-result (solve *eprover* problem))
+      (let* ((initial-result (solve *eprover* problem :timeout timeout))
 	     (status (szs-status initial-result)))
 	(if (szs-implies? status (lookup-szs-status "Theorem"))
 	    (let* ((conjecture (conjecture problem))
@@ -41,31 +41,58 @@
 		   (needed (needed-premises trimmed-problem)))
 	      (minimize trimmed-problem
 			:skip-initial-proof t
-			:keep needed))
+			:keep needed
+			:timeout timeout))
 	    (error "The initial problem could not be solved (SZS status ~a)." status)))))
 
-(defmethod minimize ((problem derivability-problem) &key skip-initial-proof keep)
+(defun sort-formula-list (formula-list)
+  (let ((sorted (sort formula-list #'string< :key #'name)))
+    (mapcar #'name sorted)))
+
+(defmethod minimize ((problem derivability-problem) &key skip-initial-proof keep timeout)
   (declare (ignore skip-initial-proof))
   (let ((conjecture (conjecture problem))
 	(premises (formulas problem))
 	(solutions nil)
 	(unknown nil)
 	(non-solutions nil))
-    (flet ((test-subset (subset)
-	     (when (and (subsetp keep subset) (not (some-subset subset solutions)))
-	       (let* ((p (make-derivability-problem (cons conjecture subset)))
-		      (szs-status (solve (list *eprover* *paradox*) p)))
-		 (setf subset (mapcar #'name subset))
-		 (setf subset (sort subset #'string<))
-		 (if (is-szs-success? szs-status)
-		     (if (szs-implies? szs-status (lookup-szs-status "Theorem"))
-			 (push subset solutions)
-			 (push subset non-solutions))
-		     (push subset unknown))))))
+    (labels ((already-known (subset)
+	       (or (some #'(lambda (solution)
+			     (subsetp solution subset :test #'string= :key #'name))
+			 solutions)
+		   (some #'(lambda (non-solution)
+			     (subsetp subset non-solution :test #'string= :key #'name))
+			 non-solutions)))
+	     (test-subset (subset)
+	       (when (subsetp keep subset :test #'string= :key #'name)
+		 (if (already-known subset)
+		     (progn
+		       ;; (format t "Skipping a settled subset.")
+		       )
+		     (let* ((p (make-derivability-problem (cons conjecture subset)))
+			    (szs-status (solve (list *eprover* *paradox*) p :timeout timeout)))
+		       (if (is-szs-success? szs-status)
+			   (if (szs-implies? szs-status (lookup-szs-status "Theorem"))
+			       (progn
+				 (push subset solutions)
+				 ;; (format t "Solution: ~{~a~%~}" (mapcar #'name subset))
+				 )
+			       (progn
+				 (push subset non-solutions)
+				 ;; (format t "Non-solution: ~{~a~%~}" (mapcar #'name subset))
+				 ))
+			   (progn
+			     (push subset unknown)
+			     ;; (format t "Unknown: ~{~a~%~}" (mapcar #'name subset))
+			     ))))
+		 ;; (terpri)
+		 )))
       (map-all-combinations #'test-subset premises))
-    (values solutions non-solutions unknown)))
+    (list (mapcar #'sort-formula-list solutions)
+	  (mapcar #'sort-formula-list non-solutions)
+	  (mapcar #'sort-formula-list unknown))))
 
-(defmethod minimize ((problem pathname) &key skip-initial-proof keep)
+(defmethod minimize ((problem pathname) &key skip-initial-proof keep timeout)
   (let ((db (read-tptp problem)))
     (let ((conjecture (conjecture-formula db)))
       (if conjecture
@@ -73,7 +100,9 @@
 						    (non-conjecture-formulas db)))))
 	    (minimize p
 		      :skip-initial-proof skip-initial-proof
-		      :keep keep))
+		      :keep keep
+		      :timeout timeout))
 	  (minimize db
 		    :skip-initial-proof skip-initial-proof
-		    :keep keep)))))
+		    :keep keep
+		    :timeout timeout)))))
