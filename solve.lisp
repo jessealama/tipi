@@ -48,7 +48,7 @@
 						     :szs-status (lookup-szs-status
 								  (if (= eprover-exit-code 6)
 								      "Timeout"
-								      "Unknown"))))))))))
+								      "Error"))))))))))
 		       (make-instance 'eprover-result
 				      :text (with-output-to-string (epclextract-out)
 					      (with-input-from-string (eprover-out eprover-text)
