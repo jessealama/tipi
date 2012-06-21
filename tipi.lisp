@@ -41,6 +41,12 @@ Possible values are: none, gpl, lppl, bsd or mit."
 		 :enum '(:none :gpl :lppl :bsd :mit)
 		 :fallback-value :gpl
 		 :default-value :none))
+    (group (:header "Limits")
+	   (stropt :short-name "t"
+		   :long-name "timeout"
+		   :description "Spend at most TIME seconds solving any particular problem."
+		   :argument-name "TIME"
+		   :default-value "5"))
     (group (:header "Path options:")
       (path :long-name "tmpdir"
 	    :description "Set the temporary directory to DIR."
@@ -122,8 +128,13 @@ Possible values are yes, no or try. If try, no errors are reported."
 	((rest (clon:remainder))
 	 (clon:help))
 	((clon:remainder)
-	 (let ((tptp-file (first (clon:remainder))))
-	   (minimize tptp-file 5)))
+	 (let ((timeout-str (clon:getopt :long-name "timeout"))
+	       (timeout nil))
+	   (handler-case (setf timeout (parse-integer timeout-str
+						      :junk-allowed nil))
+	     (error () (error-message "'~a' is not an acceptable value for the timeout option." timeout-str)))
+	   (let ((tptp-file (first (clon:remainder))))
+	     (minimize tptp-file timeout))))
 	(t
 	 (clon:help)))
   (clon:exit))
