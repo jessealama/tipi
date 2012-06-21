@@ -96,6 +96,20 @@
 		       :conjecture conjecture)
 	(error "There is no conjecture formula in ~a." formulas))))
 
+(defmethod make-derivability-problem ((formulas null))
+  (error "The empty list does not contain a conjecture formula."))
+
+(defmethod make-derivability-problem ((formulas list))
+  (let ((conjecture (find "conjecture" formulas :test #'string= :key #'status))
+	(non-conjecture-formulas (remove-if #'(lambda (formula)
+						(string= (status formula) "conjecture"))
+					    formulas)))
+    (if conjecture
+	(make-instance 'derivability-problem
+		       :formulas non-conjecture-formulas
+		       :conjecture conjecture)
+	(error "No conjecture formula found in ~{~a~%~}" formulas))))
+
 (defmethod render ((problem tptp-db))
   (format nil "~{~a~%~}" (mapcar #'render (formulas problem))))
 
