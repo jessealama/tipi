@@ -17,23 +17,26 @@
      finally
        (return (hash-table-keys used-table))))
 
-(defgeneric needed-premise? (premise problem)
+(defgeneric needed-premise? (premise problem &key timeout)
   (:documentation "Can PROBLEM be solved without PREMISE?"))
 
 (defmethod needed-premise? ((premise tptp-formula)
-			    (problem derivability-problem))
+			    (problem derivability-problem)
+			    &key timeout)
   (let* ((problem (remove-formula problem premise))
-	 (szs-status (solve (list *eprover* *paradox*) problem))
+	 (szs-status (solve (list *eprover* *paradox*) problem :timeout timeout))
 	 (implies-theorem (szs-implies? szs-status
 					(lookup-szs-status "Theorem"))))
     (values (not implies-theorem) szs-status)))
 
 (defmethod needed-premise? ((formula-name string)
-			   (premises tptp-db))
-  (needed-premise? (formula-with-name premises formula-name) premises))
+			   (premises tptp-db)
+			    &key timeout)
+  (needed-premise? (formula-with-name premises formula-name) premises
+		   :timeout timeout))
 
-(defmethod needed-premise? ((formula symbol) premises)
-  (needed-premise? (symbol-name formula) premises))
+(defmethod needed-premise? ((formula symbol) premises &key timeout)
+  (needed-premise? (symbol-name formula) premises :timeout timeout))
 
 (defgeneric extraneous-premises (solution theorem background-theory))
 
@@ -53,15 +56,21 @@
 							   (name conjecture)))
 			solution)))
 
-(defgeneric needed-premises (problem))
+(defgeneric needed-premises (problem &key timeout))
 
-(defmethod needed-premises ((problem derivability-problem))
+(defmethod needed-premises ((problem derivability-problem) &key timeout)
+  (unless timeout
+    (setf timeout 5))
+  (unless (integerp timeout)
+    (error "Invalid value ~a for the timeout parameter." timeout))
+  (when (< timeout 1)
+    (error "Invalid value ~a for the timeout parameter." timeout))
   (loop
      with needed-premises = nil
      for premise in (formulas problem)
      do
        (multiple-value-bind (needed? szs-status)
-	   (needed-premise? premise problem)
+	   (needed-premise? premise problem :timeout timeout)
 	 (if (is-szs-success? szs-status)
 	     (when needed?
 	       (push premise needed-premises))))
