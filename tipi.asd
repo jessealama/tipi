@@ -25,4 +25,5 @@
 	       (:file "model")
 	       (:file "consequence")
 	       (:file "needed")
-	       (:file "minimal")))
+	       (:file "minimal")
+	       (:file "independent")))
