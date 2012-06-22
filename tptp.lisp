@@ -86,6 +86,17 @@
 	  (format stream "Premises:~%~{~a~%~}" formulas)
 	  (format stream "Premises: (none)")))))
 
+(defmethod initialize-instance :after ((problem derivability-problem) &rest initargs &key &allow-other-keys)
+  (declare (ignore initargs))
+  (when (some #'(lambda (premise)
+		  (string= (status premise) "conjecture"))
+	      (formulas problem))
+    (error "Some non-conjecture formula has the TPTP status 'conjecture'."))
+  (let ((conjecture (conjecture problem)))
+    (unless (string= (status conjecture) "conjecture")
+      (setf (conjecture problem) (change-status conjecture "conjecture"))))
+  problem)
+
 (defgeneric make-derivability-problem (formulas))
 
 (defmethod make-derivability-problem ((formulas tptp-db))
