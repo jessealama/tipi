@@ -44,6 +44,40 @@
   (format *error-output* "~a" #\Space)
   (apply #'format *error-output* format-string format-args))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Needed premises
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defgeneric needed (problem timeout))
+
+(defmethod needed ((problem string) timeout)
+  (needed (pathname problem) timeout))
+
+(defmethod needed :around ((problem pathname) timeout)
+  (declare (ignore timeout))
+  (cond ((file-readable? problem)
+	 (call-next-method))
+	(t
+	 (error-message "There is no file at~%~%  ~a~%~%or it is unreadable.~%" (namestring problem))
+	 (clon:exit 1))))
+
+(defmethod needed ((problem pathname) timeout)
+  (destructuring-bind (needed unknown)
+      (tipi::needed-premises problem :timeout timeout)
+    (let ((needed-sorted (tipi::sort-formula-list needed))
+	  (unknown-sorted (tipi::sort-formula-list unknown)))
+      (if needed-sorted
+	  (format t "The following premises are needed:~%~%~{~a~%~}" needed-sorted)
+	  (format t "No premise was shown to be needed."))
+      (terpri)
+      (if unknown-sorted
+	  (format t "We were unable to determine whether the following premises are needed:~%~%~{~a~%~}" unknown-sorted)
+	  (format t "We were able to make a decision about every premise.")))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Minimize
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (defgeneric minimize (problem timeout))
 
 (defmethod minimize ((problem string) timeout)
@@ -99,7 +133,7 @@
 	       (error-message "'~a' is not an acceptable value for the timeout option." timeout-str)
 	       (clon:exit 1)))
 	   (let ((tptp-file (first (clon:remainder))))
-	     (handler-case (minimize tptp-file timeout)
+	     (handler-case (needed tptp-file timeout)
 	       (error (err)
 		 (error-message "Something went wrong during minimization:~%~%~a~%~%Please inform the maintainers.  Sorry." err)
 		 (clon:exit 1))))))
