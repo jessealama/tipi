@@ -31,8 +31,11 @@
 		   :argument-name "TIME"
 		   :default-value "5"))))
 
+(defun red (str)
+  (format nil "~C[;31m~a~C[0;m" #\Escape str #\Escape))
+
 (defun error-message (format-string &rest format-args)
-  (format *error-output* "~C[;31mError~C[0;m" #\Escape #\Escape)
+  (format *error-output* (red "Error"))
   (format *error-output* "~a" #\Space)
   (apply #'format *error-output* format-string format-args))
 
