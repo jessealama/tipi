@@ -45,10 +45,6 @@
 			:timeout timeout))
 	    (error "The initial problem could not be solved (SZS status ~a)." status)))))
 
-(defun sort-formula-list (formula-list)
-  (let ((sorted (sort formula-list #'string< :key #'name)))
-    (mapcar #'name sorted)))
-
 (defmethod minimize ((problem derivability-problem) &key skip-initial-proof keep timeout)
   (declare (ignore skip-initial-proof))
   (let ((conjecture (conjecture problem))

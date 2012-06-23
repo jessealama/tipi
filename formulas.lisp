@@ -708,4 +708,8 @@ class ATOMIC-FORMULA.  This function expresses that disjointedness."
 		   :status (symbol-name status)
 		   :formula (form->formula formula)))))
 
+(defun sort-formula-list (formula-list)
+  (let ((sorted (sort formula-list #'string< :key #'name)))
+    (mapcar #'name sorted)))
+
 ;;; formulas.lisp ends here
