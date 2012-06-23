@@ -51,10 +51,10 @@
 
 (defmethod minimize :around ((problem pathname) timeout)
   (declare (ignore timeout))
-  (cond ((probe-file problem)
+  (cond ((file-readable? problem)
 	 (call-next-method))
 	(t
-	 (error-message "There is no file at~%~%  ~a~%" (namestring problem))
+	 (error-message "There is no file at~%~%  ~a~%~%or it is unreadable.~%" (namestring problem))
 	 (clon:exit 1))))
 
 (defmethod minimize ((problem pathname) timeout)
