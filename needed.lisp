@@ -59,20 +59,29 @@
 (defgeneric needed-premises (problem &key timeout))
 
 (defmethod needed-premises ((problem derivability-problem) &key timeout)
-  (unless timeout
-    (setf timeout 5))
-  (unless (integerp timeout)
-    (error "Invalid value ~a for the timeout parameter." timeout))
-  (when (< timeout 1)
-    (error "Invalid value ~a for the timeout parameter." timeout))
   (loop
      with needed-premises = nil
+     with unknown-premises = nil
      for premise in (formulas problem)
      do
        (multiple-value-bind (needed? szs-status)
 	   (needed-premise? premise problem :timeout timeout)
 	 (if (is-szs-success? szs-status)
 	     (when needed?
-	       (push premise needed-premises))))
+	       (push premise needed-premises))
+	     (push premise unknown-premises)))
      finally
-       (return needed-premises)))
+       (return (list needed-premises unknown-premises))))
+
+(defmethod needed-premises ((db tptp-db) &key timeout)
+  (let ((conjecture (conjecture-formula db)))
+    (if conjecture
+	(let ((problem (make-instance 'derivability-problem
+				      :conjecture conjecture
+				      :formulas (non-conjecture-formulas db))))
+	  (needed-premises problem :timeout timeout))
+	(error "There is no conjecture formula in the given problem."))))
+
+(defmethod needed-premises ((path pathname) &key timeout)
+  (let ((db (read-tptp path)))
+    (needed-premises db :timeout timeout)))
