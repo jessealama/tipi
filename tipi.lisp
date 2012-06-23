@@ -24,57 +24,12 @@
     (flag :short-name "h" :long-name "help"
 	  :description "Print this help and exit."))
   (group (:header "Built-in valued option types:")
-    (group (:header "String options:")
-	   (stropt :short-name "n" :long-name "name"
-		   :description "Set your name to NAME."
-		   :argument-name "NAME"))
-    (group (:header "Lisp objects:")
-	   (lispobj :short-name "e" :long-name "eval"
-		    :description "Evaluate EXPR."
-		    :argument-name "EXPR"))
-    (group (:header "Enumerations:")
-	   (enum :long-name "copyright"
-		 :description "Set the copyright to LICENSE.
-Possible values are: none, gpl, lppl, bsd or mit."
-		 :argument-name "LICENSE"
-		 :argument-type :optional
-		 :enum '(:none :gpl :lppl :bsd :mit)
-		 :fallback-value :gpl
-		 :default-value :none))
     (group (:header "Limits")
 	   (stropt :short-name "t"
 		   :long-name "timeout"
 		   :description "Spend at most TIME seconds solving any particular problem."
 		   :argument-name "TIME"
-		   :default-value "5"))
-    (group (:header "Path options:")
-      (path :long-name "tmpdir"
-	    :description "Set the temporary directory to DIR."
-	    :argument-name "DIR"
-	    :type :directory
-	    :default-value #p"/tmp/")
-      (path :short-name "o" :long-name "output"
-	    :description "Output to FILE."
-	    :argument-name "FILE"
-	    :type :file
-	    :default-value #p"a.out")
-      (path :short-name "I"
-	    :description "Set the include search path to SEARCH-PATH.
-SEARCH-PATH is a colon-separated list of directories. Use an empty argument to
-remove all search paths."
-	    :argument-name "SEARCH-PATH"
-	    :type :directory-list
-	    :default-value '(#p"/usr/local/share/" #p"/usr/share/")))
-    (group (:header "Switches:")
-      (switch :short-name "d" :long-name "debug"
-	      :description "Turn debugging on or off."
-	      :argument-style :on/off
-	      :env-var "DEBUG"))
-    (group (:header "Extended switches:")
-      (xswitch :short-name "c" :long-name "connect"
-	       :description "Connect to server.
-Possible values are yes, no or try. If try, no errors are reported."
-	       :enum '(:try)))))
+		   :default-value "5"))))
 
 (defun error-message (format-string &rest format-args)
   (format *error-output* "~C[;31mError~C[0;m" #\Escape #\Escape)
