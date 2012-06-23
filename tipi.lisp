@@ -87,7 +87,9 @@
 	       (timeout nil))
 	   (handler-case (setf timeout (parse-integer timeout-str
 						      :junk-allowed nil))
-	     (error () (error-message "'~a' is not an acceptable value for the timeout option." timeout-str)))
+	     (error ()
+	       (error-message "'~a' is not an acceptable value for the timeout option." timeout-str)
+	       (clon:exit 1)))
 	   (let ((tptp-file (first (clon:remainder))))
 	     (handler-case (minimize tptp-file timeout)
 	       (error (err)
