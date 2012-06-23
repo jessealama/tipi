@@ -89,7 +89,10 @@
 						      :junk-allowed nil))
 	     (error () (error-message "'~a' is not an acceptable value for the timeout option." timeout-str)))
 	   (let ((tptp-file (first (clon:remainder))))
-	     (minimize tptp-file timeout))))
+	     (handler-case (minimize tptp-file timeout)
+	       (error (err)
+		 (error-message "Something went wrong during minimization:~%~%~a~%~%Please inform the maintainers.  Sorry." err)
+		 (clon:exit 1))))))
 	(t
 	 (clon:help)))
   (clon:exit))
