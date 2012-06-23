@@ -31,6 +31,11 @@
 		   :argument-name "TIME"
 		   :default-value "5"))))
 
+(defun file-readable? (path)
+  (and (probe-file path)
+       (streamp (handler-case (open path :direction :probe)
+		  (error () nil)))))
+
 (defun red (str)
   (format nil "~C[;31m~a~C[0;m" #\Escape str #\Escape))
 
