@@ -19,7 +19,7 @@
 
 (clon:defsynopsis (:postfix "FILES...")
   (text :contents
-	"Demonstration of Clon (use --clon-help for built-in options).")
+	"Tipi -- A TPTP-based toolkit for proof analysis")
   (group (:header "Flags (non valued options):")
     (flag :short-name "h" :long-name "help"
 	  :description "Print this help and exit."))
