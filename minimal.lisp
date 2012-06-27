@@ -37,12 +37,14 @@
 		   (result-as-db (interpret initial-result))
 		   (used-premise-names (used-premises result-as-db problem))
 		   (used-premises (mapcar #'(lambda (name) (formula-with-name problem name)) used-premise-names))
-		   (trimmed-problem (make-derivability-problem (cons conjecture used-premises)))
-		   (needed (needed-premises trimmed-problem)))
-	      (minimize trimmed-problem
+		   (trimmed-problem (make-derivability-problem (cons conjecture used-premises))))
+	      (destructuring-bind (needed needed-unknown)
+		  (needed-premises problem :timeout timeout)
+		(declare (ignore needed-unknown))
+		(minimize trimmed-problem
 			:skip-initial-proof t
 			:keep needed
-			:timeout timeout))
+			:timeout timeout)))
 	    (error "The initial problem could not be solved (SZS status ~a)." status)))))
 
 (defmethod minimize ((problem derivability-problem) &key skip-initial-proof keep timeout)
