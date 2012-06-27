@@ -44,11 +44,25 @@
   (format *error-output* "~a" #\Space)
   (apply #'format *error-output* format-string format-args))
 
+(defmacro help-and-die ()
+  `(progn
+     (clon:help)
+     (clon:exit)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Needed premises
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defgeneric needed (problem timeout))
+
+(defmethod needed ((problem null) timeout)
+  (declare (ignore timeout))
+  (help-and-die))
+
+(defmethod needed ((problem list) timeout)
+  (if (rest problem)
+      (help-and-die)
+      (needed (first problem) timeout)))
 
 (defmethod needed ((problem string) timeout)
   (needed (pathname problem) timeout))
@@ -56,7 +70,10 @@
 (defmethod needed :around ((problem pathname) timeout)
   (declare (ignore timeout))
   (cond ((file-readable? problem)
-	 (call-next-method))
+	 (handler-case (call-next-method)
+	   (error (err)
+	     (error-message "Something went wrong while computing needed premises:~%~%~a~%~%Please inform the maintainers.  Sorry." err)
+	     (clon:exit 1))))
 	(t
 	 (error-message "There is no file at~%~%  ~a~%~%or it is unreadable.~%" (namestring problem))
 	 (clon:exit 1))))
@@ -83,10 +100,22 @@
 (defmethod minimize ((problem string) timeout)
   (minimize (pathname problem) timeout))
 
+(defmethod minimize ((problem null) timeout)
+  (declare (ignore timeout))
+  (help-and-die))
+
+(defmethod minimize ((problem list) timeout)
+  (if (rest problem)
+      (help-and-die)
+      (minimize (first problem) timeout)))
+
 (defmethod minimize :around ((problem pathname) timeout)
   (declare (ignore timeout))
   (cond ((file-readable? problem)
-	 (call-next-method))
+	 (handler-case (call-next-method)
+	   (error (err)
+	     (error-message "Something went wrong during minimization:~%~%~a~%~%Please inform the maintainers.  Sorry." err)
+	     (clon:exit 1))))
 	(t
 	 (error-message "There is no file at~%~%  ~a~%~%or it is unreadable.~%" (namestring problem))
 	 (clon:exit 1))))
@@ -120,25 +149,26 @@
 (defun main ()
   "Entry point for the standalone application."
   (clon:make-context)
-  (cond ((clon:getopt :short-name "h")
-	 (clon:help))
-	((rest (clon:remainder))
-	 (clon:help))
-	((clon:remainder)
-	 (let ((timeout-str (clon:getopt :long-name "timeout"))
-	       (timeout nil))
-	   (handler-case (setf timeout (parse-integer timeout-str
-						      :junk-allowed nil))
-	     (error ()
-	       (error-message "'~a' is not an acceptable value for the timeout option." timeout-str)
-	       (clon:exit 1)))
-	   (let ((tptp-file (first (clon:remainder))))
-	     (handler-case (needed tptp-file timeout)
-	       (error (err)
-		 (error-message "Something went wrong during minimization:~%~%~a~%~%Please inform the maintainers.  Sorry." err)
-		 (clon:exit 1))))))
-	(t
-	 (clon:help)))
+  (when (clon:getopt :short-name "h")
+    (help-and-die))
+  (unless (clon:remainder)
+    (help-and-die))
+  (let ((timeout-str (clon:getopt :long-name "timeout"))
+	(timeout nil)
+	(remainder (clon:remainder)))
+    (handler-case (setf timeout (parse-integer timeout-str
+					       :junk-allowed nil))
+      (error ()
+	(error-message "'~a' is not an acceptable value for the timeout option." timeout-str)
+	(clon:exit 1)))
+    (let ((command (first remainder))
+	  (remainder (rest remainder)))
+      (cond ((string= command "needed")
+	     (needed remainder timeout))
+	    ((string= command "minimize")
+	     (minimize remainder timeout))
+	    (t
+	     (help-and-die)))))
   (clon:exit))
 
 (clon:dump "tipi" main)
