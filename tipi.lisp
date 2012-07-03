@@ -79,14 +79,18 @@
 	 (clon:exit 1))))
 
 (defmethod needed ((problem pathname) timeout)
-  (destructuring-bind (needed unknown)
+  (destructuring-bind (needed unneeded unknown)
       (tipi::needed-premises problem :timeout timeout)
     (let ((needed-sorted (tipi::sort-formula-list needed))
+	  (needed-sorted (tipi::sort-formula-list unneeded))
 	  (unknown-sorted (tipi::sort-formula-list unknown)))
       (if needed-sorted
 	  (format t "The following premises are needed:~%~%~{~a~%~}" needed-sorted)
 	  (format t "No premise was shown to be needed."))
       (terpri)
+      (if unneeded-sorted
+	  (format t "The following premises are not needed:~%~%~{~a~%~}" unneeded-sorted)
+	  (format t "No premise was shown to be unneeded."))
       (if unknown-sorted
 	  (format t "We were unable to determine whether the following premises are needed:~%~%~{~a~%~}" unknown-sorted)
 	  (format t "We were able to make a decision about every premise.")))))
