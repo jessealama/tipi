@@ -15,7 +15,7 @@
 		   (used-premise-names (used-premises result-as-db problem))
 		   (used-premises (mapcar #'(lambda (name) (formula-with-name problem name)) used-premise-names))
 		   (trimmed-problem (make-derivability-problem (cons conjecture used-premises))))
-	      (destructuring-bind (needed needed-unknown)
+	      (destructuring-bind (needed unneeded needed-unknown)
 		  (needed-premises problem :timeout timeout)
 		(declare (ignore needed-unknown))
 		(minimize trimmed-problem
