@@ -31,30 +31,39 @@
    :solve-function
    (lambda (problem timeout)
      (block eprover
-       (let ((eprover-text
-	      (with-output-to-string (eprover-out)
-		(let ((eprover-process (run-program "eprover"
-						    (list "-tAuto"
-							  "-xAuto"
-							  "-l4"
-							  "-R"
-							  "--tptp3-in"
-							  (format nil "--cpu-limit=~d" timeout)
-							  (namestring (path problem)))
-						    :search t
-						    :input nil
-						    :output eprover-out
-						    :error :stream
-						    :wait t)))
-		  (let ((eprover-exit-code (process-exit-code eprover-process)))
-		    (unless (zerop eprover-exit-code)
-		      (return-from eprover
-			(make-instance 'eprover-result
-				       :text ""
-				       :szs-status (lookup-szs-status
-						    (if (= eprover-exit-code 6)
-							"Timeout"
-							"Error"))))))))))
+       (let* ((path
+	       #+ccl
+		(ccl:native-translated-namestring (path problem))
+		#-ccl
+		(namestring (path problem))
+		)
+	      (eprover-text
+	       (with-output-to-string (eprover-out)
+		 (let ((eprover-process (run-program "eprover"
+						     (list "-tAuto"
+							   "-xAuto"
+							   "-l4"
+							   "-R"
+							   "--tptp3-in"
+							   (format nil "--cpu-limit=~d" timeout)
+							  path)
+						     :search t
+						     :input nil
+						     :output eprover-out
+						     :error :stream
+						     :wait t)))
+		   (let ((eprover-exit-code (process-exit-code eprover-process)))
+		     (unless (zerop eprover-exit-code)
+		       (format t "exit code: ~a" eprover-exit-code)
+		       (format t "error output:~%~{~a~%~}" (stream-lines (process-error eprover-process)))
+		       (break "waiting")
+		       (return-from eprover
+			 (make-instance 'eprover-result
+					:text ""
+					:szs-status (lookup-szs-status
+						     (if (= eprover-exit-code 6)
+							 "Timeout"
+							 "Error"))))))))))
 	 (make-instance 'eprover-result
 			:text (with-output-to-string (epclextract-out)
 				(with-input-from-string (eprover-out eprover-text)
@@ -76,19 +85,24 @@
    :solve-function
    (lambda (problem timeout)
      (block paradox
-       (let ((paradox-text
-	      (with-output-to-string (paradox-out)
-		(let ((paradox-process (run-program "paradox"
-						    (list "--model"
-							  "--tstp"
-							  "--no-progress"
-							  "--time" (format nil "~d" timeout)
-							  (namestring (path problem)))
-						    :search t
-						    :input nil
-						    :output paradox-out
-						    :error :stream
-						    :wait t)))
+       (let* ((path
+	       #+ccl
+		(ccl:native-translated-namestring (path problem))
+		#-ccl
+		(namestring (path problem)))
+	      (paradox-text
+	       (with-output-to-string (paradox-out)
+		 (let ((paradox-process (run-program "paradox"
+						     (list "--model"
+							   "--tstp"
+							   "--no-progress"
+							   "--time" (format nil "~d" timeout)
+							   path)
+						     :search t
+						     :input nil
+						     :output paradox-out
+						     :error :stream
+						     :wait t)))
 		  (let ((paradox-exit-code (process-exit-code paradox-process)))
 		    (unless (zerop paradox-exit-code)
 		      (return-from paradox
