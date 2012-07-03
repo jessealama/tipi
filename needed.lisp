@@ -38,40 +38,24 @@
 (defmethod needed-premise? ((formula symbol) premises &key timeout)
   (needed-premise? (symbol-name formula) premises :timeout timeout))
 
-(defgeneric extraneous-premises (solution theorem background-theory))
-
-(defmethod extraneous-premises ((solution tptp-db)
-				(conjecture tptp-formula)
-				(background-premises tptp-db))
-  (extraneous-premises (used-premises solution background-premises)
-		       conjecture
-		       background-premises))
-
-(defmethod extraneous-premises ((solution list)
-				(conjecture tptp-formula)
-				(background-premises derivability-problem))
-  (remove-if #'(lambda (premise)
-		 (needed-premise? premise background-premises))
-	     (remove-if #'(lambda (sol) (equal-as-strings? sol
-							   (name conjecture)))
-			solution)))
-
 (defgeneric needed-premises (problem &key timeout))
 
 (defmethod needed-premises ((problem derivability-problem) &key timeout)
   (loop
      with needed-premises = nil
+     with unneeded-premises = nil
      with unknown-premises = nil
      for premise in (formulas problem)
      do
        (multiple-value-bind (needed? szs-status)
 	   (needed-premise? premise problem :timeout timeout)
 	 (if (is-szs-success? szs-status)
-	     (when needed?
-	       (push premise needed-premises))
+	     (if needed?
+		 (push premise needed-premises)
+		 (push premise unneeded-premises))
 	     (push premise unknown-premises)))
      finally
-       (return (list needed-premises unknown-premises))))
+       (return (list needed-premises unneeded-premises unknown-premises))))
 
 (defmethod needed-premises ((db tptp-db) &key timeout)
   (let ((conjecture (conjecture-formula db)))
