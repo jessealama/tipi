@@ -30,16 +30,14 @@
   (let ((lisp-string (apply-stylesheet *tptp-to-lisp-stylesheet*
 				       (xmlize-tptp tptp-file)
 				       nil
-				       nil)))
+				       nil))
+	(problem (make-instance 'tptp-db
+				:path tptp-file)))
     (with-readtable (find-readtable :modern)
       (let ((tptp-form (handler-case (read-from-string lisp-string)
 			 (error (c) (error "Unable to make sense of~%~%~a~%~%as a Lisp representation of~%~%  ~a~%~%The error was:~%~%  ~a" lisp-string (namestring tptp-file) c)))))
-	(let ((problem (make-instance 'tptp-db)))
-	  (setf (formulas problem)
-		(mapcar #'make-tptp-formula tptp-form)
-		(path problem)
-		tptp-file)
-	  problem)))))
+	(setf (formulas problem) (mapcar #'make-tptp-formula tptp-form))))
+    problem))
 
 (defmethod read-tptp ((tptp-string string))
   (let ((temp (temporary-file)))
@@ -61,7 +59,17 @@
 	     :initform nil)
    (path
     :type pathname
-    :accessor path)))
+    :accessor path
+    :initarg :path)))
+
+(defmethod initialize-instance :after ((db tptp-db) &rest initargs &key &allow-other-keys)
+  (declare (ignore initargs))
+  (if (slot-boundp db 'path)
+      (let ((path (path db)))
+	(if (file-exists-p path)
+	    db
+	    (error "No such file '~a'." path)))
+      db))
 
 (defmethod print-object ((problem tptp-db) stream)
   (print-unreadable-object
