@@ -13,6 +13,7 @@
 (defparameter *negation-symbol* (symbolify-here "not"))
 (defparameter *implication-symbol* (symbolify-here "implies"))
 (defparameter *equivalence-symbol* (symbolify-here "iff"))
+(defparameter *nonequivalence-symbol* (symbolify-here "xor"))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Formulas
@@ -59,6 +60,9 @@
   nil)
 
 (defclass equivalence (binary-connective-formula)
+  nil)
+
+(defclass nonequivalence (binary-connective-formula)
   nil)
 
 ;; quantifiers
@@ -184,6 +188,12 @@
 
 (defmethod render-fancily ((formula equivalence))
   "↔")
+
+(defmethod render-plainly ((formula nonequivalence))
+  "<%~>")
+
+(defmethod render-fancily ((formula nonequivalence))
+  "↭")
 
 (defmethod render-plainly ((formula universal-generalization))
   "forall")
@@ -332,6 +342,17 @@ class ATOMIC-FORMULA.  This function expresses that disjointedness."
 
 (defun make-equivalence (lhs rhs)
   (make-instance 'equivalence
+		 :lhs lhs
+		 :rhs rhs))
+
+(defun nonequivalence? (thing)
+  (typep thing 'nonequivalence))
+
+(defmethod print-object ((equiv nonequivalence) stream)
+  (format stream "<~a>" #\~))
+
+(defun make-nonequivalence (lhs rhs)
+  (make-instance 'nonequivalence
 		 :lhs lhs
 		 :rhs rhs))
 
@@ -560,6 +581,19 @@ class ATOMIC-FORMULA.  This function expresses that disjointedness."
 	      (let ((lhs (form->formula (car arguments)))
 		    (rhs (form->formula (cadr arguments))))
 		(make-equivalence lhs rhs))
+	      (error 'parse-form-exactly-two-args-expected-but-at-least-three-supplied-error
+		     :operator op)))))
+
+(defmethod op-and-args->formula ((op (eql *nonequivalence-symbol*)) arguments)
+  (if (null arguments)
+      (error 'parse-form-empty-argument-list-error :operator op)
+      (if (null (cdr arguments))
+	  (error 'parse-form-at-least-two-args-expected-but-only-one-supplied-error
+		 :operator op)
+	  (if (null (cddr arguments))
+	      (let ((lhs (form->formula (car arguments)))
+		    (rhs (form->formula (cadr arguments))))
+		(make-nonequivalence lhs rhs))
 	      (error 'parse-form-exactly-two-args-expected-but-at-least-three-supplied-error
 		     :operator op)))))
 
