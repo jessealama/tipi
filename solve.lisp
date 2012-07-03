@@ -124,7 +124,7 @@
 	  (delete-file temp)))))
 
 (defmethod solve ((solver-list null) problem &key timeout)
-  (declare (ignore problem timeout))
+  (declare (ignore timeout))
   (values nil (lookup-szs-status "Unknown")))
 
 (defmethod solve ((solver-list list) problem &key timeout)
