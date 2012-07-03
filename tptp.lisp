@@ -129,6 +129,9 @@
 		       :conjecture conjecture)
 	(error "No conjecture formula found in ~{~a~%~}" formulas))))
 
+(defmethod make-derivability-problem ((problem pathname))
+  (make-derivability-problem (read-tptp problem)))
+
 (defmethod render ((problem tptp-db))
   (format nil "~{~a~%~}" (mapcar #'render (formulas problem))))
 
