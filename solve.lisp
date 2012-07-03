@@ -54,9 +54,6 @@
 						     :wait t)))
 		   (let ((eprover-exit-code (process-exit-code eprover-process)))
 		     (unless (zerop eprover-exit-code)
-		       (format t "exit code: ~a" eprover-exit-code)
-		       (format t "error output:~%~{~a~%~}" (stream-lines (process-error eprover-process)))
-		       (break "waiting")
 		       (return-from eprover
 			 (make-instance 'eprover-result
 					:text ""
