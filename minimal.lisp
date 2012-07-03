@@ -1,29 +1,6 @@
 
 (in-package :tipi)
 
-(defgeneric minimal-solution? (solution conjecture background-premises)
-  (:documentation "Is CONJECTURE entailed by a proper subset of the premises used in
-  the solution SOLUTION?  (BACKGROUND-THEORY is used to determine
-  which formulas of SOLUTION are 'used'."))
-
-(defmethod minimal-solution? ((solution tptp-db)
-			     (conjecture tptp-formula)
-			     (background-premises tptp-db))
-  (null (extraneous-premises solution conjecture background-premises)))
-
-(defmethod minimal-solution? (solution
-			      (conjecture-name string)
-			      (background-premises tptp-db))
-  (let ((formula (formula-with-name background-premises conjecture-name)))
-    (if formula
-	(minimal-solution? solution formula background-premises)
-	(error "There is no formula in ~a with the name '~a'." background-premises conjecture-name))))
-
-(defmethod minimal-solution? ((used-premises list)
-			     (conjecture tptp-formula)
-			     (background-premises tptp-db))
-  (null (extraneous-premises used-premises conjecture background-premises)))
-
 (defgeneric minimize (problem &key skip-initial-proof keep timeout))
 
 (defmethod minimize :around ((problem derivability-problem) &key skip-initial-proof keep timeout)
