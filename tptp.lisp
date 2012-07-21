@@ -282,5 +282,5 @@
 	    (t
 	     (error "Don't know how to handle ~a." formula))))
     (make-instance 'derivability-problem
-		   :conjecture (conjecture problem)
+		   :conjecture conjecture
 		   :formulas new-formulas)))
