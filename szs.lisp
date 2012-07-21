@@ -77,8 +77,8 @@
 
 (defmethod szs-isa ((szs-status-1 szs-success-status)
 		    (szs-status-2 szs-success-status))
-  (member szs-status-1
-	  (isa-list szs-status-2)))
+  (find szs-status-1
+	(isa-list szs-status-2)))
 
 (defmethod szs-isa ((szs-status-1 szs-success-status)
 		    (szs-status-2 szs-no-success-status))
@@ -90,8 +90,8 @@
 
 (defmethod szs-isa ((szs-status-1 szs-no-success-status)
 		    (szs-status-2 szs-no-success-status))
-  (member szs-status-1
-	  (isa-list szs-status-2)))
+  (find szs-status-1
+	(isa-list szs-status-2)))
 
 (defgeneric szs-implies? (szs-status-1 szs-status-2))
 
