@@ -135,6 +135,14 @@
 (defmethod render ((problem tptp-db))
   (format nil "~{~a~%~}" (mapcar #'render (formulas problem))))
 
+(defmethod render ((problem derivability-problem))
+  (with-output-to-string (s)
+    (dolist (formula (formulas problem))
+      (format s "~a" (render formula))
+      (terpri s))
+    (format s "~a" (render (conjecture problem)))
+    (terpri s)))
+
 (defgeneric proper-formulas (problem))
 
 (defmethod proper-formulas ((problem tptp-db))
