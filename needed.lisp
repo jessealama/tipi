@@ -40,7 +40,7 @@
 
 (defgeneric needed-premises (problem &key timeout))
 
-(defmethod needed-premises ((problem derivability-problem) &key timeout)
+(defmethod needed-premises ((problem derivability-problem) &key (timeout +default-timeout+))
   (loop
      with needed-premises = nil
      with unneeded-premises = nil
@@ -57,7 +57,7 @@
      finally
        (return (list needed-premises unneeded-premises unknown-premises))))
 
-(defmethod needed-premises ((db tptp-db) &key timeout)
+(defmethod needed-premises ((db tptp-db) &key (timeout +default-timeout+))
   (let ((conjecture (conjecture-formula db)))
     (if conjecture
 	(let ((problem (make-instance 'derivability-problem
@@ -66,6 +66,6 @@
 	  (needed-premises problem :timeout timeout))
 	(error "There is no conjecture formula in the given problem."))))
 
-(defmethod needed-premises ((path pathname) &key timeout)
+(defmethod needed-premises ((path pathname) &key (timeout +default-timeout+))
   (let ((db (read-tptp path)))
     (needed-premises db :timeout timeout)))
