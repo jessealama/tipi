@@ -10,7 +10,11 @@
   :description "A Swiss Army knife of TPTP tools, emphasizing proof analysis."
   :author "Jesse Alama <jesse.alama@gmail.com>"
   :maintainer "Jesse Alama <jesse.alama@gmail.com>"
-  :depends-on (:cl-ppcre :com.gigamonkeys.pathnames :named-readtables :alexandria)
+  :depends-on (:cl-ppcre
+	       :cl-fad
+	       :named-readtables
+	       :alexandria
+	       :trivial-timeout)
   :serial t
   :components ((:file "packages")
 	       (:file "utils")
