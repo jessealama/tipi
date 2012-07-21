@@ -37,43 +37,45 @@
 		#-ccl
 		(namestring (path problem))
 		)
-	      (eprover-text
-	       (with-output-to-string (eprover-out)
-		 (let ((eprover-process (run-program "eprover"
-						     (list "-tAuto"
-							   "-xAuto"
-							   "-l4"
-							   "-R"
-							   "--tptp3-in"
-							   (format nil "--cpu-limit=~d" timeout)
-							  path)
-						     :search t
-						     :input nil
-						     :output eprover-out
+	      (eprover-out (make-string-output-stream))
+	      (eprover-process
+	       (run-program "eprover"
+			    (list "-tAuto"
+				  "-xAuto"
+				  "-l4"
+				  "-R"
+				  "--tptp3-in"
+				  (format nil "--cpu-limit=~d" timeout)
+				  path)
+			    :search t
+			    :input nil
+			    :output eprover-out
+			    :error :stream
+			    :wait t))
+	      (eprover-exit-code (process-exit-code eprover-process)))
+	 (unless (zerop eprover-exit-code)
+	   (return-from eprover
+	     (make-instance 'eprover-result
+			    :text ""
+			    :szs-status (lookup-szs-status
+					 (if (= eprover-exit-code 6)
+					     "Timeout"
+					     "Error")))))
+	 (let ((eprover-text (get-output-stream-string eprover-out))
+	       (epclextract-out (make-string-output-stream)))
+	   (with-input-from-string (eprover-out eprover-text)
+	     (let ((epclextract-process (run-program "epclextract"
+						     (list "--tstp-out"
+							   "--forward-comments")
+						     :input eprover-out
+						     :output epclextract-out
 						     :error :stream
 						     :wait t)))
-		   (let ((eprover-exit-code (process-exit-code eprover-process)))
-		     (unless (zerop eprover-exit-code)
-		       (return-from eprover
-			 (make-instance 'eprover-result
-					:text ""
-					:szs-status (lookup-szs-status
-						     (if (= eprover-exit-code 6)
-							 "Timeout"
-							 "Error"))))))))))
-	 (make-instance 'eprover-result
-			:text (with-output-to-string (epclextract-out)
-				(with-input-from-string (eprover-out eprover-text)
-				  (let ((epclextract-process (run-program "epclextract"
-									  (list "--tstp-out"
-										"--forward-comments")
-									  :input eprover-out
-									  :output epclextract-out
-									  :error :stream
-									  :wait t)))
-				    (let ((epclextract-exit-code (process-exit-code epclextract-process)))
-				      (unless (zerop epclextract-exit-code)
-					(error "epclextract did not exit cleanly (its exit code was ~a).  The error output:~%~%~a" epclextract-exit-code (stream-lines (process-error epclextract-process))))))))))))))
+	       (let ((epclextract-exit-code (process-exit-code epclextract-process)))
+		 (unless (zerop epclextract-exit-code)
+		   (error "epclextract did not exit cleanly (its exit code was ~a).  The error output:~%~%~a" epclextract-exit-code (stream-lines (process-error epclextract-process)))))))
+	   (make-instance 'eprover-result
+			  :text (get-output-stream-string epclextract-out))))))))
 
 (defparameter *paradox*
   (make-instance
@@ -86,30 +88,36 @@
 	       #+ccl
 		(ccl:native-translated-namestring (path problem))
 		#-ccl
-		(namestring (path problem)))
-	      (paradox-text
-	       (with-output-to-string (paradox-out)
-		 (let ((paradox-process (run-program "paradox"
-						     (list "--model"
-							   "--tstp"
-							   "--no-progress"
-							   "--time" (format nil "~d" timeout)
-							   path)
-						     :search t
-						     :input nil
-						     :output paradox-out
-						     :error :stream
-						     :wait t)))
-		  (let ((paradox-exit-code (process-exit-code paradox-process)))
-		    (unless (zerop paradox-exit-code)
-		      (return-from paradox
-			(make-instance 'paradox-result
-				       :text ""
-				       :szs-status (lookup-szs-status "Error")))))))))
-	 (make-instance 'paradox-result
-			:text paradox-text))))))
+		(namestring (path problem))
+		)
+	      (paradox-out (make-string-output-stream))
+	      (paradox-process (run-program "paradox"
+					    (list "--model"
+						  "--tstp"
+						  "--no-progress"
+						  "--time" (format nil "~d" timeout)
+						  path)
+					    :search t
+					    :input nil
+					    :output paradox-out
+					    :error :stream
+					    :wait t))
+	      (paradox-exit-code (process-exit-code paradox-process)))
+	 (if (zerop paradox-exit-code)
+	     (make-instance 'paradox-result
+			    :text (get-output-stream-string paradox-out))
+	     (make-instance 'paradox-result
+			    :text ""
+			    :szs-status (lookup-szs-status "Error"))))))))
 
-(defmethod solve :around (prover (problem tptp-db) &key timeout)
+(defmethod solve :before (prover problem &key (timeout +default-timeout+))
+  (declare (ignore prover problem))
+  (unless (integerp timeout)
+    (error "Invalid value ~a for the timeout parameter." timeout))
+  (when (< timeout 1)
+    (error "Invalid value ~a for the timeout parameter." timeout)))
+
+(defmethod solve :around (prover (problem tptp-db) &key (timeout +default-timeout+))
   (declare (ignore prover timeout))
   (if (slot-boundp problem 'path)
       (call-next-method)
@@ -121,46 +129,171 @@
 	  (delete-file temp)))))
 
 (defmethod solve ((solver-list null) problem &key timeout)
-  (declare (ignore timeout))
+  (declare (ignore timeout problem))
   (values nil (lookup-szs-status "Unknown")))
 
-(defmethod solve ((solver-list list) problem &key timeout)
-  (unless timeout
-    (setf timeout +default-timeout+))
-  (let ((solutions (make-hash-table :test #'equal)))
-    (dolist (solver solver-list)
-      (setf (gethash (name solver) solutions) (lookup-szs-status "NotTriedYet")))
-    (loop
-       for solver in solver-list
-       for result = (solve solver problem :timeout timeout)
-       for szs-status = (szs-status result)
-       do
-	 (setf (gethash (name solver) solutions) szs-status)
-	 (when (is-szs-success? szs-status)
-	   (return (aggregate-szs-statuses (hash-table-values solutions))))
-       finally
-	 (return (lookup-szs-status "Unknown")))))
+(defmethod solve ((solver-list list) problem &key (timeout +default-timeout+))
+  (loop
+     with solutions = (make-hash-table :test #'equal)
+     initially
+       (dolist (solver solver-list)
+	 (setf (gethash (name solver) solutions)
+	       (lookup-szs-status "NotTriedYet")))
+     for solver in solver-list
+     for result = (solve solver problem :timeout timeout)
+     for szs-status = (szs-status result)
+     do
+       (setf (gethash (name solver) solutions) szs-status)
+       (when (is-szs-success? szs-status)
+	 (return (aggregate-szs-statuses (hash-table-values solutions))))
+     finally
+       (return (lookup-szs-status "Unknown"))))
 
-(defmethod solve ((solver solver) (problem derivability-problem) &key timeout)
-  (unless timeout
-    (setf timeout +default-timeout+))
-  (unless (integerp timeout)
-    (error "Invalid value ~a for the timeout parameter." timeout))
-  (when (< timeout 1)
-    (error "Invalid value ~a for the timeout parameter." timeout))
+(defgeneric solve-problem (problem &key timeout))
+
+(defmethod solve-problem ((problem derivability-problem)
+			  &key (timeout +default-timeout+))
+  (let ((temp (temporary-file)))
+    (write-string-into-file (render problem) temp)
+    (prog1
+	(solve-problem temp :timeout timeout)
+      ;; (delete-file temp)
+      )))
+
+(defmethod solve-problem ((problem pathname) &key (timeout +default-timeout+))
+  (let ((path
+       #+ccl
+	  (ccl:native-translated-namestring problem)
+	  #-ccl
+	  (namestring problem)
+	  )
+	(eprover-out (make-string-output-stream))
+	(paradox-out (make-string-output-stream))
+	(granularity 5))
+    (let ((eprover-process
+	   (run-program "eprover"
+			(list "-tAuto"
+			      "-xAuto"
+			      "-l4"
+			      "-R"
+			      "--tptp3-in"
+			      (format nil "--cpu-limit=~d" timeout)
+			      path)
+			:search t
+			:input nil
+			:output eprover-out
+			:error :stream
+			:wait nil))
+	  (paradox-process (run-program "paradox"
+					(list "--model"
+					      "--tstp"
+					      "--no-progress"
+					      "--time" (format nil "~d" timeout)
+					      path)
+					:search t
+					:input nil
+					:output paradox-out
+					:error :stream
+					:wait nil)))
+      (loop
+	 with results-table = (make-hash-table :test #'equal)
+	 with process-table = (make-hash-table :test #'equal)
+	 initially
+	   (dolist (solver (list "paradox" "eprover"))
+	     (setf (gethash solver results-table)
+		   (lookup-szs-status "NotTriedYet")))
+	   (setf (gethash "eprover" process-table) eprover-process)
+	   (setf (gethash "paradox" process-table) paradox-process)
+	 for i from 1 upto (* granularity timeout)
+	 do
+	   (sleep (float (/ 1 granularity)))
+	   (multiple-value-bind (eprover-status eprover-exit)
+	       (ccl:external-process-status eprover-process)
+	     (if (not (eql eprover-status :running))
+		 (if (zerop eprover-exit)
+		     (let ((eprover-text (get-output-stream-string eprover-out))
+			   (epclextract-out (make-string-output-stream)))
+		       (with-input-from-string (eprover-out eprover-text)
+			 (let ((epclextract-process (run-program "epclextract"
+								 (list "--tstp-out"
+								       "--forward-comments")
+								 :input eprover-out
+								 :output epclextract-out
+								 :error :stream
+								 :wait t)))
+			   (let ((epclextract-exit-code (process-exit-code epclextract-process)))
+			     (unless (zerop epclextract-exit-code)
+			       (error "epclextract did not exit cleanly (its exit code was ~a).  The error output:~%~%~a" epclextract-exit-code (stream-lines (process-error epclextract-process)))))))
+		       (let ((result (make-instance 'eprover-result
+				      :text (get-output-stream-string epclextract-out))))
+			 (let ((status (szs-status result)))
+			   (setf (gethash "eprover" results-table)
+				 (or status
+				     (lookup-szs-status "Unknown"))))))
+		     (setf (gethash "eprover" results-table)
+			   (lookup-szs-status "Error")))))
+	   (multiple-value-bind (paradox-status paradox-exit)
+	       (ccl:external-process-status paradox-process)
+	     (if (not (eql paradox-status :running))
+		 (if (zerop paradox-exit)
+		     (let ((result (make-instance 'paradox-result
+						  :text (get-output-stream-string paradox-out))))
+		       (let ((status (szs-status result)))
+			 (setf (gethash "paradox" results-table)
+			       (or status
+				   (lookup-szs-status "Unknown")))))
+		     (setf (gethash "paradox" results-table)
+			   (lookup-szs-status "Error")))))
+	   (when (some #'(lambda (status)
+			   (szs-implies? status (lookup-szs-status "Theorem")))
+			  (hash-table-values results-table))
+	     (loop
+		for process in (hash-table-values process-table)
+		for status = (ccl:external-process-status process)
+		when (eql status :running) do (ccl:signal-external-process process 1))
+	     (return (aggregate-szs-statuses (hash-table-values results-table))))
+	   (when (every #'(lambda (status)
+			    (not (eql status :running)))
+			(mapcar #'ccl:external-process-status
+				(hash-table-values process-table)))
+	     (format t "no solution found; all processes terminated")
+	     (terpri)
+	     (loop
+		for prover being the hash-key in results-table using (hash-value result) do (format t "~a ==> ~a~%" prover result))
+	     (return (aggregate-szs-statuses (hash-table-values results-table))))
+	 finally
+	   (format t "timeout!")
+	   (loop
+	      for process in (hash-table-values process-table)
+	      for status = (ccl:external-process-status process)
+	      when (eql status :running) do (ccl:signal-external-process process 1))
+	   (return (lookup-szs-status "Timeout"))))))
+
+
+(defmethod solve ((solver solver) (problem derivability-problem) &key (timeout +default-timeout+))
   (let ((db (make-instance 'tptp-db
 			   :formulas (cons (conjecture problem)
 					   (formulas problem)))))
     (solve solver db :timeout timeout)))
 
-(defmethod solve ((solver solver) (problem tptp-db) &key timeout)
-  (unless timeout
-    (setf timeout +default-timeout+))
-  (unless (integerp timeout)
-    (error "Invalid value ~a for the timeout parameter." timeout))
-  (when (< timeout 1)
-    (error "Invalid value ~a for the timeout parameter." timeout))
-  (funcall (solve-function solver) problem timeout))
+(defmethod solve ((solver solver) (problem tptp-db) &key (timeout +default-timeout+))
+  (handler-case
+      (with-timeout (timeout)
+	(handler-case
+	    (funcall (solve-function solver) problem timeout)
+	  (error (c)
+	    (make-instance 'eprover-result
+			   :text (format nil "Internal Common Lisp error:~%~a" c)
+			   :szs-status (lookup-szs-status "Error")))))
+    (timeout-error (c)
+      (declare (ignore c))
+      (make-instance 'eprover-result
+		     :text ""
+		     :szs-status (lookup-szs-status "Timeout")))
+    (error (c)
+      (make-instance 'eprover-result
+		     :text (format nil "Internal Common Lisp error:~%~a" c)
+		     :szs-status (lookup-szs-status "Error")))))
 
-(defmethod solve (solver (problem pathname) &key timeout)
+(defmethod solve (solver (problem pathname) &key (timeout +default-timeout+))
   (solve solver (read-tptp problem) :timeout timeout))
