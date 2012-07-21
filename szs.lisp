@@ -191,7 +191,7 @@
     ok?))
 
 (defmethod is-szs-success? ((status szs-status))
-  (member status *szs-success-statuses*))
+  (not (null (find status *szs-success-statuses*))))
 
 ;;; Relations among SZS statuses
 
