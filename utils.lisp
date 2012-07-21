@@ -37,7 +37,7 @@
 		      (register-groups-bind (real-ext)
 			  ("^\.?([a-zA-Z0-9]*)$" extension)
 			(let ((real-tmp-dir (pathname-as-directory tmp-dir)))
-			  (if (directory-p real-tmp-dir)
+			  (if (directory-pathname-p real-tmp-dir)
 			      (loop
 				 with real-tmp-dir-name = (namestring real-tmp-dir)
 				 for i from 1 upto 100000
