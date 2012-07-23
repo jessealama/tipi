@@ -256,13 +256,8 @@
 			    (not (eql status :running)))
 			(mapcar #'ccl:external-process-status
 				(hash-table-values process-table)))
-	     (format t "no solution found; all processes terminated")
-	     (terpri)
-	     (loop
-		for prover being the hash-key in results-table using (hash-value result) do (format t "~a ==> ~a~%" prover result))
 	     (return (aggregate-szs-statuses (hash-table-values results-table))))
 	 finally
-	   (format t "timeout!")
 	   (loop
 	      for process in (hash-table-values process-table)
 	      for status = (ccl:external-process-status process)
