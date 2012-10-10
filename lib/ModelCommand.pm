@@ -1,6 +1,7 @@
 package ModelCommand;
 
-require v5.10;
+require v5.10; # for the 'say' feature
+use feature 'say';
 
 use Moose;
 use Carp qw(croak carp);
@@ -12,7 +13,6 @@ use charnames qw(:full);
 use English qw(-no_match_vars);
 use Data::Dumper;
 use Term::ANSIColor qw(colored);
-use feature 'say';
 
 extends 'Command';
 
@@ -44,7 +44,6 @@ my $opt_man = 0;
 my $opt_verbose = 0;
 my $opt_debug = 0;
 my $opt_with_conjecture_as = undef;
-my $opt_show_model = 0;
 my $opt_timeout = 30; # seconds
 my $opt_model_finder = 'paradox';
 
@@ -65,7 +64,6 @@ around 'execute' => sub {
 	'verbose' => \$opt_verbose,
 	'help|?' => => \$opt_help,
 	'with-conjecture-as=s' => \$opt_with_conjecture_as,
-	'show-model' => \$opt_show_model,
 	'timeout=i' => \$opt_timeout,
 	'model-finder=s' => \$opt_model_finder,
     ) or pod2usage (
@@ -161,7 +159,7 @@ sub execute {
 		$theory = $theory->promote_conjecture_to_false_axiom ();
 	    }
 	} else {
-	    $theory = $theory->strip_conjecture ();
+	    # $theory = $theory->strip_conjecture ();
 	}
     }
 
@@ -198,22 +196,13 @@ sub execute {
     my $szs_status = $result->get_szs_status ();
 
     if (is_szs_success ($szs_status)) {
-	if (szs_implies ($szs_status, $SZS_SATISFIABLE)) {
-
-	    say colored ($szs_status, $GOOD_COLOR);
-
-	    if ($opt_show_model) {
-		my $model_description = eval { $model->describe () };
-		if (defined $model_description) {
-		    say $model_description;
-		} else {
-		    say {*STDERR} error_message ('Although', $SPACE, $opt_model_finder, $SPACE, 'terminated cleanly and gives the SZS status');
-		    say $szs_status, ', we failed to extract a description of a model.';
-		    exit 1;
-		}
-	    }
+	my $model_description = $model->describe ();
+	if (defined $model_description) {
+	    say $model_description;
 	} else {
-	    say colored ($szs_status, $BAD_COLOR);
+	    say {*STDERR} error_message ('Although', $SPACE, $opt_model_finder, $SPACE, 'terminated cleanly and gives the SZS status');
+	    say $szs_status, ', we failed to extract a description of a model.';
+	    exit 1;
 	}
     } else {
 	say colored ($szs_status, $BAD_COLOR);
@@ -238,7 +227,7 @@ tipi model --help
 
 tipi model --man
 
-tipi model [--show-model] [--timeout=N] TPTP-file
+tipi model [--timeout=N] TPTP-file
 
 =head1 DESCRIPTION
 
@@ -247,14 +236,6 @@ the TPTP problem.
 
 At most --timeout seconds are spent searching for such an
 interpretation (by default, the timeout is 30 seconds).
-
-If --show-model is not specified, we simply print whether the TPTP
-problem is satisfiable (or we print the first SZS status we obtained
-that implies that the problem is satisfiable, or whether some other
-error or non-success condition arose during the search).  If
---show-model is specified and we were able to determine that the TPTP
-problem is indeed satisfiable, we will output a description of the
-model that witnesss this.
 
 =head1 SEE ALSO
 

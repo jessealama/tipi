@@ -33,7 +33,7 @@ Readonly my $TWO_SPACES => q{  };
 Readonly my $FULL_STOP => q{.};
 Readonly my $SPACE => q{ };
 Readonly my $EMPTY_STRING => q{};
-Readonly my $DESCRIPTION => 'Determine whethe a premise is needed.';
+Readonly my $DESCRIPTION => 'Determine whether a premise is needed.';
 Readonly my $GOOD_COLOR => 'green';
 Readonly my $BAD_COLOR => 'red';
 Readonly my $USED_PREMISE_COLOR => 'blue';
@@ -206,7 +206,6 @@ sub execute {
 
 	my $prover_result = TPTP::prove ($theory,
 					 $opt_prover,
-					 $opt_solution_szs_status,
 					 { 'timeout' => $opt_timeout });
 
 

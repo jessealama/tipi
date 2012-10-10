@@ -133,7 +133,8 @@ sub summarize_availability_of_programs {
 sub execute {
     my $self = shift;
 
-    my @infrastructure_programs = ('tptp4X',
+    my @infrastructure_programs = ('xsltproc',
+				   'tptp4X',
 				   'tptp2X',
 				   'GetSymbols');
     my @provers = supported_provers ();

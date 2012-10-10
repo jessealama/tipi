@@ -5,12 +5,22 @@ use Pod::Find qw(pod_where);
 use Pod::Usage;
 use Regexp::DefaultFlags;
 use charnames qw(:full);
-use Carp qw(croak);
+use Carp qw(croak carp);
 use Readonly;
 use Term::ANSIColor qw(colored);
+use File::Temp qw(tempfile);
+use FindBin qw($RealBin);
 
+use Utils qw(tptp_xmlize
+	     apply_stylesheet);
+
+# Strings
 Readonly my $TWO_SPACES => q{  };
 Readonly my $EMPTY_STRING => q{};
+
+# Stylesheets
+Readonly my $XSL_HOME => "$RealBin/../xsl";
+Readonly my $TPTP_INFO_STYLESHEET => "${XSL_HOME}/tptp-info.xsl";
 
 has 'kind' => (
     isa => 'Str',
@@ -39,17 +49,60 @@ has 'formula' => (
 sub make_formula {
     my $formula_string = shift;
 
-    if (grep { / \N{LF} / } $formula_string) {
-	croak 'Unable to parse the TPTP formula string', "\n", "\n", $TWO_SPACES, $formula_string;
-    } elsif ($formula_string =~ /\A ([a-z]+) [(] ([^,]+), ([^,]+), (.+) [)] [.] \z/) {
-	(my $kind, my $name, my $status, my $content) = ($1, $2, $3, $4);
-	return Formula->new (kind => $kind,
-			     name => $name,
-			     status => $status,
-			     formula => $content);
+    (my $tmp_fh, my $tmp_path) = tempfile ();
+
+    print {$tmp_fh} $formula_string
+	or confess 'Error: unable to print \'', $formula_string, '\' to a temporary filehandle: ', $!;
+    close $tmp_fh
+	or confess 'Error: unable to close a temporary output filehandle: ', $!;
+
+    tptp_xmlize ($tmp_path, $tmp_path);
+
+    my $kind = apply_stylesheet ($TPTP_INFO_STYLESHEET,
+				 $tmp_path,
+				 undef,
+				 {
+				     'field' => 'syntax',
+				 });
+
+    my $name = apply_stylesheet ($TPTP_INFO_STYLESHEET,
+				 $tmp_path,
+				 undef,
+				 {
+				     'field' => 'name',
+				 });
+
+    # carp 'name = ', $name;
+
+    my $status = apply_stylesheet ($TPTP_INFO_STYLESHEET,
+				   $tmp_path,
+				   undef,
+				   {
+				     'field' => 'status',
+				 });
+
+    my $content = apply_stylesheet ($TPTP_INFO_STYLESHEET,
+				    $tmp_path,
+				    undef,
+				    {
+					'field' => 'formula',
+				    });
+
+    # carp 'content = ', $content;
+
+    if ($kind eq 'formula') {
+	$kind = 'fof';
+    } elsif ($kind eq 'clause') {
+	$kind = 'cnf';
     } else {
-	croak 'Unable to parse the TPTP formula string', "\n", "\n", $TWO_SPACES, $formula_string;
+	confess 'Error: unknown formula kind \'', $kind, '\'.';
     }
+
+    return Formula->new (kind => $kind,
+			 name => $name,
+			 status => $status,
+			 formula => $content);
+
 }
 
 sub tptpify {

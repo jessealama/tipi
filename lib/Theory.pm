@@ -218,7 +218,7 @@ sub formula_with_name {
 	return $formula_table{$name};
     } else {
 	my $path = $self->get_path ();
-	confess 'No such formula called \'', $name, '\' in the TPTP file ', $path, '.';
+	confess 'No such formula called \'', $name, '\' in the TPTP file ', $path, '.', $LF, 'The table is:', $LF, Dumper (%formula_table);
     }
 }
 
