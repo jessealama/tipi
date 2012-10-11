@@ -40,8 +40,8 @@
 	 ((member c '(#\Space #\Tab)))
 	 ((member c '(nil #\Newline)) (return-from lexer (values nil nil)))
 
-	 ((member c '(#\( #\) #\. #\' #\[ #\] #\: #\! #\? #\,))
-	  (break "Got a symbol: ~a" c)
+	 ((member c '(#\( #\) #\. #\' #\[ #\] #\: #\! #\? #\, #\=))
+	  ;; (break "Got a symbol: ~a" c)
           (let ((symbol (intern (string c) '#.*package*)))
             (return-from lexer (values symbol symbol))))
 
