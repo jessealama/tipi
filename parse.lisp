@@ -98,39 +98,7 @@
 	       |!|
 	       |?|
 	       |~|
-	       |+|
-	       |-|
-	       |/|
-	       |E|
-	       |e|
 	       |!=|
-	       |$oType|
-	       |$o|
-	       |$iType|
-	       |$tType|
-	       |$real|
-	       |$rat|
-	       |$int|
-
-	       |$uminus|
-	       |$sum|
-	       |$difference|
-	       |$product|
-	       |$quotient|
-	       |$quotient_e|
-	       |$quotient_t|
-	       |$quotient_f|
-	       |$remainder_e|
-	       |$remainder_t|
-	       |$remainder_f|
-	       |$floor|
-	       |$ceiling|
-	       |$truncate|
-	       |$round|
-	       |$to_int|
-	       |$to_rat|
-	       |$to_real|
-	       |$$|
 	       |&|
 	       |\||
 	       ))
