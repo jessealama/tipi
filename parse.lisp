@@ -57,17 +57,6 @@
 
 ;;; The parser
 
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (defun i2p (a b c)
-    "Infix to prefix"
-    (list b a c))
-
-  (defun k-2-3 (a b c)
-    "Second out of three"
-    (declare (ignore a c))
-    b)
-)
-
 (define-parser *tptp-v5.4.0.0-parser*
   (:start-symbol tptp-file)
   (:terminals (|fof|
