@@ -57,8 +57,9 @@ tipi: $(lisps)
 	which $($(LISP)_PATH)
 	$($(LISP)_PATH) $(EVAL_CONFIG) $($(LISP)_DUMP) $<
 
-all: tipi
+all:
 	for dir in $(subdirs); do make -C $$dir all; done
+	make tipi
 
 check:
 	for dir in $(subdirs); do make -C $$dir check; done
