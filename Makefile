@@ -47,7 +47,7 @@ lisps = $(addsuffix .lisp,$(lisp-files))
 asdfs = $(ASDF_FILE)
 makefiles = Makefile
 
-editable-files = $(lisps) $(asdfs) .gitignore $(makefiles)
+editable-files = $(lisps) $(asdfs) .gitignore $(makefiles) README.mkdn
 emacs-backups = $(addsuffix ~,$(editable-files))
 ccl-fasls = $(addsuffix .dx64fsl,$(lisp-files))
 
