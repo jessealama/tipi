@@ -15,17 +15,6 @@
   (when char
     (unread-char char stream)))
 
-(defun read-number (stream)
-  (let ((v nil))
-    (loop
-       (let ((c (read-char stream nil nil)))
-         (when (or (null c) (not (digit-char-p c)))
-           (maybe-unread c stream)
-           (when (null v)
-             (lexer-error c))
-           (return-from read-number v))
-         (setf v (+ (* (or v 0) 10) (- (char-code c) (char-code #\0))))))))
-
 (defun intern-id (string)
   ;; I'd really like to say (intern (string-upcase string) '#.*package*),
   ;; but that breaks Allegro's case hacks.
