@@ -1,5 +1,5 @@
 <HTML><HEAD><TITLE>TPTP Syntax</TITLE></HEAD><BODY><A NAME="TOPOFPAGE"></A><TT>
-%----v5.3.0.0&nbsp;(TPTP&nbsp;version.internal&nbsp;development&nbsp;number)<BR>
+%----v5.4.0.0&nbsp;(TPTP&nbsp;version.internal&nbsp;development&nbsp;number)<BR>
 %------------------------------------------------------------------------------<BR>
 %----README&nbsp;...&nbsp;this&nbsp;header&nbsp;provides&nbsp;important&nbsp;meta-&nbsp;and&nbsp;usage&nbsp;information<BR>
 %----<BR>
@@ -124,17 +124,33 @@
 &lt;<A NAME="thf_atom">thf_atom</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#term">term</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#thf_conn_term">thf_conn_term</A>&gt;<BR>
 &lt;<A NAME="thf_conditional">thf_conditional</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;$ite_f(&lt;<A HREF="#thf_logic_formula">thf_logic_formula</A>&gt;,&lt;<A HREF="#thf_logic_formula">thf_logic_formula</A>&gt;,<BR>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;<A HREF="#thf_logic_formula">thf_logic_formula</A>&gt;)<BR>
+%----This&nbsp;is&nbsp;the&nbsp;original,&nbsp;but&nbsp;not&nbsp;working<BR>
 &lt;<A NAME="thf_let">thf_let</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;$let_tf(&lt;<A HREF="#thf_let_term_defn">thf_let_term_defn</A>&gt;,&lt;<A HREF="#thf_formula">thf_formula</A>&gt;)&nbsp;|<BR>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;$let_ff(&lt;<A HREF="#thf_let_formula_defn">thf_let_formula_defn</A>&gt;,&lt;<A HREF="#thf_formula">thf_formula</A>&gt;)<BR>
-&lt;<A NAME="thf_let_term_defn">thf_let_term_defn</A>&gt;&nbsp;&nbsp;::=&nbsp;!&nbsp;[&lt;<A HREF="#thf_variable_list">thf_variable_list</A>&gt;]&nbsp;:&nbsp;&lt;<A HREF="#thf_let_term_binding">thf_let_term_binding</A>&gt;&nbsp;|<BR>
+&lt;<A NAME="thf_let_term_defn">thf_let_term_defn</A>&gt;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#thf_quantified_formula">thf_quantified_formula</A>&gt;<BR>
+&lt;<A NAME="thf_let_formula_defn">thf_let_formula_defn</A>&gt;&nbsp;::=&nbsp;&lt;<A HREF="#thf_quantified_formula">thf_quantified_formula</A>&gt;<BR>
+&lt;<A NAME="thf_let_term_defn">thf_let_term_defn</A>&gt;&nbsp;&nbsp;:==&nbsp;!&nbsp;[&lt;<A HREF="#thf_variable_list">thf_variable_list</A>&gt;]&nbsp;:&nbsp;&lt;<A HREF="#thf_let_term_binding">thf_let_term_binding</A>&gt;&nbsp;|<BR>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;<A HREF="#thf_let_term_binding">thf_let_term_binding</A>&gt;<BR>
-&lt;<A NAME="thf_let_term_binding">thf_let_term_binding</A>&gt;&nbsp;::=&nbsp;&lt;<A HREF="#thf_let_lhs">thf_let_lhs</A>&gt;&nbsp;=&nbsp;&lt;<A HREF="#thf_unitary_formula">thf_unitary_formula</A>&gt;<BR>
-&lt;<A NAME="thf_let_formula_defn">thf_let_formula_defn</A>&gt;&nbsp;::=&nbsp;!&nbsp;[&lt;<A HREF="#thf_variable_list">thf_variable_list</A>&gt;]&nbsp;:&nbsp;&lt;<A HREF="#thf_let_formula_binding">thf_let_formula_binding</A>&gt;&nbsp;|<BR>
+&lt;<A NAME="thf_let_term_binding">thf_let_term_binding</A>&gt;&nbsp;:==&nbsp;&lt;<A HREF="#thf_let_lhs">thf_let_lhs</A>&gt;&nbsp;=&nbsp;&lt;<A HREF="#thf_unitary_formula">thf_unitary_formula</A>&gt;<BR>
+&lt;<A NAME="thf_let_formula_defn">thf_let_formula_defn</A>&gt;&nbsp;:==&nbsp;!&nbsp;[&lt;<A HREF="#thf_variable_list">thf_variable_list</A>&gt;]&nbsp;:&nbsp;&lt;<A HREF="#thf_let_formula_binding">thf_let_formula_binding</A>&gt;&nbsp;|<BR>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;<A HREF="#thf_let_formula_binding">thf_let_formula_binding</A>&gt;<BR>
-&lt;<A NAME="thf_let_formula_binding">thf_let_formula_binding</A>&gt;&nbsp;::=&nbsp;&lt;<A HREF="#thf_let_lhs">thf_let_lhs</A>&gt;&nbsp;&lt;<A HREF="#"></A>=&gt;&nbsp;&lt;<A HREF="#thf_unitary_formula">thf_unitary_formula</A>&gt;<BR>
+&lt;<A NAME="thf_let_formula_binding">thf_let_formula_binding</A>&gt;&nbsp;:==&nbsp;&lt;<A HREF="#thf_let_lhs">thf_let_lhs</A>&gt;&nbsp;&lt;<A HREF="#"></A>=&gt;&nbsp;&lt;<A HREF="#thf_unitary_formula">thf_unitary_formula</A>&gt;<BR>
 %----A&nbsp;&lt;thf_let_lhs&gt;&nbsp;must&nbsp;be&nbsp;a&nbsp;&lt;constant&gt;,&nbsp;or&nbsp;an&nbsp;application&nbsp;of&nbsp;a&nbsp;&lt;constant&gt;&nbsp;to&nbsp;<BR>
 %----pairwise&nbsp;distinct&nbsp;variables&nbsp;that&nbsp;appear&nbsp;in&nbsp;the&nbsp;&lt;thf_variable_list&gt;.<BR>
-&lt;<A NAME="thf_let_lhs">thf_let_lhs</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:==&nbsp;&lt;<A HREF="#term">term</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#thf_apply_formula">thf_apply_formula</A>&gt;<BR>
+&lt;<A NAME="thf_let_lhs">thf_let_lhs</A>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:==&nbsp;&lt;<A HREF="#constant">constant</A>&gt;&nbsp;|&nbsp;&lt;<A HREF="#thf_apply_formula">thf_apply_formula</A>&gt;<BR>
+<BR>
+%----This&nbsp;is&nbsp;mt&nbsp;experimentation<BR>
+%&nbsp;&lt;thf_let&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;thf_let_binder&gt;(&lt;thf_let_defn&gt;,&lt;thf_formula&gt;)<BR>
+%&nbsp;&lt;thf_let_binder&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;$let_tf&nbsp;|&nbsp;$let_ff<BR>
+%&nbsp;&lt;thf_let_defn&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;thf_unitary_formula&gt;<BR>
+%&nbsp;&lt;thf_let_defn&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:==&nbsp;!&nbsp;[&lt;thf_variable_list&gt;]&nbsp;:&nbsp;&lt;thf_let_binding&gt;&nbsp;|<BR>
+%&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;thf_let_binding&gt;<BR>
+%&nbsp;&lt;thf_let_binding&gt;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;thf_let_term_binding&gt;&nbsp;|&nbsp;&lt;thf_let_formula_binding&gt;<BR>
+%&nbsp;&lt;thf_let_term_binding&gt;&nbsp;::=&nbsp;&lt;thf_let_lhs&gt;&nbsp;=&nbsp;&lt;thf_unitary_formula&gt;<BR>
+%&nbsp;&lt;thf_let_formula_binding&gt;&nbsp;::=&nbsp;&lt;thf_let_lhs&gt;&nbsp;&lt;=&gt;&nbsp;&lt;thf_unitary_formula&gt;<BR>
+%&nbsp;%----A&nbsp;&lt;thf_let_lhs&gt;&nbsp;must&nbsp;be&nbsp;a&nbsp;&lt;constant&gt;,&nbsp;or&nbsp;an&nbsp;application&nbsp;of&nbsp;a&nbsp;&lt;constant&gt;&nbsp;to&nbsp;<BR>
+%&nbsp;%----pairwise&nbsp;distinct&nbsp;variables&nbsp;that&nbsp;appear&nbsp;in&nbsp;the&nbsp;&lt;thf_variable_list&gt;.<BR>
+%&nbsp;&lt;thf_let_lhs&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;constant&gt;&nbsp;|&nbsp;&lt;thf_apply_formula&gt;<BR>
 <BR>
 %----A&nbsp;&lt;thf_type_formula&gt;&nbsp;is&nbsp;an&nbsp;assertion&nbsp;that&nbsp;the&nbsp;formula&nbsp;is&nbsp;in&nbsp;this&nbsp;type.<BR>
 &lt;<A NAME="thf_type_formula">thf_type_formula</A>&gt;&nbsp;&nbsp;&nbsp;::=&nbsp;&lt;<A HREF="#thf_typeable_formula">thf_typeable_formula</A>&gt;&nbsp;:&nbsp;&lt;<A HREF="#thf_top_level_type">thf_top_level_type</A>&gt;<BR>
