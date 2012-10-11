@@ -1,3 +1,5 @@
+.PHONY: all check clean
+
 ## Preferred Common Lisp implementation.
 # Choices are SBCL, CMUCL, CCL, ECL, ACL (Allegro), CLISP and ABCL.
 LISP := CCL
