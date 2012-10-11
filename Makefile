@@ -57,11 +57,15 @@ tipi: tipi.lisp packages.lisp utils.lisp xslt.lisp run.lisp terms.lisp formulas.
 	$($(LISP)_PATH) $(EVAL_CONFIG) $($(LISP)_DUMP) $<
 
 all: tipi
-	make -C xsl
+	for dir in $(subdirs); do make -C $$dir all; done
 
 check:
-	make -C lib check
+	for dir in $(subdirs); do make -C $$dir clean; done
 
 clean:
 	rm -f $(emacs-backups)
 	for dir in $(subdirs); do make -C $$dir clean; done
+
+test:
+	# no tests defined yet
+	for dir in $(subdirs); do make -C $$dir test; done
