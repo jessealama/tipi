@@ -30,7 +30,7 @@
            (maybe-unread c stream)
            (when (null v)
              (lexer-error c))
-           (return-from read-word (make-symbol (coerce (nreverse v) 'string))))
+           (return-from read-word (intern (coerce (nreverse v) 'string))))
          (push c v)))))
 
 (defun lexer (&optional (stream *standard-input*))
