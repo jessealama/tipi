@@ -3,11 +3,14 @@
 
 (defpackage :tipi
   (:use :cl)
+  (:use :yacc)
   (:import-from :trivial-timeout
 		#:with-timeout
 		#:timeout-error)
   (:import-from :named-readtables
-		#:find-readtable)
+		#:find-readtable
+		#:defreadtable
+		#:in-readtable)
   (:import-from :cl-fad
 		#:file-exists-p
 		#:directory-pathname-p

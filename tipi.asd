@@ -12,6 +12,7 @@
   :maintainer "Jesse Alama <jesse.alama@gmail.com>"
   :depends-on (:cl-ppcre
 	       :cl-fad
+	       :yacc
 	       :named-readtables
 	       :alexandria
 	       :trivial-timeout)
