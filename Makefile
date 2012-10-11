@@ -61,7 +61,7 @@ all: tipi
 	for dir in $(subdirs); do make -C $$dir all; done
 
 check:
-	for dir in $(subdirs); do make -C $$dir clean; done
+	for dir in $(subdirs); do make -C $$dir check; done
 
 clean:
 	rm -f $(emacs-backups)
