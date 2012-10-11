@@ -65,6 +65,7 @@ check:
 	for dir in $(subdirs); do make -C $$dir check; done
 
 clean:
+	rm -f tipi
 	rm -f $(emacs-backups)
 	rm -f $(ccl-fasls)
 	for dir in $(subdirs); do make -C $$dir clean; done
