@@ -1,4 +1,4 @@
-.PHONY: all clean test
+.PHONY: all clean test check
 
 shell-scripts = reprove-semantically-summarize
 shs = $(addsuffix .sh,$(shell-scripts))
@@ -7,16 +7,16 @@ pls = $(addsuffix .pl,$(perl-scripts))
 editable-files = $(shs) $(pls) Makefile
 emacs-backups = $(addsuffix ~,$(editable-files))
 
-all: $(pls) $(shs)
-
-%.sh:
-	bash -n $*.sh
-
-%.pl:
-	perl -c $*.pl
+all: check
 
 clean:
 	rm -f $(emacs-backups)
 
-test: $(shs) $(pls)
+test:
 	# no tests defined yet
+
+check:
+	ok="1"; \
+        for script in $(shs); do bash -n $$script || ok="0"; done; \
+        for script in $(pls); do perl -c $$script || ok="0"; done; \
+        [ "$$ok" = "1" ];
