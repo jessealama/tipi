@@ -25,6 +25,33 @@ CCL_LOAD   := --load
 CCL_EVAL   := --eval
 CCL_DUMP   := --no-init $(CCL_LOAD)
 
+lisp-files = consequence \
+             formulas    \
+             independent \
+             minimal     \
+             model       \
+             needed      \
+             packages    \
+             parse       \
+             result      \
+             run         \
+             solve       \
+             szs         \
+             terms       \
+             tipi        \
+             tptp        \
+             utils       \
+             xslt
+
+lisps = $(addsuffix .lisp,$(lisp-files))
+asdfs = $(ASDF_FILE)
+makefiles = Makefile
+
+editable-files = $(lisps) $(asdfs) .gitignore $(makefiles)
+emacs-backups = $(addsuffix ~,$(editable-files))
+
+subdirs = bin examples lib reference t xsl
+
 tipi: tipi.lisp packages.lisp utils.lisp xslt.lisp run.lisp terms.lisp formulas.lisp szs.lisp result.lisp tptp.lisp solve.lisp model.lisp consequence.lisp needed.lisp minimal.lisp independent.lisp
 	which $($(LISP)_PATH)
 	$($(LISP)_PATH) $(EVAL_CONFIG) $($(LISP)_DUMP) $<
@@ -34,3 +61,7 @@ all: tipi
 
 check:
 	make -C lib check
+
+clean:
+	rm -f $(emacs-backups)
+	for dir in $(subdirs); do make -C $$dir clean; done
