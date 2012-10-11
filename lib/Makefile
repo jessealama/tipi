@@ -32,8 +32,13 @@ PACKAGES=CategoricalCommand \
 	VegasCommand \
 
 PMFILES=$(addsuffix .pm,$(PACKAGES))
+editable-files = $(PMFILES) Makefile
+emacs-backups = $(addsuffix ~,$(editable-files))
 
 check:
 	ok="1"; \
         for package in $(PMFILES); do perl -c $$package || ok="0"; done; \
         [ "$$ok" = "1" ];
+
+clean:
+	rm -f $(emacs-backups)
