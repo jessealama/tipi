@@ -6,7 +6,6 @@ use warnings;
 require v5.10.0; # for the 'say' feature
 use feature 'say';
 
-use Getopt::Long qw(:config gnu_compat pass_through);
 use Pod::Usage;
 use Readonly;
 use charnames qw(:full);
