@@ -53,7 +53,7 @@ ccl-fasls = $(addsuffix .dx64fsl,$(lisp-files))
 
 subdirs = bin examples lib reference t xsl
 
-tipi: tipi.lisp packages.lisp utils.lisp xslt.lisp run.lisp terms.lisp formulas.lisp szs.lisp result.lisp tptp.lisp solve.lisp model.lisp consequence.lisp needed.lisp minimal.lisp independent.lisp
+tipi: $(lisps)
 	which $($(LISP)_PATH)
 	$($(LISP)_PATH) $(EVAL_CONFIG) $($(LISP)_DUMP) $<
 
