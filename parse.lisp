@@ -129,7 +129,7 @@
 
   (lower-word
    lower-alpha
-   (lower-alpha alpha-numerics))
+   (lower-alpha alpha-numeric))
 
   (lower-alpha
    |a| |b| |c| |d| |e| |f| |g| |h| |i| |j| |k| |l| |m|
@@ -138,10 +138,6 @@
   (upper-alpha
    |A| |B| |C| |D| |E| |F| |G| |H| |I| |J| |K| |L| |M|
    |N| |O| |P| |Q| |R| |S| |T| |U| |V| |W| |X| |Y| |Z|)
-
-  (alpha-numerics
-   alpha-numeric
-   (alpha-numeric alpha-numerics))
 
   (alpha-numeric
    lower-alpha
@@ -210,6 +206,31 @@
   (fof-quantified-formula
    (fol-quantifier |[| fof-variable-list |]| |:| fof-unitary-formula))
 
+  (atomic-formula
+   plain-atomic-formula
+   defined-atomic-formula
+   ;; system-atomic-formula
+   )
+
+  (plain-atomic-formula
+   plain-term)
+
+  (defined-atomic-formula
+      defined-plain-formula
+      defined-infix-formula)
+
+  (defined-infix-formula
+      (term defined-infix-pred term))
+
+  (defined-infix-pred
+      infix-equality)
+
+  (infix-equality
+   |=|)
+
+  (defined-plain-formula
+      defined-plain-term)
+
   (fol-quantifier
    |!|
    |?|)
@@ -222,7 +243,8 @@
    upper-word)
 
   (upper-word
-   (upper-alpha alpha-numerics))
+   upper-alpha
+   (upper-alpha alpha-numeric))
 
   (fof-unary-formula
    (unary-connective fof-unitary-formula)
@@ -265,86 +287,9 @@
       defined-atomic-term)
 
   (defined-atom
-      number
+      ;; number
       ;; distinct-object
       )
-
-  (number
-   integer
-   rational
-   real)
-
-  (integer
-   signed-integer
-   unsigned-integer)
-
-  (signed-integer
-   (sign unsigned-integer))
-
-  (sign
-   |+|
-   |-|)
-
-  (unsigned-integer
-   decimal)
-
-  (decimal
-   zero-numeric
-   positive-decimal)
-
-  (zero-numeric
-   |0|)
-
-  (positive-decimal
-   (non-zero-numeric numerics))
-
-  (numerics
-   ()
-   (numeric numerics))
-
-  (non-zero-numeric
-   |1| |2| |3| |4| |5| |6| |7| |8| |9|)
-
-  (rational
-   signed-rational
-   unsigned-rational)
-
-  (signed-rational
-   (sign unsigned-rational))
-
-  (unsigned-rational
-   (decimal slash positive-decimal))
-
-  (slash
-   |/|)
-
-  (real
-   signed-real
-   unsigned-real)
-
-  (signed-real
-   (sign unsigned-real))
-
-  (unsigned-real
-   decimal-fraction
-   decimal-exponent)
-
-  (decimal-fraction
-   (decimal dot-decimal))
-
-  (dot-decimal
-   (|.| numeric numerics))
-
-  (decimal-exponent
-   (decimal exponent integer)
-   (decimal-fraction exponent integer))
-
-  (exponent
-   |E|
-   |e|)
-
-  ;; (distinct-object
-  ;;  "\"" "distinct" "\"")
 
   (defined-atomic-term
       defined-plain-term)
@@ -357,60 +302,8 @@
       defined-functor
       defined-type)
 
-  (defined-type
-      |$oType|
-      |$o|
-    |$iType|
-    |$tType|
-    |$real|
-    |$rat|
-    |$int|)
-
-  (system-term
-   system-constant
-   (system-functor |(| arguments |)|))
-
-  (system-constant
-   system-functor)
-
-  (system-functor
-   atomic-system-word)
-
-  (atomic-system-word
-   dollar-dollar-word)
-
-  (dollar-dollar-word
-   (|$$| lower-word))
-
-  ;; (conditional-term
-  ;;  "$ite_t(" tff-logic-formula "," term "," term ")")
-
-  ;; (let-term
-  ;;  ("$let_ft(" tff-let-formula-defn "," term ")")
-  ;;  ("$let_ft(" tff-let-term-defn "," term ")"))
-
   (infix-inequality
    |!=|)
-
-  (defined-functor
-      |$uminus|
-      |$sum|
-    |$difference|
-    |$product|
-    |$quotient|
-    |$quotient_e|
-    |$quotient_t|
-    |$quotient_f|
-    |$remainder_e|
-    |$remainder_t|
-    |$remainder_f|
-    |$floor|
-    |$ceiling|
-    |$truncate|
-    |$round|
-    |$to_int|
-    |$to_rat|
-    |$to_real|)
 
 )
 
