@@ -21,18 +21,6 @@
   (let ((*package* '#.*package*))
     (read-from-string string)))
 
-(defun read-id (stream)
-  (let ((v '()))
-    (loop
-       (let ((c (read-char stream nil nil)))
-         (when (or (null c)
-                   (not (or (digit-char-p c) (alpha-char-p c) (eql c #\_))))
-           (maybe-unread c stream)
-           (when (null v)
-             (lexer-error c))
-           (return-from read-id (make-symbol (coerce (nreverse v) 'string))))
-         (push c v)))))
-
 (defun read-word (stream)
   (let ((v '()))
     (loop
