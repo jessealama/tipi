@@ -49,6 +49,7 @@ makefiles = Makefile
 
 editable-files = $(lisps) $(asdfs) .gitignore $(makefiles)
 emacs-backups = $(addsuffix ~,$(editable-files))
+ccl-fasls = $(addsuffix .dx64fsl,$(lisp-files))
 
 subdirs = bin examples lib reference t xsl
 
@@ -64,6 +65,7 @@ check:
 
 clean:
 	rm -f $(emacs-backups)
+	rm -f $(ccl-fasls)
 	for dir in $(subdirs); do make -C $$dir clean; done
 
 test:
