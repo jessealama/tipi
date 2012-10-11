@@ -49,8 +49,8 @@
 	 ((alpha-char-p c)
 	  (unread-char c stream)
 	  (let ((next-word (read-word stream)))
-	    (break "next-word = ~a" next-word)
-	    (return-from lexer (values (intern (symbol-name next-word)) next-word))))
+	    ;; (break "next-word = ~a" next-word)
+	    (return-from lexer (values next-word (symbol-name next-word)))))
 
 	 (t
 	  (lexer-error c))))))
