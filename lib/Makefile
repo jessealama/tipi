@@ -1,5 +1,6 @@
-all:
-	# nothing to do
+.PHONY: all
+
+all: check
 
 PACKAGES=CategoricalCommand \
 	Command \
@@ -33,6 +34,6 @@ PACKAGES=CategoricalCommand \
 PMFILES=$(addsuffix .pm,$(PACKAGES))
 
 check:
-	for package in $(PMFILES); do \
-		perl -c $$package; \
-	done
+	ok="1"; \
+        for package in $(PMFILES); do perl -c $$package || ok="0"; done; \
+        [ "$$ok" = "1" ];
