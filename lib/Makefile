@@ -1,6 +1,7 @@
 .PHONY: all
 
 all: check
+	# nothing to do
 
 PACKAGES=CategoricalCommand \
 	Command \
