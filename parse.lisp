@@ -31,30 +31,94 @@
            (maybe-unread c stream)
            (when (null v)
              (lexer-error c))
-           (return-from read-word (intern (coerce (nreverse v) 'string))))
+           (return-from read-word (coerce (nreverse v) 'string)))
          (push c v)))))
 
-(defun lexer (&optional (stream *standard-input*))
-  (loop
-     (let ((c (read-char stream nil nil)))
-       (cond
-	 ((member c '(#\Space #\Tab)))
-	 ((member c '(nil #\Newline)) (return-from lexer (values nil nil)))
+(defparameter *tptp-keywords*
+  (list "fof"
 
-	 ((member c '(#\( #\) #\. #\' #\[ #\] #\: #\! #\? #\, #\=))
-	  ;; (break "Got a symbol: ~a" c)
-          (let ((symbol (intern (string c) '#.*package*)))
-            (return-from lexer (values symbol symbol))))
+	;; formula roles
+	"axiom"
+	"hypothesis"
+	"definition"
+	"assumption"
+	"lemma"
+	"theorem"
+	"conjecture"
+	"negated_conjecture"
+	"plain"
+	"fi_domain"
+	"fi_functors"
+	"fi_predicates"
+	"type"
+	"unknown"
+	))
 
-	 ;; try to read an atom
-	 ((alpha-char-p c)
-	  (unread-char c stream)
-	  (let ((next-word (read-word stream)))
-	    ;; (break "next-word = ~a" next-word)
-	    (return-from lexer (values next-word (symbol-name next-word)))))
+(let (expecting-tptp-keyword num-left-parens-seen num-commas-seen)
+  (defun initialize-lexer ()
+    (setf expecting-tptp-keyword t
+	  num-left-parens-seen 0
+	  num-commas-seen 0)
+    t)
+  (defun lexer-report-state ()
+    (format t "Num left parens seen: ~d~%Num commas seen: ~d~%Expecting TPTP keyword: ~a~%" num-left-parens-seen num-commas-seen (if expecting-tptp-keyword "yes" "no")))
+  (defun lexer (&optional (stream *standard-input*))
+    (loop
+       for c = (read-char stream nil nil)
+       do
+	 (cond
+	   ((char= c #\%)
+	    (read-line stream) ;; throw out a comment line
+	    (return-from lexer (values nil nil)))
 
-	 (t
-	  (lexer-error c))))))
+	   ((member c '(#\Space #\Tab #\Newline))
+	    ;; nothing -- consume whitespace
+	    )
+
+	   ((null c)
+	    (return-from lexer (values nil nil)))
+
+	   ((member c '(#\( #\) #\. #\' #\[ #\] #\: #\! #\? #\, #\= #\&))
+	    ;; (break "Got a symbol: ~a" c)
+	    (when (char= c #\()
+	      (incf num-left-parens-seen))
+	    (when (char= c #\,)
+	      (incf num-commas-seen))
+	    (setf expecting-tptp-keyword
+		  (or (zerop num-left-parens-seen)
+		      (and (= num-left-parens-seen 1)
+			   (= num-commas-seen 1))))
+	    (when (char= c #\.)
+	      (initialize-lexer))
+
+	    (when (char= c #\=)
+	      (let ((d (read-char stream nil nil)))
+		(if d
+		    (if (char= d #\>)
+			(return-from lexer (values (intern "=>") "=>"))
+			(progn
+			    (unread-char d stream)
+			    (return-from lexer (values (intern "=") "="))))
+		    (lexer-error d))))
+
+	    (let ((symbol (intern (string c) '#.*package*)))
+	      (return-from lexer (values symbol symbol))))
+
+	   ;; try to read an atom
+	   ((alpha-char-p c)
+	    (unread-char c stream)
+	    (let ((next-word (read-word stream)))
+	      (break "next-word = ~a" next-word)
+	      (if expecting-tptp-keyword
+		  (if (member next-word *tptp-keywords* :test #'string=)
+		      (return-from lexer (values (intern next-word) next-word))
+		      (error "We are expecting a TPTP keyword, but~%~%  ~a~%~%isn't a known keyword.  The known keywords are:~%~%~{  ~a~%~}~%" next-word *tptp-keywords*))
+		  (if (lower-case-p c)
+		      (return-from lexer (values (intern "lower-word") next-word))
+		      (return-from lexer (values (intern "upper-word") next-word))))))
+
+	   (t
+	    (lexer-error c))))))
 
 ;;; The parser
 
@@ -68,11 +132,16 @@
 	       |[|
 	       |]|
 	       |=|
-	       |a| |b| |c| |d| |e| |f| |g| |h| |i| |j| |k| |l| |m|
-	       |n| |o| |p| |q| |r| |s| |t| |u| |v| |w| |x| |y| |z|
-	       |A| |B| |C| |D| |E| |F| |G| |H| |I| |J| |K| |L| |M|
-	       |N| |O| |P| |Q| |R| |S| |T| |U| |V| |W| |X| |Y| |Z|
-	       |0| |1| |2| |3| |4| |5| |6| |7| |8| |9|
+	       |%|
+	       |lower-word|
+	       |upper-word|
+	       |alpha-numeric|
+	       |numeric|
+	       ;; |a| |b| |c| |d| |e| |f| |g| |h| |i| |j| |k| |l| |m|
+	       ;; |n| |o| |p| |q| |r| |s| |t| |u| |v| |w| |x| |y| |z|
+	       ;; |A| |B| |C| |D| |E| |F| |G| |H| |I| |J| |K| |L| |M|
+	       ;; |N| |O| |P| |Q| |R| |S| |T| |U| |V| |W| |X| |Y| |Z|
+	       ;; |0| |1| |2| |3| |4| |5| |6| |7| |8| |9|
 	       |_|
 	       |'|
 	       |axiom|
@@ -126,28 +195,7 @@
    integer)
 
   (atomic-word
-   lower-word)
-
-  (lower-word
-   lower-alpha
-   (lower-alpha alpha-numeric))
-
-  (lower-alpha
-   |a| |b| |c| |d| |e| |f| |g| |h| |i| |j| |k| |l| |m|
-   |n| |o| |p| |q| |r| |s| |t| |u| |v| |w| |x| |y| |z|)
-
-  (upper-alpha
-   |A| |B| |C| |D| |E| |F| |G| |H| |I| |J| |K| |L| |M|
-   |N| |O| |P| |Q| |R| |S| |T| |U| |V| |W| |X| |Y| |Z|)
-
-  (alpha-numeric
-   lower-alpha
-   upper-alpha
-   numeric
-   |_|)
-
-  (numeric
-   |0| |1| |2| |3| |4| |5| |6| |7| |8| |9|)
+   |lower-word|)
 
   (formula-role
    |axiom|
@@ -241,11 +289,7 @@
    (variable |,| fof-variable-list))
 
   (variable
-   upper-word)
-
-  (upper-word
-   upper-alpha
-   (upper-alpha alpha-numeric))
+   |upper-word|)
 
   (fof-unary-formula
    (unary-connective fof-unitary-formula)
@@ -321,6 +365,7 @@
 
 (defun calculator ()
   (format t "Type an infix expression to evaluate it, an empty line to quit.~%")
+  (initialize-lexer)
   (loop
      (with-simple-restart (abort "Return to calculator toplevel.")
        (format t "? ")
@@ -333,7 +378,9 @@
   (with-open-file (tptp-stream tptp-path
 			       :direction :input
 			       :if-does-not-exist :error)
-    (parse-with-lexer #'(lambda () (lexer tptp-stream))
-		      *tptp-v5.4.0.0-parser*)))
+    (let ((*standard-input* tptp-stream))
+      (initialize-lexer)
+      (parse-with-lexer #'lexer
+			*tptp-v5.4.0.0-parser*))))
 
 ;;; parse.lisp ends here
