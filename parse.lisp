@@ -329,4 +329,11 @@
            (return-from calculator))
          (format t " => ~a~%" e)))))
 
+(defun parse-tptp-file (tptp-path)
+  (with-open-file (tptp-stream tptp-path
+			       :direction :input
+			       :if-does-not-exist :error)
+    (parse-with-lexer #'(lambda () (lexer tptp-stream))
+		      *tptp-v5.4.0.0-parser*)))
+
 ;;; parse.lisp ends here
