@@ -34,6 +34,9 @@
            (return-from read-word (coerce (nreverse v) 'string)))
          (push c v)))))
 
+(defun read-quoted-atom (stream)
+  (error "We don't handle quoted atoms yet, sorry.  Please complain loudly."))
+
 (defparameter *tptp-keywords*
   (list "fof"
 
@@ -77,6 +80,11 @@
 
 	   ((null c)
 	    (return-from lexer (values nil nil)))
+
+	   ((char= c #\')
+	    (unread-char c stream)
+	    (let ((quoted (read-quoted-atom stream)))
+	      (return-from lexer (values (intern "quoted") quoted))))
 
 	   ((member c '(#\( #\) #\. #\' #\[ #\] #\: #\! #\? #\, #\= #\&))
 	    ;; (break "Got a symbol: ~a" c)
