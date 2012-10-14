@@ -139,6 +139,7 @@
 (define-parser *tptp-v5.4.0.0-parser*
   (:start-symbol tptp-file)
   (:terminals (|fof|
+	       |cnf|
 	       |(|
 	       |)|
 	       |.|
@@ -199,7 +200,8 @@
    include)
 
   (annotated-formula
-   fof-annotated)
+   fof-annotated
+   cnf-annotated)
 
   (fof-annotated
    (|fof| |(| name |,| formula-role |,| fof-formula |)| |.|))
