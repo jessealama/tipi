@@ -3,6 +3,16 @@
 
 (defparameter *tptp-formula-1* "fof(a,axiom,p).")
 
+(let ((symbol-table (make-hash-table :test #'equal)))
+  (defun maybe-make-symbol (name)
+    (multiple-value-bind (old-symbol present?)
+	(gethash name symbol-table)
+      (if present?
+	  old-symbol
+	  (let ((new-symbol (make-symbol name)))
+	    (setf (gethash name symbol-table) new-symbol)
+	    new-symbol)))))
+
 (5am:test lex-tptp
   (flet ((same-symbol-or-null (x y)
 	   (cond ((null x)
