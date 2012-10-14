@@ -39,6 +39,10 @@
     "fof(ax,hypothesis,(! [X] : (X = X)))."
   "fof" "(" "lower-word" "," "hypothesis" "," "(" "!" "[" "upper-word" "]" ":" "(" "upper-word" "=" "upper-word" ")" ")" ")" ".")
 
+(define-lexer-test (lex-tptp-3)
+    "fof(def_o,axiom,(! [X] : (object(X) => (? [D2] : (object(D2))))))."
+  "fof" "(" "lower-word" "," "axiom" "(" "!" "[" "upper-word" "]" ":" "(" "lower-word" "(" "upper-word" ")" "=>" "(" "?" "[" "upper-word" "]" ":" "(" "lower-word" "(" "upper-ord" ")" ")" ")" ")" ")" ")" ".")
+
 (test cnf-not-handled
   (signals error (lex-tptp-formula "cnf(a,axiom,(! [X] : (X = X))).")))
 
