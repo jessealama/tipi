@@ -32,4 +32,6 @@
 	       (:file "consequence")
 	       (:file "needed")
 	       (:file "minimal")
-	       (:file "independent")))
+	       (:file "independent")
+	       (:file "parse")
+	       (:file "tests")))
