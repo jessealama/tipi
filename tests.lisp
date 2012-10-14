@@ -29,9 +29,8 @@
      (let ((target-lex-result (append (mapcar #'maybe-make-symbol ',tokens)
 				      (list nil)))
 	   (lexed (lex-tptp-formula ,tptp-string)))
-       (is (not (null lexed)))
-       (is (mismatch lexed target-lex-result :test #'same-symbol-or-null) nil)
-       (is (mismatch target-lex-result lexed :test #'same-symbol-or-null) nil))))
+       (is (null (mismatch lexed target-lex-result :test #'same-symbol-or-null)))
+       (is (null (mismatch target-lex-result lexed :test #'same-symbol-or-null))))))
 
 (define-lexer-test (lex-tptp-1)
     "fof(a,axiom,p)."
