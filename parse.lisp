@@ -80,13 +80,13 @@
        do
 	 (cond
 
+	   ((null c)
+	    (return-from lexer (values nil nil)))
+
 	   ((char= c #\%)
 	    (read-line stream)) ;; consume comment lines
 
 	   ((member c '(#\Space #\Tab #\Newline))) ;; consume whitespace
-
-	   ((null c)
-	    (return-from lexer (values nil nil)))
 
 	   ((char= c #\')
 	    (unread-char c stream)
