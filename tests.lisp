@@ -45,7 +45,8 @@
     "fof(def_o,axiom,(! [X] : (object(X) => (? [D2] : (object(D2))))))."
   "fof" "(" "lower-word" "," "axiom" "(" "!" "[" "upper-word" "]" ":" "(" "lower-word" "(" "upper-word" ")" "=>" "(" "?" "[" "upper-word" "]" ":" "(" "lower-word" "(" "upper-ord" ")" ")" ")" ")" ")" ")" ".")
 
-(test cnf-not-handled
-  (signals error (lex-tptp-formula "cnf(a,axiom,(! [X] : (X = X))).")))
+(define-lexer-test (lex-test-4)
+    "cnf(a,axiom,(! [X] : (X = X)))."
+  "cnf" "(" "lower-word" "," "axiom" "," "(" "!" "[" "upper-word" "]" ":" "(" "upper-word" "=" "upper-word" ")" ")" ")" ".")
 
 ;;; tests.lisp ends here
