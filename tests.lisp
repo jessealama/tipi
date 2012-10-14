@@ -23,16 +23,17 @@
 	 nil)))
 
 (5am:test lex-tptp
-  (let ((target-first-lex-result (list (maybe-make-symbol "fof")
-				       (maybe-make-symbol "(")
-				       (maybe-make-symbol "lower-word")
-				       (maybe-make-symbol ",")
-				       (maybe-make-symbol "axiom")
-				       (maybe-make-symbol ",")
-				       (maybe-make-symbol "lower-word")
-				       (maybe-make-symbol ")")
-				       (maybe-make-symbol ".")
-				       nil))
+  (let ((target-first-lex-result (append (mapcar #'maybe-make-symbol
+						 (list "fof"
+						       "("
+						       "lower-word"
+						       ","
+						       "axiom"
+						       ","
+						       "lower-word"
+						       ")"
+						       "."))
+					 (list nil)))
 	(lexed (lex-tptp-formula *tptp-formula-1*)))
     (5am:is (not (null lexed)))
     (5am:is (starts-with-subseq lexed target-first-lex-result
