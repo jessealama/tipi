@@ -79,13 +79,11 @@
        for c = (read-char stream nil nil)
        do
 	 (cond
-	   ((char= c #\%)
-	    (read-line stream) ;; throw out a comment line
-	    (return-from lexer (values nil nil)))
 
-	   ((member c '(#\Space #\Tab #\Newline))
-	    ;; nothing -- consume whitespace
-	    )
+	   ((char= c #\%)
+	    (read-line stream)) ;; consume comment lines
+
+	   ((member c '(#\Space #\Tab #\Newline))) ;; consume whitespace
 
 	   ((null c)
 	    (return-from lexer (values nil nil)))
