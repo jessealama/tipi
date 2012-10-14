@@ -13,14 +13,16 @@
 	    (setf (gethash name symbol-table) new-symbol)
 	    new-symbol)))))
 
-(defun same-symbol-or-null (x y)
-  (cond ((null x)
-	 (null y))
-	((symbolp x)
-	 (and (symbolp y)
-	      (string= (symbol-name x) (symbol-name y))))
-	(t
-	 nil)))
+(defgeneric same-symbol-or-null (x y))
+
+(defmethod same-symbol-or-null ((x t) (y t))
+  nil)
+
+(defmethod same-symbol-or-null ((x symbol) (y symbol))
+  (string= (symbol-name x) (symbol-name y)))
+
+(defmethod same-symbol-or-null ((x null) (y null))
+  t)
 
 (defmacro define-lexer-test ((test-name) tptp-string &rest tokens)
   `(test ,test-name
