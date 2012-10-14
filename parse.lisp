@@ -64,13 +64,16 @@
 	))
 
 (let (expecting-tptp-keyword num-left-parens-seen num-commas-seen)
+
   (defun initialize-lexer ()
     (setf expecting-tptp-keyword t
 	  num-left-parens-seen 0
 	  num-commas-seen 0)
     t)
+
   (defun lexer-report-state ()
     (format t "Num left parens seen: ~d~%Num commas seen: ~d~%Expecting TPTP keyword: ~a~%" num-left-parens-seen num-commas-seen (if expecting-tptp-keyword "yes" "no")))
+
   (defun lexer (&optional (stream *standard-input*))
     (loop
        for c = (read-char stream nil nil)
