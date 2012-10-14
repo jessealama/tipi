@@ -15,7 +15,8 @@
 	       :yacc
 	       :named-readtables
 	       :alexandria
-	       :trivial-timeout)
+	       :trivial-timeout
+	       :fiveam)
   :serial t
   :components ((:file "packages")
 	       (:file "utils")
