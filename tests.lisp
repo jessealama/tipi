@@ -37,4 +37,8 @@
     "fof(a,axiom,p)."
   "fof" "(" "lower-word" "," "axiom" "," "lower-word" ")" ".")
 
+(define-lexer-test (lex-tptp-2)
+    "fof(ax,hypothesis,(! [X] : (X = X)))."
+  "fof" "(" "lower-word" "," "hypothesis" "," "(" "!" "[" "upper-word" "]" ":" "(" "upper-word" "=" "upper-word" ")" ")" ")" ".")
+
 ;;; tests.lisp ends here
