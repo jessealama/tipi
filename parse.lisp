@@ -400,4 +400,12 @@
       (parse-with-lexer #'lexer
 			*tptp-v5.4.0.0-parser*))))
 
+(defun lex-tptp-formula (string)
+  (with-input-from-string (stream string)
+    (loop
+       initially (initialize-lexer)
+       for token = (lexer stream)
+       collect token into tokens
+       unless token return tokens)))
+
 ;;; parse.lisp ends here
