@@ -1,0 +1,32 @@
+
+(in-package :tipi)
+
+(defparameter *tptp-formula-1* "fof(a,axiom,p).")
+
+(5am:test lex-tptp
+  (flet ((same-symbol-or-null (x y)
+	   (cond ((null x)
+		  (null y))
+		 ((symbolp x)
+		  (and (symbolp y)
+		       (string= (symbol-name x) (symbol-name y))))
+		 (t
+		  nil))))
+    (let ((target-first-lex-result (list (intern "fof")
+					 (intern "(")
+					 (intern "lower-word")
+					 (intern ",")
+					 (intern "axiom")
+					 (intern ",")
+					 (intern "lower-word")
+					 (intern ")")
+					 (intern ".")
+					 nil))
+	  (lexed (lex-tptp-formula *tptp-formula-1*)))
+      (5am:is (not (null lexed)))
+      (5am:is (starts-with-subseq lexed target-first-lex-result
+				  :test #'same-symbol-or-null))
+      (5am:is (starts-with-subseq target-first-lex-result lexed
+				  :test #'same-symbol-or-null)))))
+
+;;; tests.lisp ends here
