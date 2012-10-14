@@ -23,14 +23,14 @@
 	 nil)))
 
 (defmacro define-lexer-test ((test-name) tptp-string &rest tokens)
-  `(5am:test ,test-name
+  `(test ,test-name
      (let ((target-lex-result (append (mapcar #'maybe-make-symbol ',tokens)
 				      (list nil)))
 	   (lexed (lex-tptp-formula ,tptp-string)))
-       (5am:is (not (null lexed)))
-       (5am:is (starts-with-subseq lexed target-lex-result
+       (is (not (null lexed)))
+       (is (starts-with-subseq lexed target-lex-result
 				   :test #'same-symbol-or-null))
-       (5am:is (starts-with-subseq target-lex-result lexed
+       (is (starts-with-subseq target-lex-result lexed
 				   :test #'same-symbol-or-null)))))
 
 (define-lexer-test (lex-tptp-1)
@@ -41,7 +41,7 @@
     "fof(ax,hypothesis,(! [X] : (X = X)))."
   "fof" "(" "lower-word" "," "hypothesis" "," "(" "!" "[" "upper-word" "]" ":" "(" "upper-word" "=" "upper-word" ")" ")" ")" ".")
 
-(5am:test cnf-not-handled
-  (5am:signals error (lex-tptp-formula "cnf(a,axiom,(! [X] : (X = X))).")))
+(test cnf-not-handled
+  (signals error (lex-tptp-formula "cnf(a,axiom,(! [X] : (X = X))).")))
 
 ;;; tests.lisp ends here
