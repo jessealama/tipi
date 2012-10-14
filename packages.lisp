@@ -21,6 +21,7 @@
 		#:map-combinations
 		#:write-string-into-file
 		#:hash-table-values
+		#:starts-with-subseq
 		#:flatten)
   (:import-from :cl-ppcre
 		#:scan
