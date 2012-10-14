@@ -41,4 +41,7 @@
     "fof(ax,hypothesis,(! [X] : (X = X)))."
   "fof" "(" "lower-word" "," "hypothesis" "," "(" "!" "[" "upper-word" "]" ":" "(" "upper-word" "=" "upper-word" ")" ")" ")" ".")
 
+(5am:test cnf-not-handled
+  (5am:signals error (lex-tptp-formula "cnf(a,axiom,(! [X] : (X = X))).")))
+
 ;;; tests.lisp ends here
