@@ -123,7 +123,7 @@
 	   ((alpha-char-p c)
 	    (unread-char c stream)
 	    (let ((next-word (read-word stream)))
-	      (break "next-word = ~a" next-word)
+	      ;; (break "next-word = ~a" next-word)
 	      (if expecting-tptp-keyword
 		  (if (member next-word *tptp-keywords* :test #'string=)
 		      (return-from lexer (values (intern next-word) next-word))
