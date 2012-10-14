@@ -35,6 +35,7 @@
          (push c v)))))
 
 (defun read-quoted-atom (stream)
+  (declare (ignore stream))
   (error "We don't handle quoted atoms yet, sorry.  Please complain loudly."))
 
 (defparameter *tptp-keywords*
