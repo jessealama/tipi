@@ -39,23 +39,28 @@
   (error "We don't handle quoted atoms yet, sorry.  Please complain loudly."))
 
 (defparameter *tptp-keywords*
-  (list "fof"
+  (list
 
-	;; formula roles
-	"axiom"
-	"hypothesis"
-	"definition"
-	"assumption"
-	"lemma"
-	"theorem"
-	"conjecture"
-	"negated_conjecture"
-	"plain"
-	"fi_domain"
-	"fi_functors"
-	"fi_predicates"
-	"type"
-	"unknown"
+   ;; annotated formula keywords
+   "fof"
+   "cnf"
+
+   ;; formula roles
+   "axiom"
+   "hypothesis"
+   "definition"
+   "assumption"
+   "lemma"
+   "theorem"
+   "conjecture"
+   "negated_conjecture"
+   "plain"
+   "fi_domain"
+   "fi_functors"
+   "fi_predicates"
+   "type"
+   "unknown"
+
 	))
 
 (let (expecting-tptp-keyword num-left-parens-seen num-commas-seen)
