@@ -33,7 +33,7 @@
        (5am:is (starts-with-subseq target-lex-result lexed
 				   :test #'same-symbol-or-null)))))
 
-(define-lexer-test (lex-tptp)
+(define-lexer-test (lex-tptp-1)
     "fof(a,axiom,p)."
   "fof" "(" "lower-word" "," "axiom" "," "lower-word" ")" ".")
 
