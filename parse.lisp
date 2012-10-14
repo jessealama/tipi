@@ -16,12 +16,6 @@
   (when char
     (unread-char char stream)))
 
-(defun intern-id (string)
-  ;; I'd really like to say (intern (string-upcase string) '#.*package*),
-  ;; but that breaks Allegro's case hacks.
-  (let ((*package* '#.*package*))
-    (read-from-string string)))
-
 (defun read-word (stream)
   (let ((v '()))
     (loop
