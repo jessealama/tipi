@@ -87,7 +87,7 @@
 	    (let ((quoted (read-quoted-atom stream)))
 	      (return-from lexer (values (intern "quoted") quoted))))
 
-	   ((member c '(#\( #\) #\. #\' #\[ #\] #\: #\! #\? #\, #\= #\&))
+	   ((member c '(#\( #\) #\. #\[ #\] #\: #\! #\? #\, #\= #\&))
 	    ;; (break "Got a symbol: ~a" c)
 	    (when (char= c #\()
 	      (incf num-left-parens-seen))
