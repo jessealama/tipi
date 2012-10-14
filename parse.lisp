@@ -57,16 +57,17 @@
 
 	))
 
-(let (expecting-tptp-keyword num-left-parens-seen num-commas-seen)
+(let (expecting-keyword num-left-parens-seen num-commas-seen expecting-formula)
 
   (defun initialize-lexer ()
-    (setf expecting-tptp-keyword t
+    (setf expecting-keyword t
+	  expecting-formula nil
 	  num-left-parens-seen 0
 	  num-commas-seen 0)
     t)
 
   (defun lexer-report-state ()
-    (format t "Num left parens seen: ~d~%Num commas seen: ~d~%Expecting TPTP keyword: ~a~%" num-left-parens-seen num-commas-seen (if expecting-tptp-keyword "yes" "no")))
+    (format t "Num left parens seen: ~d~%Num commas seen: ~d~%Expecting TPTP keyword: ~a~%" num-left-parens-seen num-commas-seen (if expecting-keyword "yes" "no")))
 
   (defun lexer (&optional (stream *standard-input*))
     (loop
@@ -93,10 +94,12 @@
 	      (incf num-left-parens-seen))
 	    (when (char= c #\,)
 	      (incf num-commas-seen))
-	    (setf expecting-tptp-keyword
+	    (setf expecting-keyword
 		  (or (zerop num-left-parens-seen)
 		      (and (= num-left-parens-seen 1)
-			   (= num-commas-seen 1))))
+			   (= num-commas-seen 1)))
+		  expecting-formula
+		  (= num-commas-seen 2))
 	    (when (char= c #\.)
 	      (initialize-lexer))
 
@@ -118,7 +121,7 @@
 	    (unread-char c stream)
 	    (let ((next-word (read-word stream)))
 	      ;; (break "next-word = ~a" next-word)
-	      (if expecting-tptp-keyword
+	      (if expecting-keyword
 		  (if (member next-word *tptp-keywords* :test #'string=)
 		      (return-from lexer (values (intern next-word) next-word))
 		      (error "We are expecting a TPTP keyword, but~%~%  ~a~%~%isn't a known keyword.  The known keywords are:~%~%~{  ~a~%~}~%" next-word *tptp-keywords*))
