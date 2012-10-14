@@ -28,10 +28,8 @@
 				      (list nil)))
 	   (lexed (lex-tptp-formula ,tptp-string)))
        (is (not (null lexed)))
-       (is (starts-with-subseq lexed target-lex-result
-				   :test #'same-symbol-or-null))
-       (is (starts-with-subseq target-lex-result lexed
-				   :test #'same-symbol-or-null)))))
+       (is (mismatch lexed target-lex-result :test #'same-symbol-or-null) nil)
+       (is (mismatch target-lex-result lexed :test #'same-symbol-or-null) nil))))
 
 (define-lexer-test (lex-tptp-1)
     "fof(a,axiom,p)."
