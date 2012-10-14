@@ -113,8 +113,7 @@
 			    (return-from lexer (values (intern "=") "="))))
 		    (lexer-error d))))
 
-	    (let ((symbol (intern (string c) '#.*package*)))
-	      (return-from lexer (values symbol symbol))))
+	    (return-from lexer (values (intern (string c)) (string c))))
 
 	   ;; try to read an atom
 	   ((alpha-char-p c)
