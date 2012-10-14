@@ -27,5 +27,9 @@
 		#:scan
 		#:split
 		#:register-groups-bind)
+  (:import-from :5am
+	       #:test
+	       #:signals
+	       #:is)
   (:export
    #:MINIMIZE))
