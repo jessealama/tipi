@@ -60,17 +60,17 @@ tipi: $(lisps)
 	$($(LISP)_PATH) $(EVAL_CONFIG) $($(LISP)_DUMP) $<
 
 all:
-	for dir in $(subdirs); do make -C $$dir all; done
-	make tipi
+	+for dir in $(subdirs); do make -C $$dir all; done
+	+make tipi
 
 check:
-	for dir in $(subdirs); do make -C $$dir check; done
+	+for dir in $(subdirs); do make -C $$dir check; done
 
 clean:
 	rm -f tipi
 	rm -f $(emacs-backups)
 	rm -f $(ccl-fasls)
-	for dir in $(subdirs); do make -C $$dir clean; done
+	+for dir in $(subdirs); do make -C $$dir clean; done
 
 test:
 	# no tests defined yet
