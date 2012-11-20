@@ -31,12 +31,7 @@
    :solve-function
    (lambda (problem timeout)
      (block eprover
-       (let* ((path
-	       #+ccl
-		(ccl:native-translated-namestring (path problem))
-		#-ccl
-		(namestring (path problem))
-		)
+       (let* ((path (native-namestring (path problem)))
 	      (eprover-out (make-string-output-stream))
 	      (eprover-process
 	       (run-program "eprover"
@@ -84,12 +79,7 @@
    :solve-function
    (lambda (problem timeout)
      (block paradox
-       (let* ((path
-	       #+ccl
-		(ccl:native-translated-namestring (path problem))
-		#-ccl
-		(namestring (path problem))
-		)
+       (let* ((path (native-namestring (path problem)))
 	      (paradox-out (make-string-output-stream))
 	      (paradox-process (run-program "paradox"
 					    (list "--model"
@@ -161,12 +151,7 @@
       )))
 
 (defmethod solve-problem ((problem pathname) &key (timeout +default-timeout+))
-  (let ((path
-       #+ccl
-	  (ccl:native-translated-namestring problem)
-	  #-ccl
-	  (namestring problem)
-	  )
+  (let ((path (native-namestring problem))
 	(eprover-out (make-string-output-stream))
 	(paradox-out (make-string-output-stream))
 	(granularity 5))
