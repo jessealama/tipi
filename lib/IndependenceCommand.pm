@@ -193,6 +193,7 @@ sub execute {
 
     foreach my $axiom (@sorted_axioms) {
 	my $axiom_name = $axiom->get_name ();
+	# warn $axiom_name;
 	my $independence = $theory->independent_axiom ($axiom,
 						       \@opt_provers,
 						       { 'timeout' => $opt_timeout });
