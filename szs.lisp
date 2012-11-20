@@ -51,7 +51,7 @@
     :initarg :isa
     :accessor isa-list)
    (nota
-    :type :list
+    :type list
     :initarg :nota
     :accessor nota-list)
    (nevera
