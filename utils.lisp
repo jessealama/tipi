@@ -133,3 +133,11 @@
 				     (member elt common-elements :test test))
 				 list))
 		  lists))))
+
+(defun native-namestring (path)
+  #+ccl
+  (ccl:native-translated-namestring xml-path-1)
+  #+sbcl
+  (sb-ext:native-namestring path)
+  #-(or ccl sbcl)
+  (namestring path))
