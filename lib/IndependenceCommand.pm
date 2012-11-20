@@ -208,9 +208,9 @@ sub execute {
 	    confess 'Unexpected value', $SPACE, $independence, $SPACE, 'from the independence-checking function.';
 	}
 
-	if (! $opt_quick && ($independence == -1 || $independence == 0)) {
-	    last;
-	}
+	# if (! $opt_quick && ($independence == -1 || $independence == 0)) {
+	#     last;
+	# }
 
 	if ($opt_verbose) {
 	    print $axiom_name, $COLON, $SPACE;
