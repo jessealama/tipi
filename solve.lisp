@@ -192,33 +192,51 @@
 	 for i from 1 upto (* granularity timeout)
 	 do
 	   (sleep (float (/ 1 granularity)))
-	   (multiple-value-bind (eprover-status eprover-exit)
+	   (let (eprover-status eprover-exit)
+	     #+ccl
+	     (multiple-value-bind (ccl-eprover-status ccl-eprover-exit)
 	       (ccl:external-process-status eprover-process)
+	       (setf eprover-status ccl-eprover-status
+		     eprover-exit ccl-eprover-exit))
+	     #+sbcl
+	     (setf eprover-status (sb-ext:process-status eprover-process)
+		   eprover-exit (sb-ext:process-exit-code eprover-process))
+	     #-(or sbcl ccl)
+	     (error "We handle only CCL and SBCL.")
 	     (if (not (eql eprover-status :running))
-		 (if (zerop eprover-exit)
-		     (let ((eprover-text (get-output-stream-string eprover-out))
-			   (epclextract-out (make-string-output-stream)))
-		       (with-input-from-string (eprover-out eprover-text)
-			 (let ((epclextract-process (run-program "epclextract"
-								 (list "--tstp-out"
-								       "--forward-comments")
-								 :input eprover-out
-								 :output epclextract-out
-								 :error :stream
-								 :wait t)))
-			   (let ((epclextract-exit-code (process-exit-code epclextract-process)))
-			     (unless (zerop epclextract-exit-code)
-			       (error "epclextract did not exit cleanly (its exit code was ~a).  The error output:~%~%~a" epclextract-exit-code (stream-lines (process-error epclextract-process)))))))
-		       (let ((result (make-instance 'eprover-result
-				      :text (get-output-stream-string epclextract-out))))
-			 (let ((status (szs-status result)))
-			   (setf (gethash "eprover" results-table)
-				 (or status
-				     (lookup-szs-status "Unknown"))))))
-		     (setf (gethash "eprover" results-table)
-			   (lookup-szs-status "Error")))))
-	   (multiple-value-bind (paradox-status paradox-exit)
+	       (if (zerop eprover-exit)
+		   (let ((eprover-text (get-output-stream-string eprover-out))
+			 (epclextract-out (make-string-output-stream)))
+		     (with-input-from-string (eprover-out eprover-text)
+		       (let ((epclextract-process (run-program "epclextract"
+							       (list "--tstp-out"
+								     "--forward-comments")
+							       :input eprover-out
+							       :output epclextract-out
+							       :error :stream
+							       :wait t)))
+			 (let ((epclextract-exit-code (process-exit-code epclextract-process)))
+			   (unless (zerop epclextract-exit-code)
+			     (error "epclextract did not exit cleanly (its exit code was ~a).  The error output:~%~%~a" epclextract-exit-code (stream-lines (process-error epclextract-process)))))))
+		     (let ((result (make-instance 'eprover-result
+						  :text (get-output-stream-string epclextract-out))))
+		       (let ((status (szs-status result)))
+			 (setf (gethash "eprover" results-table)
+			       (or status
+				   (lookup-szs-status "Unknown"))))))
+		   (setf (gethash "eprover" results-table)
+			 (lookup-szs-status "Error")))))
+	   (let (paradox-status paradox-exit)
+	     #+ccl
+	     (multiple-value-bind (ccl-paradox-status ccl-paradox-exit)
 	       (ccl:external-process-status paradox-process)
+	       (setf paradox-status ccl-paradox-status
+		     paradox-exit ccl-paradox-exit))
+	     #+sbcl
+	     (setf paradox-status (sb-ext:process-status paradox-process)
+		   paradox-exit (sb-ext:process-exit-code paradox-process))
+	     #-(or sbcl ccl)
+	     (error "We handle onl CCL and SBCL")
 	     (if (not (eql paradox-status :running))
 		 (if (zerop paradox-exit)
 		     (let ((result (make-instance 'paradox-result
@@ -234,19 +252,44 @@
 			  (hash-table-values results-table))
 	     (loop
 		for process in (hash-table-values process-table)
-		for status = (ccl:external-process-status process)
-		when (eql status :running) do (ccl:signal-external-process process 1))
+		for status = #+ccl (ccl:external-process-status process)
+		             #+sbcl (sb-ext:process-status process)
+		             #-(or sbcl ccl) (error "We handle only SBCL and CCL.")
+		when (eql status :running) do
+		  #+ccl (ccl:signal-external-process process 1)
+		  #+sbcl (sb-ext:process-kill process 1)
+		  #-(or sbcl ccl) (error "We handle only SBCL and CCL.")
+		  )
 	     (return (aggregate-szs-statuses (hash-table-values results-table))))
 	   (when (every #'(lambda (status)
 			    (not (eql status :running)))
-			(mapcar #'ccl:external-process-status
+			(mapcar
+			 #+ccl
+			 #'ccl:external-process-status
+			 #+sbcl
+			 #'sb-ext:process-status
+			 #-(or sbcl ccl)
+			 (error "We handle only SBCL and CCL.")
 				(hash-table-values process-table)))
 	     (return (aggregate-szs-statuses (hash-table-values results-table))))
 	 finally
 	   (loop
 	      for process in (hash-table-values process-table)
-	      for status = (ccl:external-process-status process)
-	      when (eql status :running) do (ccl:signal-external-process process 1))
+	      for status =
+		#+ccl
+		(ccl:external-process-status process)
+		#+sbcl
+		(sb-ext:process-status process)
+		#-(or sbcl ccl)
+		(error "We handle only SBCL and CCL.")
+	      when (eql status :running) do
+		#+ccl
+		(ccl:signal-external-process process 1)
+		#+sbcl
+		(sb-ext:process-kill process 1)
+		#-(or sbcl ccl)
+		(error "We handle only SBCL and CCL.")
+		)
 	   (return (lookup-szs-status "Timeout"))))))
 
 
