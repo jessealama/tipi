@@ -11,9 +11,9 @@
   (sb-ext:run-program program
 		      args
 		      :search t
-		      :input nil
-		      :output nil
-		      :error nil
+		      :input input
+		      :output output
+		      :error error
 		      :wait wait
 		      :if-output-exists if-output-exists)
   #+ccl

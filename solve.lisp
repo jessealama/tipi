@@ -82,8 +82,7 @@
        (let* ((path (native-namestring (path problem)))
 	      (paradox-out (make-string-output-stream))
 	      (paradox-process (run-program "paradox"
-					    (list "--model"
-						  "--tstp"
+					    (list "--tstp"
 						  "--no-progress"
 						  "--time" (format nil "~d" timeout)
 						  path)
