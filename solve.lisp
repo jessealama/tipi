@@ -99,14 +99,16 @@
 			    :text ""
 			    :szs-status (lookup-szs-status "Error"))))))))
 
-(defmethod solve :before (prover problem &key (timeout +default-timeout+))
+(defmethod solve :before (prover problem &key timeout)
   (declare (ignore prover problem))
+  (when (null timeout)
+    (setf timeout +default-timeout+))
   (unless (integerp timeout)
     (error "Invalid value ~a for the timeout parameter." timeout))
   (when (< timeout 1)
     (error "Invalid value ~a for the timeout parameter." timeout)))
 
-(defmethod solve :around (prover (problem tptp-db) &key (timeout +default-timeout+))
+(defmethod solve :around (prover (problem tptp-db) &key timeout)
   (declare (ignore prover timeout))
   (if (slot-boundp problem 'path)
       (call-next-method)
@@ -121,7 +123,9 @@
   (declare (ignore timeout problem))
   (values nil (lookup-szs-status "Unknown")))
 
-(defmethod solve ((solver-list list) problem &key (timeout +default-timeout+))
+(defmethod solve ((solver-list list) problem &key timeout)
+  (when (null timeout)
+    (setf timeout +default-timeout+))
   (loop
      with solutions = (make-hash-table :test #'equal)
      initially
