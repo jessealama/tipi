@@ -223,6 +223,48 @@
 		 :useful-info (when (slot-boundp formula 'useful-info)
 				(useful-info formula))))
 
+(defgeneric change-status-of-formula-in (formula problem new-status)
+  (:documentation "Change the TPTP status of FORMULA in PROBLEM to NEW-STATUS."))
+
+(defmethod change-status-of-formula-in ((formula string)
+					(problem pathname)
+					(new-status string))
+  (change-status-of-formula-in formula (read-tptp problem) new-status))
+
+(defmethod change-status-of-formula-in ((formula string)
+					(problem tptp-db)
+					(new-status string))
+  (let ((formula-in-problem (formula-with-name problem formula)))
+    (if formula-in-problem
+	(let ((other-formulas (remove-if #'(lambda (name)
+					     (string= name formula))
+					 (formulas problem)
+					 :key #'name)))
+	  (let ((new-formula (change-status formula-in-problem new-status)))
+	    (make-instance 'tptp-db
+			   :formulas (cons new-formula
+					   other-formulas)))))))
+
+(defmethod change-status-of-formula-in ((formula string)
+					(problem derivability-problem)
+					(new-status string))
+  (if (string= new-status "conjecture")
+      (let ((conjecture (conjecture problem)))
+	(let ((conjecture-name (name conjecture)))
+	  (if (string= conjecture-name formula)
+	      problem
+	      (error "The given derivability-problem already has a conjecture formula; (by the name ~a), so we cannot change the status of ~a into 'conjecture'." conjecture-name formula))))
+      (let ((formula-in-problem (formula-with-name problem formula)))
+    (if formula-in-problem
+	(let ((other-formulas (remove-if #'(lambda (name)
+					     (string= name formula))
+					 (formulas problem)
+					 :key #'name)))
+	  (let ((new-formula (change-status formula-in-problem new-status)))
+	    (make-instance 'tptp-db
+			   :formulas (cons new-formula
+					   other-formulas))))))))
+
 (defun promote-conjecture-to-axiom (problem)
   (let ((conjecture (has-conjecture-formula? problem)))
     (if conjecture
