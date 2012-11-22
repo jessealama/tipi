@@ -16,7 +16,7 @@
 	  (if (rest needed)
 	      (format t "~d needed premises:~%~%~{~a~%~}~%" (length needed) (mapcar #'name needed))
 	      (format t "1 needed premise:~%~%~{~a~%~}~%" (mapcar #'name needed)))
-	  (format t "Needed premises:~%~%(none we shown to be needed)~%"))
+	  (format t "Needed premises:~%~%(none were shown to be needed)~%"))
       (labels ((formula-subset (formula-set-1 formula-set-2)
 		 (subsetp formula-set-1 formula-set-2 :test #'string=))
 	       (already-known (subset)
