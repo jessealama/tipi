@@ -63,6 +63,7 @@ decision."))
        finally
 	 (return (values (and (null dependent-premises)
 			      (null unknown-premises))
+			 independent-premises
 			 dependent-premises
 			 unknown-premises)))))
 
