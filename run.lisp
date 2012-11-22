@@ -54,3 +54,10 @@
   (sb-ext:process-error process)
   #+ccl
   (ccl:external-process-error-stream process))
+
+(defun process-kill (process &optional (signal 1))
+  #+ccl (ccl:signal-external-process process signal)
+  #+sbcl (progn
+	   (sb-ext:process-close process)
+	   (sb-ext:process-kill process signal))
+  #-(or sbcl ccl) (error "We handle only SBCL and CCL."))
