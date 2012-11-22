@@ -300,3 +300,8 @@
     (if successes
 	(first (strongest-szs-status successes))
 	(first (strongest-szs-status statuses)))))
+
+(defun some-theorem? (szs-status-list)
+  (some #'(lambda (status)
+	    (szs-implies? status (lookup-szs-status "Theorem")))
+	szs-status-list))
