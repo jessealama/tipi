@@ -34,6 +34,15 @@
     (declare (ignore status))
     exit-code))
 
+(defun process-status (process)
+  #+sbcl
+  (sb-ext:process-status process)
+  #+ccl
+  (multiple-value-bind (status exit-code)
+      (ccl:external-process-status process)
+    (declare (ignore exit-code))
+    status))
+
 (defun process-output (process)
   #+sbcl
   (sb-ext:process-output process)
