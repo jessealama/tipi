@@ -287,7 +287,7 @@ sub get_conjecture {
   CONJECTURE:
     foreach my $formula (@formulas) {
 	my $status = $formula->get_status ();
-	if ($status eq 'conjecture') {
+	if ($status eq 'conjecture' || $status eq 'negated_conjecture') {
 	    $conjecture = $formula;
 	    last CONJECTURE;
 	}
