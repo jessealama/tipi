@@ -31,6 +31,9 @@
 	  (push line lines)))
       (reverse lines))))
 
+(defun stream-contents (stream)
+  (format nil "~{~a~%~}" (stream-lines stream)))
+
 (defun temporary-file (&key (base "") (extension "") (tmp-dir "/tmp"))
   (if (or (stringp tmp-dir)
 	  (pathnamep tmp-dir))
