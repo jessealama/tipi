@@ -66,3 +66,9 @@
 		      :timeout timeout))
 	  (minimize db
 		    :timeout timeout)))))
+
+(defmethod minimize ((problem tptp-db) &key timeout)
+  (let ((conjecture (conjecture-formula problem)))
+    (if conjecture
+	(minimize (make-derivability-problem problem) :timeout timeout)
+	(error "We don't know yet how to minimize a problem that lacks a conjecture."))))
