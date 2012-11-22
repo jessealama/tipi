@@ -3,7 +3,9 @@
 
 (defgeneric minimize (problem &key timeout))
 
-(defmethod minimize ((problem derivability-problem) &key (timeout +default-timeout+))
+(defmethod minimize ((problem derivability-problem) &key timeout)
+  (when (null timeout)
+    (setf timeout +default-timeout+))
   (let ((conjecture (conjecture problem))
 	(solutions nil)
 	(unknown nil)
