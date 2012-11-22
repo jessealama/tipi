@@ -12,16 +12,18 @@
       (error "There is no file at '~a'." (namestring tptp-file))))
 
 (defmethod xmlize-tptp ((tptp-file pathname))
-  (let ((tptp4X-process (run-program "tptp4X"
-				     (list "-c" "-x" "-fxml" "--")
-				     :wait t
-				     :output :stream
-				     :input tptp-file)))
-    (let ((out (process-output tptp4X-process))
-	  (err (process-error tptp4X-process)))
-      (close out)
-      (close err)
-      (stream-contents out))))
+  (let ((tptp4X-out (make-string-output-stream))
+	(tptp4X-err (make-string-output-stream)))
+    (run-program "tptp4X"
+		 (list "-c" "-x" "-fxml" "--")
+		 :wait t
+		 :output tptp4X-out
+		 :error tptp4X-err
+		 :input tptp-file)
+    (prog1
+	(get-output-stream-string tptp4X-out)
+      (close tptp4X-out)
+      (close tptp4X-err))))
 
 (defgeneric read-tptp (tptp-thing))
 
