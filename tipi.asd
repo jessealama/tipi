@@ -14,6 +14,9 @@
 	       :cl-fad
 	       :yacc
 	       :named-readtables
+	       :drakma
+	       :hunchentoot
+	       :cl-who
 	       :alexandria
 	       :trivial-timeout
 	       :fiveam)

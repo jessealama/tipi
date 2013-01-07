@@ -4,6 +4,9 @@
 (defpackage :tipi
   (:use :cl)
   (:use :yacc)
+  (:import-from :cl-who
+		#:with-html-output-to-string)
+  (:use :hunchentoot)
   (:import-from :trivial-timeout
 		#:with-timeout
 		#:timeout-error)
