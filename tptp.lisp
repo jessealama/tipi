@@ -13,13 +13,15 @@
 
 (defmethod xmlize-tptp ((tptp-file pathname))
   (let ((tptp4X-out (make-string-output-stream))
-	(tptp4X-err (make-string-output-stream)))
-    (run-program "tptp4X"
-		 (list "-c" "-x" "-fxml" "--")
-		 :wait t
-		 :output tptp4X-out
-		 :error tptp4X-err
-		 :input tptp-file)
+	(tptp4X-err (make-string-output-stream))
+	(tptp-dir (pathname (directory-namestring tptp-file))))
+    (with-current-directory (tptp-dir)
+      (run-program "tptp4X"
+		   (list "-c" "-x" "-fxml" "--")
+		   :wait t
+		   :output tptp4X-out
+		   :error tptp4X-err
+		   :input tptp-file))
     (prog1
 	(get-output-stream-string tptp4X-out)
       (close tptp4X-out)
