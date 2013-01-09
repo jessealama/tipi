@@ -46,6 +46,21 @@
     :initform (error "A name is required to create a predicate symbol.")
     :initarg :name)))
 
+(defparameter *constant-true-symbol*
+  (make-instance 'predicate-symbol
+		 :arity 0
+		 :name :|true|))
+
+(defparameter *constant-false-symbol*
+  (make-instance 'predicate-symbol
+		 :arity 0
+		 :name :|false|))
+
+(defparameter *equality-symbol*
+  (make-instance 'predicate-symbol
+		 :arity 2
+		 :name :|=|))
+
 (defmethod print-object ((object predicate-symbol) stream)
   (let ((name (name object))
 	(arity (arity object)))
@@ -139,6 +154,9 @@
 	(funcs-1 (functions signature-1))
 	(preds-2 (predicates signature-2))
 	(funcs-2 (functions signature-2)))
+    (pushnew *constant-true-symbol* preds-2 :test #'equal-predicate-symbol-p)
+    (pushnew *constant-false-symbol* preds-2 :test #'equal-predicate-symbol-p)
+    (pushnew *equality-symbol* preds-2 :test #'equal-predicate-symbol-p)
     (and (subsetp preds-1 preds-2 :test #'equal-predicate-symbol-p)
 	 (subsetp funcs-1 funcs-2 :test #'equal-function-symbol-p))))
 
