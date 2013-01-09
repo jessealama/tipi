@@ -144,3 +144,14 @@
   (sb-ext:native-namestring path)
   #-(or ccl sbcl)
   (namestring path))
+
+(defmacro with-current-directory ((new-cwd) &body body)
+  #+sbcl
+  (let ((cwd (gensym)))
+    `(let ((,cwd (sb-posix:getcwd)))
+       (sb-posix:chdir ,new-cwd)
+       (unwind-protect
+	    (progn ,@body)
+	 (sb-posix:chdir ,cwd))))
+  #-sbcl
+  (error "We support only SBCL at the moment."))
