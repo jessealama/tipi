@@ -44,12 +44,6 @@
 (defgeneric restrict-solution-to-problem-language (tstp)
   (:documentation "Restrict TSTP to the language employed by its underlying problem.  The main application is to eexclude Skolem functions and splitting predicates that are present in the solution but not in the problem."))
 
-(defmethod restrict-solution-to-problem-language ((tstp string))
-  (restrict-solution-to-problem-language (read-tstp tstp)))
-
-(defmethod restrict-solution-to-problem-language ((tstp pathname))
-  (restrict-solution-to-problem-language (read-tstp tstp)))
-
 (defmethod restrict-solution-to-problem-language ((tstp tstp-db))
   (loop
      with problem = (problem tstp)
