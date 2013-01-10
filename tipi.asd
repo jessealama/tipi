@@ -23,6 +23,7 @@
   :serial t
   :components ((:file "packages")
 	       (:file "utils")
+	       (:file "queue")
 	       (:file "xslt")
 	       (:file "run")
 	       (:file "terms")
