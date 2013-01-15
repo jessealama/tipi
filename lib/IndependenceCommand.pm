@@ -193,37 +193,44 @@ sub execute {
 
     foreach my $axiom (@sorted_axioms) {
 	my $axiom_name = $axiom->get_name ();
-	# warn $axiom_name;
-	my $independence = $theory->independent_axiom ($axiom,
-						       \@opt_provers,
-						       { 'timeout' => $opt_timeout });
-
-	if ($independence == -1) {
-	    $unknown{$axiom_name} = 0;
-	} elsif ($independence == 0) {
-	    $known_dependent{$axiom_name} = 0;
-	} elsif ($independence == 1) {
-	    # keep going
-	} else {
-	    confess 'Unexpected value', $SPACE, $independence, $SPACE, 'from the independence-checking function.';
-	}
-
-	# if (! $opt_quick && ($independence == -1 || $independence == 0)) {
-	#     last;
-	# }
-
-	if ($opt_verbose) {
-	    print $axiom_name, $COLON, $SPACE;
-	    if (defined $known_dependent{$axiom_name}) {
-		say colored ('dependent', $BAD_COLOR);
-	    } elsif (defined $unknown{$axiom_name}) {
-		say colored ('unknown', $UNKNOWN_COLOR);
-	    } else {
-		say colored ('underivable', $GOOD_COLOR);
+	my $axiom_status = $axiom->get_status ();
+	if ($axiom_status eq 'definition') {
+	    if ($opt_verbose) {
+		print "${axiom_name} is a definition; skipping...", $LF;
 	    }
+	} else {
+	    # warn $axiom_name;
+	    my $independence = $theory->independent_axiom ($axiom,
+							   \@opt_provers,
+							   { 'timeout' => $opt_timeout });
+
+	    if ($independence == -1) {
+		$unknown{$axiom_name} = 0;
+	    } elsif ($independence == 0) {
+		$known_dependent{$axiom_name} = 0;
+	    } elsif ($independence == 1) {
+		# keep going
+	    } else {
+		confess 'Unexpected value', $SPACE, $independence, $SPACE, 'from the independence-checking function.';
+	    }
+
+	    # if (! $opt_quick && ($independence == -1 || $independence == 0)) {
+	    #     last;
+	    # }
+
+	    if ($opt_verbose) {
+		print $axiom_name, $COLON, $SPACE;
+		if (defined $known_dependent{$axiom_name}) {
+		    say colored ('dependent', $BAD_COLOR);
+		} elsif (defined $unknown{$axiom_name}) {
+		    say colored ('unknown', $UNKNOWN_COLOR);
+		} else {
+		    say colored ('underivable', $GOOD_COLOR);
+		}
+	    }
+
+
 	}
-
-
     }
 
     my @dependent = sort keys %known_dependent;
