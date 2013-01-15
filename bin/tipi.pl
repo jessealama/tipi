@@ -31,6 +31,7 @@ use ConjectureCommand;
 use ModelCommand;
 use SymbolsCommand;
 use IndependenceCommand;
+use EquivalencesCommand;
 use MinimizeCommand;
 use NeededCommand;
 use CountermodelCommand;
@@ -53,6 +54,7 @@ Readonly my %COMMANDS => (
     'model' => ModelCommand->new (),
     'symbols' => SymbolsCommand->new (),
     'independence' => IndependenceCommand->new (),
+    'equivalences' => EquivalencesCommand->new (),
     'minimize' => MinimizeCommand->new (),
     'needed' => NeededCommand->new (),
     'countermodel' => CountermodelCommand->new (),
@@ -220,6 +222,10 @@ Print the symbols occurring in a TPTP theory.
 =item B<independence>
 
 Is my set of axioms independent?
+
+=item B<equivalences>
+
+Are there any pairs of equivalent formulas?
 
 =item B<minimize>
 
