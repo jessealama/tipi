@@ -108,6 +108,23 @@
 	    (when (char= c #\.)
 	      (initialize-lexer))
 
+	    (when (char= c #\<)
+	      (let ((after-< (read-char stream nil nil)))
+		(cond ((null after-<)
+		       (lexer-error #\<))
+		      ((member after-< *whitespace-characters*)
+		       (lexer-error after-<))
+		      ((char= after-< #\=)
+		       (let ((after-after-< (read-char stream nil nil)))
+			 (cond ((null after-after-<)
+				(lexer-error after-<))
+			       ((char= after-after-< #\>)
+				(return-from lexer (values (intern "<=>") "<=>")))
+			       (t
+				(return-from lexer (values (intern "<=") "<="))))))
+		      (t
+		       (lexer-error #\<)))))
+
 	    (when (char= c #\=)
 	      (let ((d (read-char stream nil nil)))
 		(if d
