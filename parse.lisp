@@ -266,10 +266,12 @@
    fof-and-formula)
 
   (fof-or-formula
-   (fof-unitary-formula |\|| fof-unitary-formula))
+   (fof-unitary-formula |\|| fof-unitary-formula)
+   (fof-or-formula |\|| fof-unitary-formula))
 
   (fof-and-formula
-   (fof-unitary-formula |&| fof-unitary-formula))
+   (fof-unitary-formula |&| fof-unitary-formula)
+   (fof-and-formula |&| fof-unitary-formula))
 
   (fof-binary-connective
    |<=>|
