@@ -57,6 +57,9 @@
 
 	))
 
+(defparameter *whitespace-characters*
+  '(#\Space #\Tab #\Newline))
+
 (let (expecting-keyword num-left-parens-seen num-commas-seen expecting-formula)
 
   (defun initialize-lexer ()
@@ -81,14 +84,14 @@
 	   ((char= c #\%)
 	    (read-line stream)) ;; consume comment lines
 
-	   ((member c '(#\Space #\Tab #\Newline))) ;; consume whitespace
+	   ((member c *whitespace-characters*)) ;; consume whitespace
 
 	   ((char= c #\')
 	    (unread-char c stream)
 	    (let ((quoted (read-quoted-atom stream)))
 	      (return-from lexer (values (intern "quoted") quoted))))
 
-	   ((member c '(#\( #\) #\. #\[ #\] #\: #\! #\? #\, #\= #\&))
+	   ((member c '(#\( #\) #\. #\[ #\] #\: #\! #\? #\, #\< #\= #\&))
 	    ;; (break "Got a symbol: ~a" c)
 	    (when (char= c #\()
 	      (incf num-left-parens-seen))
