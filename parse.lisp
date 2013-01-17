@@ -95,7 +95,7 @@
 	    (let ((quoted (read-quoted-atom stream)))
 	      (return-from lexer (values (intern "quoted") quoted))))
 
-	   ((member c '(#\( #\) #\. #\[ #\] #\: #\! #\? #\, #\< #\= #\&))
+	   ((member c '(#\( #\) #\. #\[ #\] #\: #\! #\? #\, #\< #\~ #\= #\&))
 	    ;; (break "Got a symbol: ~a" c)
 	    (when (char= c #\()
 	      (incf num-left-parens-seen))
@@ -109,6 +109,19 @@
 		  (= num-commas-seen 2))
 	    (when (char= c #\.)
 	      (initialize-lexer))
+
+	    (when (char= c #\~)
+	      (let ((after-~ (read-char stream nil nil)))
+		(cond ((null after-~)
+		       (lexer-error #\~))
+		      ((member after-~ *whitespace-characters*)
+		       (unread-char after-~ stream)
+		       (return-from lexer (values (intern "~") "~")))
+		      ((char= after-~ #\&)
+		       (return-from lexer (values (intern "~&") "~&")))
+		      (t
+		       (unread-char after-~ stream)
+		       (return-from lexer (values (intern "~") "~"))))))
 
 	    (when (char= c #\!)
 	      (let ((after-! (read-char stream nil nil)))
@@ -209,7 +222,6 @@
 	       |=>|
 	       |<=|
 	       |<~>|
-	       ;; |~|
 	       |~&|
 	       |:|
 	       |!|
