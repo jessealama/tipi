@@ -137,6 +137,9 @@
 
 	    (return-from lexer (values (intern (string c)) (string c))))
 
+	   ((char= c #\|)
+	    (return-from lexer (values (intern "|") "|")))
+
 	   ;; try to read an atom
 	   ((alpha-char-p c)
 	    (unread-char c stream)
