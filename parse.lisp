@@ -41,7 +41,7 @@
    "fof"
    "cnf"
 
-   ;; "include"
+   "include"
 
    ;; formula roles
    "axiom"
@@ -218,6 +218,8 @@
 	       |fi_predicates|
 	       |type|
 	       |unknown|
+	       |sq-char|
+	       |include|
 	       |<=>|
 	       |=>|
 	       |<=|
@@ -242,6 +244,22 @@
   (tptp-input
    annotated-formula
    include)
+
+  (include
+   (|include| |(| file-name formula-selection |)|))
+
+  (file-name
+   single-quoted)
+
+  (single-quoted
+   (single-quote sq-char sq-chars single-quote))
+
+  (sq-chars
+   ()
+   (sq-char sq-chars))
+
+  (single-quote
+   |'|)
 
   (annotated-formula
    fof-annotated
