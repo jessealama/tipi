@@ -87,6 +87,10 @@
 	  (format stream "~{~a~%~}" formulas)
 	  (format stream "(empty list of formulas/clauses)")))))
 
+(defmethod signature ((tptp tptp-db))
+  (reduce #'merge-signatures (mapcar #'signature
+				     (mapcar #'formula (formulas tptp)))))
+
 (defclass derivability-problem (tptp-db)
   ((conjecture
     :initarg :conjecture

@@ -109,10 +109,6 @@
 (defgeneric signature (tptp)
   (:documentation "The signature of TPTP."))
 
-(defmethod signature ((tptp tptp-db))
-  (reduce #'merge-signatures (mapcar #'signature
-				     (mapcar #'formula (formulas tptp)))))
-
 (defmethod signature ((formula tptp-formula))
   (signature (formula formula)))
 
