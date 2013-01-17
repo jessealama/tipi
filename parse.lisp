@@ -259,7 +259,7 @@
    fof-binary-assoc)
 
   (fof-binary-nonassoc
-   (fof-unitary-formula binary-connective fof-unitary-formula))
+   (fof-unitary-formula fof-binary-connective fof-unitary-formula))
 
   (fof-binary-assoc
    fof-or-formula
