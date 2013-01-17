@@ -282,10 +282,10 @@
    |~&|)
 
   (fof-unitary-formula
+   (|(| fof-logic-formula |)|)
    fof-quantified-formula
    fof-unary-formula
-   atomic-formula
-   (|(| fof-logic-formula |)|))
+   atomic-formula)
 
   (fof-quantified-formula
    (fol-quantifier |[| fof-variable-list |]| |:| fof-unitary-formula))
