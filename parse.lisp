@@ -41,6 +41,8 @@
    "fof"
    "cnf"
 
+   ;; "include"
+
    ;; formula roles
    "axiom"
    "hypothesis"
