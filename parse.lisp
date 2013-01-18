@@ -128,6 +128,9 @@
 	    (let ((quoted (read-quoted-atom stream)))
 	      (return-from lexer (values (intern "single-quoted") quoted))))
 
+	   ((char= c #\$)
+	    (return-from lexer (values (intern "$") "$")))
+
 	   ((member c '(#\( #\) #\. #\[ #\] #\: #\! #\? #\, #\< #\~ #\= #\&))
 	    ;; (break "Got a symbol: ~a" c)
 	    (when (char= c #\()
@@ -237,6 +240,7 @@
 	       |%|
 	       |lower-word|
 	       |upper-word|
+	       |$|
 	       |alpha-numeric|
 	       |numeric|
 	       |_|
@@ -401,7 +405,18 @@
    |=|)
 
   (defined-plain-formula
-      defined-plain-term)
+      defined-prop
+      (defined-pred |(| arguments |)|))
+
+  (defined-prop
+      ;; should be only "$true" and "$false"
+      atomic-defined-word)
+
+  (atomic-defined-word
+   dollar-word)
+
+  (dollar-word
+   (|$| |lower-word|))
 
   (fol-quantifier
    |!|
