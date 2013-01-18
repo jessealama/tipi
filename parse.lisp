@@ -105,7 +105,7 @@
 	   ((char= c #\')
 	    (unread-char c stream)
 	    (let ((quoted (read-quoted-atom stream)))
-	      (return-from lexer (values (intern "quoted") quoted))))
+	      (return-from lexer (values (intern "single-quoted") quoted))))
 
 	   ((member c '(#\( #\) #\. #\[ #\] #\: #\! #\? #\, #\< #\~ #\= #\&))
 	    ;; (break "Got a symbol: ~a" c)
