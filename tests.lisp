@@ -13,6 +13,11 @@
 	    (setf (gethash name symbol-table) new-symbol)
 	    new-symbol)))))
 
+(defun mismatch-symbols (list-1 list-2)
+  "MISMATCH on LIST-1 and LIST-2, assuming that they are both lists of
+  symbols and the symbols are to be compared by their name."
+  (mismatch list-1 list-2 :test #'string= :key #'symbol-name))
+
 (defmacro define-lexer-test ((test-name) tptp-string &rest tokens)
   `(test ,test-name
      (let ((target-lex-result (mapcar #'maybe-make-symbol ',tokens))
