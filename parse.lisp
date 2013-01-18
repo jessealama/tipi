@@ -320,7 +320,8 @@
    |integer|)
 
   (atomic-word
-   |lower-word|)
+   |lower-word|
+   |single-quoted|)
 
   (formula-role
    |axiom|
