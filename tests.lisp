@@ -13,24 +13,16 @@
 	    (setf (gethash name symbol-table) new-symbol)
 	    new-symbol)))))
 
-(defgeneric same-symbol-or-null (x y))
-
-(defmethod same-symbol-or-null ((x t) (y t))
-  nil)
-
-(defmethod same-symbol-or-null ((x symbol) (y symbol))
-  (string= (symbol-name x) (symbol-name y)))
-
-(defmethod same-symbol-or-null ((x null) (y null))
-  t)
-
 (defmacro define-lexer-test ((test-name) tptp-string &rest tokens)
   `(test ,test-name
-     (let ((target-lex-result (append (mapcar #'maybe-make-symbol ',tokens)
-				      (list nil)))
+     (let ((target-lex-result (mapcar #'maybe-make-symbol ',tokens))
 	   (lexed (lex-tptp-formula ,tptp-string)))
-       (is (null (mismatch lexed target-lex-result :test #'same-symbol-or-null)))
-       (is (null (mismatch target-lex-result lexed :test #'same-symbol-or-null))))))
+       (is (null (mismatch lexed target-lex-result
+			   :test #'string=
+			   :key #'symbol-name)))
+       (is (null (mismatch target-lex-result lexed
+			   :test #'string=
+			   :key #'symbol-name))))))
 
 (define-lexer-test (lex-tptp-1)
     "fof(a,axiom,p)."
