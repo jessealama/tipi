@@ -23,7 +23,7 @@
          (when (or (null c)
                    (not (or (digit-char-p c)
 			    (alpha-char-p c)
-			    (eql c #\_))))
+			    (char-equal c #\_))))
            (maybe-unread c stream)
            (when (null v)
              (lexer-error c))
