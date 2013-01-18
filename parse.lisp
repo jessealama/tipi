@@ -274,6 +274,8 @@
 	       |!=|
 	       |&|
 	       |\||
+	       |axiom_of_choice|
+	       |tautology|
 	       ))
 
   (tptp-file
