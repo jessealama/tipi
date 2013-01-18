@@ -138,7 +138,8 @@
 	    (when (char= c #\,)
 	      (incf num-commas-seen))
 	    (setf expecting-keyword
-		  (zerop num-left-parens-seen)
+		  (or (zerop num-left-parens-seen)
+		      (= num-commas-seen 1))
 		  expecting-formula
 		  (= num-commas-seen 2))
 	    (when (char= c #\.)
