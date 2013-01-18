@@ -236,8 +236,9 @@
 	       |fi_predicates|
 	       |type|
 	       |unknown|
-	       |sq-char|
+	       |single-quoted|
 	       |include|
+	       |integer|
 	       |<=>|
 	       |=>|
 	       |<=|
