@@ -17,10 +17,11 @@
   `(test ,test-name
      (let ((target-lex-result (mapcar #'maybe-make-symbol ',tokens))
 	   (lexed (lex-tptp-formula ,tptp-string)))
-       (is (null (mismatch lexed target-lex-result
+       (is (null (first (last lexed))))
+       (is (null (mismatch (butlast lexed) target-lex-result
 			   :test #'string=
 			   :key #'symbol-name)))
-       (is (null (mismatch target-lex-result lexed
+       (is (null (mismatch (butlast target-lex-result) lexed
 			   :test #'string=
 			   :key #'symbol-name))))))
 
