@@ -27,12 +27,24 @@
            (maybe-unread c stream)
            (when (null v)
              (lexer-error c))
-           (return-from read-word (coerce (nreverse v) 'string)))
+	   (return-from read-word (coerce (nreverse v) 'string)))
          (push c v)))))
 
 (defun read-quoted-atom (stream)
-  (declare (ignore stream))
-  (error "We don't handle quoted atoms yet, sorry.  Please complain loudly."))
+  (let ((v nil)
+	(first-single-quote-read nil))
+    (loop
+       (let ((c (read-char stream nil nil)))
+	 (when (null c)
+	   (if (null v)
+	       (lexer-error "read-quoted-atom failed")
+	       (lexer-error (car v))))
+	 (if (char= c #\')
+	     (if first-single-quote-read
+		 (return-from read-quoted-atom
+		   (coerce (nreverse v) 'string))
+		 (setf first-single-quote-read t))
+	     (push c v))))))
 
 (defparameter *tptp-keywords*
   (list
