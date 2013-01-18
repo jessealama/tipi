@@ -319,6 +319,12 @@
    atomic-word
    |integer|)
 
+  (number
+   |integer|
+   ;; rational  (not yet supported)
+   ;; real  (not yet supported)
+   )
+
   (atomic-word
    |lower-word|
    |single-quoted|)
@@ -428,12 +434,6 @@
 
   (atomic-defined-word
    dollar-word)
-  (number
-   |integer|
-   ;; rational  (not yet supported)
-   ;; real  (not yet supported)
-   )
-
 
   (dollar-word
    (|$| |lower-word|))
