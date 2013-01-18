@@ -501,17 +501,6 @@
 
 ;;; The toplevel loop
 
-(defun calculator ()
-  (format t "Type an infix expression to evaluate it, an empty line to quit.~%")
-  (initialize-lexer)
-  (loop
-     (with-simple-restart (abort "Return to calculator toplevel.")
-       (format t "? ")
-       (let ((e (parse-with-lexer #'lexer *tptp-v5.4.0.0-parser*)))
-         (when (null e)
-           (return-from calculator))
-         (format t " => ~a~%" e)))))
-
 (defun parse-tptp-file (tptp-path)
   (with-open-file (tptp-stream tptp-path
 			       :direction :input
