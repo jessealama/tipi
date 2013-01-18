@@ -342,6 +342,19 @@
    fof-logic-formula
    fof-sequent)
 
+  (cnf-formula
+   (|(| disjunction |)|)
+   disjunction)
+
+  (disjunction
+   literal
+   (literal |\|| disjunction))
+
+  (literal
+   atomic-formula
+   (|~| atomic-formula)
+   fol-infix-unary)
+
   (fof-logic-formula
    fof-binary-formula
    fof-unitary-formula)
