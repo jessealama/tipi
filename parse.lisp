@@ -309,11 +309,117 @@
    fof-annotated
    cnf-annotated)
 
-  ;; (fof-annotated
-  ;;  (|fof| |(| name |,| formula-role |,| fof-formula |)| |.|))
-
   (fof-annotated
-   (|fof| |(| name |,| |lower-word| |,| fof-formula |)| |.|))
+   (|fof| |(| name |,| formula-role |,| fof-formula annotations |)| |.|))
+
+  (cnf-annotated
+   (|cnf| |(| name |,| formula-role |,| cnf-formula annotations |)| |.|))
+
+  (annotations
+   (|,| source optional-info)
+   ())
+
+  (optional-info
+   (|,| useful-info)
+   ()
+   )
+
+  ;; (source
+  ;;  dag-source
+  ;;  internal-source
+  ;;  external-source
+  ;;  |unknown|
+  ;;  (|[| sources |]|))
+
+  (source
+   general-term)
+
+  (sources
+   source
+   (source |,| sources))
+
+  (internal-source
+   (|introduced| |(| intro-type optional-info |)|))
+
+  (intro-type
+   |definition|
+   |axiom_of_choice|
+   |tautology|
+   |assumption|)
+
+  (external-source
+   file-source
+   theory
+   creator-source)
+
+  (file-source
+   ;; (|file| |(| file-name file-info |)|)
+   (|lower-word| |(| file-name file-info |)|)) ;; the content of the
+					       ;; lower-word should be
+					       ;; the string "file"
+
+  (file-name
+   |single-quoted|)
+
+  (file-info
+   (|,| name)
+   ()
+   )
+
+  (dag-source
+   name
+   inference-record)
+
+  (inference-record
+   ;; the content of the first lower-word should be "inference"
+   (|lower-word| |(| inference-rule |,| useful-info |,| |[| parent-list |]| |)|)
+
+
+   ;; (|inference| |(| inference-rule |,| useful-info |,| |[| parent-list |]|)
+   )
+
+
+  (parent-list
+   parent-info
+   (parent-info |,| parent-list))
+
+  (parent-info
+   (source parent-details))
+
+  (parent-details
+   (|:| general-list)
+   ())
+
+  (inference-rule
+   atomic-word)
+
+  (useful-info
+   general-list)
+
+  (general-list
+   (|[| |]|)
+   (|[| general-terms |]|))
+
+  (general-terms
+   general-term
+   (general-term |,| general-terms))
+
+  (general-term
+   general-data
+   (general-data |:| general-term)
+   general-list)
+
+  (general-data
+   atomic-word
+   general-function
+   variable
+   number
+   ;; distinct-object  (not yet supported)
+   ;; formula-data  (not yet supported)
+   )
+
+  (general-function
+   (atomic-word |(| general-terms |)|))
 
   (name
    atomic-word
