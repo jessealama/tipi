@@ -46,6 +46,22 @@
 		 (setf first-single-quote-read t))
 	     (push c v))))))
 
+(defun read-integer (stream)
+  (loop
+     :with v = nil
+     :for c = (read-char stream nil nil)
+     :do
+     (cond ((null c)
+	    (lexer-error (if (null v)
+			     "read-integer failed"
+			     (car v))))
+	   ((digit-char-p c)
+	    (push c v))
+	   (t
+	    (unread-char c stream)
+	    (return-from read-integer
+	      (parse-integer (coerce (nreverse v) 'string)))))))
+
 (defparameter *tptp-keywords*
   (list
 
@@ -101,6 +117,11 @@
 	    (read-line stream)) ;; consume comment lines
 
 	   ((member c *whitespace-characters*)) ;; consume whitespace
+
+	   ((digit-char-p c)
+	    (unread-char c stream)
+	    (return-from lexer (values (intern "integer")
+				       (read-integer stream))))
 
 	   ((char= c #\')
 	    (unread-char c stream)
