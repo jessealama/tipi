@@ -185,15 +185,21 @@
 	    (unread-char c stream)
 	    (let ((next-word (read-word stream)))
 	      ;; (break "next-word = ~a" next-word)
-	      (if expecting-keyword
-		  (if (member next-word *tptp-keywords* :test #'string=)
-		      (return-from lexer (values (intern next-word) next-word))
-		      (error "We are expecting a TPTP keyword, but~%~%  ~a~%~%isn't a known keyword.  The known keywords are:~%~%~{  ~a~%~}~%" next-word *tptp-keywords*))
-		  (if (lower-case-p c)
-		      (return-from lexer (values (intern "lower-word") next-word))
-		      (return-from lexer (values (intern "upper-word") next-word))))))
+	      (cond (expecting-keyword
+		     (when (string= next-word "include")
+		       (setf expecting-keyword nil))
+		     (unless (member next-word *tptp-keywords* :test #'string=)
+		       (error "We are expecting a TPTP keyword, but~%~%  ~a~%~%isn't a known keyword.  The known keywords are:~%~%~{  ~a~%~}~%" next-word *tptp-keywords*))
+		     (return-from lexer (values (intern next-word) next-word)))
+		    ((lower-case-p c)
+		     (return-from lexer (values (intern "lower-word") next-word)))
+		    ((upper-case-p c)
+		     (return-from lexer (values (intern "upper-word") next-word)))
+		    (t
+		     (error "Don't know how to handle '~a'." next-word)))))
 
 	   (t
+	    (break "falling through a cond")
 	    (lexer-error c))))))
 
 ;;; The parser
@@ -258,31 +264,36 @@
    include)
 
   (include
-   (|include| |(| file-name formula-selection |)|))
+   (|include| |(| file-name formula-selection |)| |.|))
 
   (file-name
-   single-quoted)
+   |single-quoted|)
 
-  (single-quoted
-   (single-quote sq-char sq-chars single-quote))
-
-  (sq-chars
+  (formula-selection
    ()
-   (sq-char sq-chars))
+   (|,| |[| name-list |]|))
 
-  (single-quote
-   |'|)
+  (name-list
+   name
+   (name |,| name-list))
+
+  (name
+   atomic-word
+   integer)
 
   (annotated-formula
    fof-annotated
    cnf-annotated)
 
+  ;; (fof-annotated
+  ;;  (|fof| |(| name |,| formula-role |,| fof-formula |)| |.|))
+
   (fof-annotated
-   (|fof| |(| name |,| formula-role |,| fof-formula |)| |.|))
+   (|fof| |(| name |,| |lower-word| |,| fof-formula |)| |.|))
 
   (name
    atomic-word
-   integer)
+   |integer|)
 
   (atomic-word
    |lower-word|)
