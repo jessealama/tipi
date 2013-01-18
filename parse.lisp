@@ -238,13 +238,9 @@
 	       |[|
 	       |]|
 	       |=|
-	       |%|
 	       |lower-word|
 	       |upper-word|
 	       |$|
-	       |alpha-numeric|
-	       |numeric|
-	       |_|
 	       |'|
 	       |axiom|
 	       |hypothesis|
