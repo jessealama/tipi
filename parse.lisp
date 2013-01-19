@@ -31,20 +31,22 @@
          (push c v)))))
 
 (defun read-quoted-atom (stream)
-  (let ((v nil)
-	(first-single-quote-read nil))
-    (loop
-       (let ((c (read-char stream nil nil)))
-	 (when (null c)
-	   (if (null v)
-	       (lexer-error "read-quoted-atom failed")
-	       (lexer-error (car v))))
-	 (if (char= c #\')
-	     (if first-single-quote-read
-		 (return-from read-quoted-atom
-		   (coerce (nreverse v) 'string))
-		 (setf first-single-quote-read t))
-	     (push c v))))))
+  (loop
+     :with v = nil
+     :with first-single-quote-read = nil
+     :for c = (read-char stream nil nil)
+     :do
+     (cond ((null c)
+	    (lexer-error (if (null v)
+			     "read-quoted-atom failed"
+			     (car v))))
+	   ((char= c #\')
+	    (when first-single-quote-read
+	      (return-from read-quoted-atom
+		(coerce (nreverse v) 'string)))
+	    (setf first-single-quote-read t))
+	   (t
+	    (push c v)))))
 
 (defun read-integer (stream)
   (loop
