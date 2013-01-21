@@ -417,9 +417,11 @@
    ())
 
   (optional-info
-   (|,| useful-info)
-   ()
-   )
+   (|,| useful-info
+	#'(lambda (comma x)
+	    (declare (ignore comma))
+	    x))
+   ())
 
   ;; (source
   ;;  dag-source
@@ -491,12 +493,21 @@
    general-list)
 
   (general-list
-   (|[| |]|)
-   (|[| general-terms |]|))
+   (|[| |]|
+	#'(lambda (left-bracket right-bracket)
+	    (declare (ignore left-bracket right-bracket))
+	    nil))
+   (|[| general-terms |]|
+	#'(lambda (left-bracket stuff right-bracket)
+	    (declare (ignore left-bracket right-bracket))
+	    stuff)))
 
   (general-terms
-   general-term
-   (general-term |,| general-terms))
+   (general-term #'(lambda (x) (list x)))
+   (general-term |,| general-terms
+		 #'(lambda (head comma tail)
+		     (declare (ignore comma))
+		     (cons head tail))))
 
   (general-term
    general-data
@@ -513,7 +524,12 @@
    )
 
   (general-function
-   (atomic-word |(| general-terms |)|))
+   (atomic-word |(| general-terms |)|
+		#'(lambda (word left-paren terms right-paren)
+		    (declare (ignore left-paren right-paren))
+		    (make-instance 'atomic-expression
+				   :head (intern word)
+				   :arguments terms))))
 
   (name
    atomic-word
@@ -550,7 +566,10 @@
    fof-sequent)
 
   (cnf-formula
-   (|(| disjunction |)|)
+   (|(| disjunction |)|
+	#'(lambda (left-paren x right-paren)
+	    (declare (ignore left-paren right-paren))
+	    x))
    disjunction)
 
   (disjunction
@@ -683,13 +702,20 @@
 
   (defined-prop
       ;; should be only "$true" and "$false"
-      atomic-defined-word)
+      (atomic-defined-word #'(lambda (word)
+			       (cond ((string= word "true") *nullary-true*)
+				     ((string= word "false") *nullary-false*)
+				     (t
+				      (error "Unknown atomic defined word '~a'." word))))))
 
   (atomic-defined-word
    dollar-word)
 
   (dollar-word
-   (|$| |lower-word|))
+   (|$| |lower-word|
+	#'(lambda (dollar word)
+	    (declare (ignore dollar))
+	    word)))
 
   (fol-quantifier
    |!|
@@ -731,7 +757,10 @@
    )
 
   (function-term
-   plain-term
+   (plain-term #'(lambda (x)
+		   (make-instance 'function-term
+				  :head (head x)
+				  :arguments (arguments x))))
    defined-term
    system-term)
 
