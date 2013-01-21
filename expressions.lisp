@@ -102,6 +102,16 @@
 (defun atomic-formula? (thing)
   (typep thing 'atomic-formula))
 
+(defparameter *nullary-true*
+  (make-instance 'atomic-formula
+		 :predicate "true"
+		 :arguments nil))
+
+(defparameter *nullary-false*
+  (make-instance 'atomic-formula
+		 :predicate "false"
+		 :arguments nil))
+
 (defclass unary-connective-formula (composite-formula)
   ((argument :initarg :argument
 	     :accessor argument)))
