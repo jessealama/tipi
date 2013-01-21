@@ -345,7 +345,10 @@
    ()
    (tptp-input tptp-inputs
 	       #'(lambda (arg-1 arg-2)
-		   (cons arg-1 arg-2))))
+		   (make-instance 'tptp-db
+				  :formulas (cons arg-1
+						  (when arg-2
+						    (formulas arg-2)))))))
 
   (tptp-input
    annotated-formula
