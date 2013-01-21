@@ -227,7 +227,42 @@
 	    (break "falling through a cond")
 	    (lexer-error c))))))
 
-;;; The parser
+;;; The parser and semantic actions
+
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defun k-2-3 (a b c)
+    "Second out of three."
+    (declare (ignore a c))
+    b)
+  )
+
+(defclass tptp-formula ()
+  ((name
+    :initarg :name
+    :initform (error "An fof needs a name.")
+    :accessor name)
+   (role
+    :initarg :role
+    :accessor role
+    :initform (error "An fof needs a role."))
+   (formula
+    :initarg :formula
+    :accessor formula
+    :initform (error "An fof needs a formula."))
+   (annotations
+    :initarg :annotations
+    :initform nil
+    :accessor annotations)))
+
+(defclass fof (tptp-formula)
+  nil)
+
+(defmethod print-object ((fof fof) stream)
+  (print-unreadable-object (fof stream :type t :identity nil)
+    (format stream "~a (~a): ~a  [~a]" (name fof) (role fof) (formula fof) (annotations fof))))
+
+(defclass cnf (tptp-formula)
+  nil)
 
 (define-parser *tptp-v5.4.0.0-parser*
   (:start-symbol tptp-file)
@@ -282,7 +317,9 @@
 
   (tptp-inputs
    ()
-   (tptp-input tptp-inputs))
+   (tptp-input tptp-inputs
+	       #'(lambda (arg-1 arg-2)
+		   (cons arg-1 arg-2))))
 
   (tptp-input
    annotated-formula
@@ -311,7 +348,19 @@
    cnf-annotated)
 
   (fof-annotated
-   (|fof| |(| name |,| formula-role |,| fof-formula annotations |)| |.|))
+   (|fof| |(| name |,| formula-role |,| fof-formula annotations |)| |.|
+	  #'(lambda (fof-symbol left-paren name comma-1 role comma-2 formula annotations right-paren full-stop)
+	      (declare (ignore fof-symbol
+			       left-paren
+			       comma-1
+			       comma-2
+			       right-paren
+			       full-stop))
+	      (make-instance 'fof
+			     :name name
+			     :role role
+			     :formula formula
+			     :annotations annotations))))
 
   (cnf-annotated
    (|cnf| |(| name |,| formula-role |,| cnf-formula annotations |)| |.|))
@@ -516,7 +565,10 @@
    )
 
   (plain-atomic-formula
-   plain-term)
+   (plain-term #'(lambda (x)
+		   (make-instance 'atomic-formula
+				  :predicate (head x)
+				  :arguments (arguments x)))))
 
   (defined-atomic-formula
       defined-plain-formula
@@ -579,8 +631,17 @@
    system-term)
 
   (plain-term
-   constant
-   (functor |(| arguments |)|))
+   (constant
+    #'(lambda (c)
+	(make-instance 'atomic-expression
+		       :head (intern c)
+		       :arguments nil)))
+   (functor |(| arguments |)|
+	    #'(lambda (f lparen args rparen)
+		(declare (ignore lparen rparen))
+		(make-instance 'atomic-expression
+			       :head (make-symbol f)
+			       :arguments args))))
 
   (constant
    functor)
@@ -628,7 +689,16 @@
 
 ;;; The toplevel loop
 
-(defun parse-tptp-file (tptp-path)
+(defgeneric parse-tptp (tptp))
+
+(defmethod parse-tptp ((tptp-string string))
+  (with-input-from-string (string tptp-string)
+    (let ((*standard-input* string))
+      (initialize-lexer)
+      (parse-with-lexer #'lexer
+			*tptp-v5.4.0.0-parser*))))
+
+(defmethod parse-tptp ((tptp-path pathname))
   (with-open-file (tptp-stream tptp-path
 			       :direction :input
 			       :if-does-not-exist :error)
