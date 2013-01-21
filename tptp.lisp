@@ -328,3 +328,41 @@
 (defmethod print-object ((include include-instruction) stream)
   (print-unreadable-object (include stream :type t :identity nil)
     (format stream "~a : (~{~a~^ ~})" (file include) (selection include))))
+
+(defgeneric simplify-justification (tptp))
+
+(defmethod simplify-justification ((tptp-string string))
+  (simplify-justification (parse-tptp tptp-string)))
+
+(defmethod simplify-justification ((tptp-path pathname))
+  (simplify-justification (parse-tptp tptp-path)))
+
+(defmethod simplify-justification ((tptp-db tptp-db))
+  (let* ((formulas (formulas tptp-db))
+	 (new-formulas nil)
+	 (names (mapcar #'name formulas))
+	 (names-table (make-hash-table :test #'equal)))
+    (dolist (name names)
+      (setf (gethash name names-table) t))
+    (dolist (formula formulas)
+      (let ((annotation (annotations formula)))
+	(let ((source (source annotation))
+	      (earlier-table (make-hash-table :test #'equal)))
+	  (let ((atoms (flatten-tptp source)))
+	    (dolist (atom atoms)
+	      (when (gethash atom names-table)
+		(unless (gethash atom earlier-table)
+		  (setf (gethash atom earlier-table) t)))))
+	  (let ((new-annotation (make-instance 'annotation
+					       :source (hash-table-keys earlier-table))))
+	    (let ((new-formula (make-instance (class-of formula)
+					      :name (name formula)
+					      :role (role formula)
+					      :formula (formula formula)
+					      :annotations new-annotation)))
+	      (push new-formula new-formulas))))))
+    (make-instance 'tptp-db
+		   :formulas (reverse new-formulas))))
+
+(defmethod simplify-justification ((include include-instruction))
+  include)

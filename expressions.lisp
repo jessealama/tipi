@@ -792,37 +792,6 @@ class ATOMIC-FORMULA.  This function expresses that disjointedness."
 ;; Formulas
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defclass tptp-formula ()
-  ((name :type string
-	 :initarg :name
-	 :accessor name
-	 :initform (error "A TPTP formula requires a name."))
-   (syntax :type string
-	   :initarg :syntax
-	   :accessor syntax
-	   :initform (error "A TPTP formula requires a syntax."))
-   (status :type string
-	   :initarg :status
-	   :accessor status
-	   :initform (error "A TPTP formula requires a status/role."))
-   (formula :type formula
-	    :initarg :formula
-	    :accessor formula
-	    :initform (error "A TPTP formula requires a formula proper."))
-   (source
-    :accessor source
-    :initarg :source)
-   (useful-info :type list
-		:accessor useful-info
-		:initarg :useful-info)))
-
-(defmethod print-object ((formula tptp-formula) stream)
-  (print-unreadable-object
-      (formula stream :identity nil :type t)
-    (if (slot-boundp formula 'source)
-	(format stream "~a (~a): ~a [source: ~a]" (name formula) (status formula) (formula formula) (source formula))
-	(format stream "~a (~a): ~a" (name formula) (status formula) (formula formula)))))
-
 (defun render-syntax (formula)
   (let ((syntax (syntax formula)))
     (cond ((string= syntax "formula") "fof")
@@ -865,5 +834,34 @@ class ATOMIC-FORMULA.  This function expresses that disjointedness."
 (defun sort-formula-list (formula-list)
   (let ((sorted (sort formula-list #'string< :key #'name)))
     (mapcar #'name sorted)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Flatten
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defgeneric flatten-tptp (tptp-thing)
+  (:documentation "All the atoms that can be reached from TPTP-THING."))
+
+(defmethod flatten-tptp ((unhandled-tptp-thing t))
+  (let ((class (class-of unhandled-tptp-thing)))
+    (error "Don't know how to flatten TPTP things of class ~a." class)))
+
+(defmethod flatten-tptp ((tptp-thing string))
+  (list tptp-thing))
+
+(defmethod flatten-tptp ((tptp-thing cons))
+  (append (flatten-tptp (car tptp-thing))
+	  (flatten-tptp (cdr tptp-thing))))
+
+(defmethod flatten-tptp ((tptp-thing null))
+  nil)
+
+(defmethod flatten-tptp ((tptp-thing integer))
+  (list tptp-thing))
+
+(defmethod flatten-tptp ((tptp-atom atomic-expression))
+  (apply #'append
+	 (list (head tptp-atom))
+	 (mapcar #'flatten-tptp (arguments tptp-atom))))
 
 ;;; formulas.lisp ends here
