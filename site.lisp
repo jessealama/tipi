@@ -8,36 +8,35 @@
 (defclass tipi-acceptor (hunchentoot:acceptor)
   ())
 
-(defparameter *parser-acceptor* nil
+(defparameter *tipi-acceptor* nil
   "The Hunchentoot acceptor that we use for the parser service.")
 
 (defun start-tipi-server ()
   (let ((acceptor (make-instance 'tipi-acceptor :port +tipi-port+)))
-    (setf *tipi-hunchentoot-acceptor* acceptor)
-    (hunchentoot:start *tipi-hunchentoot-acceptor*)))
+    (setf *tipi-acceptor* acceptor)
+    (hunchentoot:start *tipi-acceptor*)))
 
 (defun stop-tipi-server ()
-  (when (null *tipi-hunchentoot-acceptor*)
+  (when (null *tipi-acceptor*)
     (error "The server appears not to be running."))
-  (hunchentoot:stop *tipi-hunchentoot-acceptor*))
+  (hunchentoot:stop *tipi-acceptor*))
 
-(define-constant +information-message+
-    (with-html-output-to-string (dummy)
-      (:head
-       (:title "tipi")
-       (:link :rel "stylesheet" :href "tipi.css" :type "text/css" :media "screen")
-       (:link :rel "icon" :href "favicon.ico" :type "image/png"))
-      (:body
-       (:h1 "About this service")
-       (:p "Where would you like your interets delivered?")))
-  :test #'string=
-  :documentation "The informational message that we output when we detect that information is what is sought (as opposed to detecting that a parser operation should be carried out).")
+(defparameter *information-message*
+  (with-html-output-to-string (dummy)
+    (:head
+     (:title "tipi")
+     (:link :rel "stylesheet" :href "tipi.css" :type "text/css" :media "screen")
+     (:link :rel "icon" :href "favicon.ico" :type "image/png"))
+    (:body
+     (:h1 "About this service")
+     (:p "Where would you like your interets delivered?")))
+  "The informational message that we output when we detect that information is what is sought (as opposed to detecting that a parser operation should be carried out).")
 
 (defmacro emit-canned-message ()
   `(progn
      (setf (content-type*) "application/xhtml+xml")
      (with-html (:doctype "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.1//EN\" \"http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd\">")
-       (str +information-message+))))
+       (str *information-message*))))
 
 (defmethod acceptor-dispatch-request ((acceptor tipi-acceptor) request)
   (let ((uri (script-name request)))
