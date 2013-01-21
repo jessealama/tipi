@@ -112,6 +112,35 @@
 		 :predicate "false"
 		 :arguments nil))
 
+(defclass equation (atomic-formula)
+  ((lhs
+    :accessor lhs
+    :initarg :lhs
+    :initform (error "An equation needs a left-hand side."))
+   (rhs
+    :accessor rhs
+    :initarg :rhs
+    :initform (error "An equation needs a right-hand side."))))
+
+(defmethod arguments :around ((x equation))
+  (list (lhs x) (rhs x)))
+
+(defclass disequation (atomic-formula)
+  ((lhs
+    :accessor lhs
+    :initarg :lhs
+    :initform (error "A disequation needs a left-hand side."))
+   (rhs
+    :accessor rhs
+    :initarg :rhs
+    :initform (error "A disquation needs a right-hand side."))))
+
+(defmethod initialize-instance :after ((x disequation) &rest initargs &key &allow-other-keys)
+  (declare (ignore initargs))
+  (setf (arguments x)
+	(list (lhs x) (rhs x)))
+  x)
+
 (defclass unary-connective-formula (composite-formula)
   ((argument :initarg :argument
 	     :accessor argument)))
@@ -175,6 +204,11 @@
 	   (format stream "(~a = ~a)" (first args) (second args)))
 	  (t
 	   (format stream "~a(~{~a~^,~})" pred args)))))
+
+(defmethod print-object ((x disequation) stream)
+  (with-slots (lhs rhs)
+      x
+    (format stream "(~a != ~a)" lhs rhs)))
 
 (defgeneric render-plainly (statement))
 
