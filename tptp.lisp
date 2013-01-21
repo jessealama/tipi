@@ -324,3 +324,7 @@
     :initarg :selection
     :type list
     :initform nil)))
+
+(defmethod print-object ((include include-instruction) stream)
+  (print-unreadable-object (include stream :type t :identity nil)
+    (format stream "~a : (~{~a~^ ~})" (file include) (selection include))))
