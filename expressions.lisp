@@ -126,6 +126,9 @@
 (defclass implication (binary-connective-formula)
   nil)
 
+(defclass reverse-implication (binary-connective-formula)
+  nil)
+
 (defclass equivalence (binary-connective-formula)
   nil)
 
@@ -246,6 +249,9 @@
 
 (defmethod render-plainly ((formula implication))
   "-->")
+
+(defmethod render-plainly ((formula reverse-implication))
+  "<--")
 
 (defmethod render-fancily ((formula implication))
   "→")
@@ -384,6 +390,9 @@ class ATOMIC-FORMULA.  This function expresses that disjointedness."
 
 (defmethod print-object ((implication implication) stream)
   (format stream "=>"))
+
+(defmethod print-object ((implication reverse-implication) stream)
+  (format stream "<="))
 
 (defgeneric make-implication (antecedent consequent))
 
