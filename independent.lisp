@@ -68,7 +68,7 @@ decision."))
 			 unknown-premises)))))
 
 (defmethod independent? ((problem pathname) &key timeout quick)
-  (let ((db (read-tptp problem)))
+  (let ((db (parse-tptp problem)))
     (let ((conjecture (conjecture-formula db)))
       (independent? (if conjecture (remove-conjecture db) db)
 		    :timeout timeout

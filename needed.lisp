@@ -67,5 +67,5 @@
 	(error "There is no conjecture formula in the given problem."))))
 
 (defmethod needed-premises ((path pathname) &key (timeout +default-timeout+))
-  (let ((db (read-tptp path)))
+  (let ((db (parse-tptp path)))
     (needed-premises db :timeout timeout)))

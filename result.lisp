@@ -43,7 +43,7 @@
   nil)
 
 (defmethod interpret ((result eprover-result))
-  (read-tptp (text result)))
+  (parse-tptp (text result)))
 
 (defun filter-paradox-text (text)
   "The non-TPTP header and footer lines of TEXT."
@@ -62,4 +62,4 @@
     (format nil "~{~a~%~}" model-lines)))
 
 (defmethod interpret ((result paradox-result))
-  (read-tptp (filter-paradox-text (text result))))
+  (parse-tptp (filter-paradox-text (text result))))

@@ -27,35 +27,6 @@
       (close tptp4X-out)
       (close tptp4X-err))))
 
-(defgeneric read-tptp (tptp-thing))
-
-(defmethod read-tptp :around ((tptp-thing pathname))
-  (if (probe-file tptp-thing)
-      (call-next-method)
-      (error "There is no file at '~a'." (namestring tptp-thing))))
-
-(defmethod read-tptp ((tptp-file pathname))
-  (let ((lisp-string (apply-stylesheet *tptp-to-lisp-stylesheet*
-				       (xmlize-tptp tptp-file)
-				       nil
-				       nil))
-	(problem (make-instance 'tptp-db
-				:path tptp-file)))
-    (with-readtable (find-readtable :modern)
-      (let ((tptp-form (handler-case (read-from-string lisp-string)
-			 (error (c) (error "Unable to make sense of~%~%~a~%~%as a Lisp representation of~%~%  ~a~%~%The error was:~%~%  ~a" lisp-string (namestring tptp-file) c)))))
-	(setf (formulas problem) (mapcar #'make-tptp-formula tptp-form))))
-    problem))
-
-(defmethod read-tptp ((tptp-string string))
-  (let ((temp (temporary-file)))
-    (with-open-file (tptp-file temp
-			       :direction :output
-			       :if-does-not-exist :create
-			       :if-exists :supersede)
-      (format tptp-file "~a" tptp-string))
-    (read-tptp temp)))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; TPTP databases
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -142,7 +113,7 @@
 	(error "No conjecture formula found in ~{~a~%~}" formulas))))
 
 (defmethod make-derivability-problem ((problem pathname))
-  (make-derivability-problem (read-tptp problem)))
+  (make-derivability-problem (parse-tptp problem)))
 
 (defmethod render ((problem tptp-db))
   (format nil "~{~a~%~}" (mapcar #'render (formulas problem))))
@@ -237,7 +208,7 @@
 (defmethod change-status-of-formula-in ((formula string)
 					(problem pathname)
 					(new-status string))
-  (change-status-of-formula-in formula (read-tptp problem) new-status))
+  (change-status-of-formula-in formula (parse-tptp problem) new-status))
 
 (defmethod change-status-of-formula-in ((formula string)
 					(problem tptp-db)
@@ -338,3 +309,18 @@
     (make-instance 'derivability-problem
 		   :conjecture conjecture
 		   :formulas new-formulas)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Includes
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defclass include-instruction ()
+  ((file
+    :accessor file
+    :initarg :file
+    :initform (error "An include instruction requires a file name."))
+   (selection
+    :accessor selection
+    :initarg :selection
+    :type list
+    :initform nil)))

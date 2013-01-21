@@ -262,4 +262,4 @@
                      :szs-status (lookup-szs-status "Error")))))
 
 (defmethod solve (solver (problem pathname) &key (timeout +default-timeout+))
-  (solve solver (read-tptp problem) :timeout timeout))
+  (solve solver (parse-tptp problem) :timeout timeout))

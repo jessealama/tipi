@@ -57,7 +57,7 @@
     (list solutions non-solutions unknown)))
 
 (defmethod minimize ((problem pathname) &key (timeout +default-timeout+))
-  (let ((db (read-tptp problem)))
+  (let ((db (parse-tptp problem)))
     (let ((conjecture (conjecture-formula db)))
       (if conjecture
 	  (let ((p (make-derivability-problem (cons conjecture
