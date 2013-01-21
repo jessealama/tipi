@@ -380,11 +380,17 @@
 
   (formula-selection
    ()
-   (|,| |[| name-list |]|))
+   (|,| |[| name-list |]|
+	#'(lambda (comma left-bracket stuff right-bracket)
+	    (declare (ignore comma left-bracket right-bracket))
+	    stuff)))
 
   (name-list
-   name
-   (name |,| name-list))
+   (name #'list)
+   (name |,| name-list
+	 #'(lambda (head comma tail)
+	     (declare (ignore comma))
+	     (cons head tail))))
 
   (name
    atomic-word
