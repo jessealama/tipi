@@ -14,6 +14,7 @@
 	       :cl-fad
 	       :yacc
 	       :named-readtables
+	       :hunchentoot-utils
 	       :drakma
 	       :hunchentoot
 	       :cl-who
