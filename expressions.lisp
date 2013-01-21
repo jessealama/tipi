@@ -168,7 +168,7 @@
 (defgeneric render-fancily (statement))
 
 (defmethod render-plainly ((statement term))
-  (let ((func-sym (function-symbol statement))
+  (let ((func-sym (head statement))
 	(args (arguments statement)))
     (if (null args)
 	(format nil "~A" func-sym)
