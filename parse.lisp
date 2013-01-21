@@ -134,17 +134,12 @@
 
 	   ((member c '(#\( #\) #\. #\[ #\] #\: #\! #\? #\, #\< #\~ #\= #\&))
 	    ;; (break "Got a symbol: ~a" c)
-	    (when (char= c #\()
-	      (incf num-left-parens-seen))
-	    (when (char= c #\,)
-	      (incf num-commas-seen))
-	    (setf expecting-keyword
-		  (or (zerop num-left-parens-seen)
-		      (= num-commas-seen 1))
-		  expecting-formula
-		  (= num-commas-seen 2))
 	    (when (char= c #\.)
 	      (initialize-lexer))
+
+	    (when (char= c #\,)
+	     (incf num-commas-read)
+	     (return-from lexer (values (intern ",") ",")))
 
 	    (when (char= c #\~)
 	      (let ((after-~ (read-char stream nil nil)))
@@ -205,17 +200,32 @@
 	    (return-from lexer (values (intern "|") "|")))
 
 	   ;; try to read an atom
+
+	   (toplevel-p
+	    (unread-char c stream)
+	    (let ((next-word (read-word stream)))
+	      (if (member next-word *tptp-keywords* :test #'string=)
+		  (progn
+		    (when (string= next-word "include")
+		      (setf within-include t))
+		    (setf toplevel-p nil)
+		    (return-from lexer (values (intern next-word) next-word)))
+		  (error "Don't know how to handle the toplevel word '~a'." next-word))))
+
+	   ((and (= num-commas-read 1)
+		 (not within-include))
+	    (unread-char c stream)
+	    (let ((next-word (read-word stream)))
+	      (if (member next-word *formula-roles* :test #'string=)
+		  (progn
+		    (return-from lexer (values (intern next-word) next-word)))
+		  (error "Unknown formula role '~a'." next-word))))
+
 	   ((alpha-char-p c)
 	    (unread-char c stream)
 	    (let ((next-word (read-word stream)))
 	      ;; (break "next-word = ~a" next-word)
-	      (cond (expecting-keyword
-		     (when (string= next-word "include")
-		       (setf expecting-keyword nil))
-		     (unless (member next-word *tptp-keywords* :test #'string=)
-		       (error "We are expecting a TPTP keyword, but~%~%  ~a~%~%isn't a known keyword.  The known keywords are:~%~%~{  ~a~%~}~%" next-word *tptp-keywords*))
-		     (return-from lexer (values (intern next-word) next-word)))
-		    ((lower-case-p c)
+	      (cond ((lower-case-p c)
 		     (return-from lexer (values (intern "lower-word") next-word)))
 		    ((upper-case-p c)
 		     (return-from lexer (values (intern "upper-word") next-word)))
@@ -354,7 +364,15 @@
    include)
 
   (include
-   (|include| |(| file-name formula-selection |)| |.|))
+   (|include| |(| file-name formula-selection |)| |.|
+	      #'(lambda (word left-paren file-name formula-selection right-paren full-stop)
+		     (declare (ignore left-paren right-paren full-stop))
+		     (unless (string= word "include")
+		       (error "We are expecting 'include', but we received '~a'." word))
+		     (make-instance 'include-instruction
+				    :file file-name
+				    :selection formula-selection)))
+   )
 
   (file-name
    (|single-quoted| #'(lambda (x)
