@@ -74,37 +74,36 @@
    "include"
 
    ;; formula roles
-   "axiom"
-   "hypothesis"
-   "definition"
-   "assumption"
-   "lemma"
-   "theorem"
-   "conjecture"
-   "negated_conjecture"
-   "plain"
-   "fi_domain"
-   "fi_functors"
-   "fi_predicates"
-   "type"
-   "unknown"
 
+	))
+
+(defparameter *formula-roles*
+  (list "axiom"
+	"hypothesis"
+	"definition"
+	"assumption"
+	"lemma"
+	"theorem"
+	"conjecture"
+	"negated_conjecture"
+	"plain"
+	"fi_domain"
+	"fi_functors"
+	"fi_predicates"
+	"type"
+	"unknown"
 	))
 
 (defparameter *whitespace-characters*
   '(#\Space #\Tab #\Newline))
 
-(let (expecting-keyword num-left-parens-seen num-commas-seen expecting-formula)
+(let (toplevel-p num-commas-read within-include)
 
   (defun initialize-lexer ()
-    (setf expecting-keyword t
-	  expecting-formula nil
-	  num-left-parens-seen 0
-	  num-commas-seen 0)
+    (setf toplevel-p t)
+    (setf num-commas-read 0)
+    (setf within-include nil)
     t)
-
-  (defun lexer-report-state ()
-    (format t "Num left parens seen: ~d~%Num commas seen: ~d~%Expecting TPTP keyword: ~a~%" num-left-parens-seen num-commas-seen (if expecting-keyword "yes" "no")))
 
   (defun lexer (&optional (stream *standard-input*))
     (loop
