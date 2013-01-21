@@ -764,7 +764,12 @@
    |~|)
 
   (fol-infix-unary
-   (term infix-inequality term))
+   (term infix-inequality term
+	 #'(lambda (lhs disequality-symbol rhs)
+	     (declare (ignore disequality-symbol))
+	     (make-instance 'disequation
+			    :lhs lhs
+			    :rhs rhs))))
 
   (term
    function-term
