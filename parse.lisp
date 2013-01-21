@@ -257,12 +257,38 @@
 (defclass fof (tptp-formula)
   nil)
 
-(defmethod print-object ((fof fof) stream)
-  (print-unreadable-object (fof stream :type t :identity nil)
-    (format stream "~a (~a): ~a  [~a]" (name fof) (role fof) (formula fof) (annotations fof))))
-
 (defclass cnf (tptp-formula)
   nil)
+
+(defclass annotation ()
+  ((source
+    :initarg :source
+    :initform nil
+    :accessor source)
+   (optional-info
+    :initarg :optional-info
+    :initform nil
+    :accessor optional-info)))
+
+(defmethod print-object ((x annotation) stream)
+  (with-slots (optional-info source)
+      x
+    (print-unreadable-object (x stream :type t :identity nil)
+      (if optional-info
+	  (if source
+	      (format stream "source: ~a ; optional-info: ~a" source optional-info)
+	      (format stream "optional info: ~a (no source)" optional-info))
+	  (if source
+	      (format stream "source: ~a ; (no optional info)" source)
+	      (format stream "(no source; no optional info)"))))))
+
+(defmethod print-object ((x tptp-formula) stream)
+  (with-slots (name role formula annotations)
+      x
+    (print-unreadable-object (x stream :type t :identity nil)
+      (if annotations
+	  (format stream "~a (~a): ~a  [~a]" name role formula annotations)
+	  (format stream "~a (~a): ~a" name role formula)))))
 
 (define-parser *tptp-v5.4.0.0-parser*
   (:start-symbol tptp-file)
@@ -329,7 +355,8 @@
    (|include| |(| file-name formula-selection |)| |.|))
 
   (file-name
-   |single-quoted|)
+   (|single-quoted| #'(lambda (x)
+			(format nil "'~a'" x))))
 
   (formula-selection
    ()
@@ -363,10 +390,27 @@
 			     :annotations annotations))))
 
   (cnf-annotated
-   (|cnf| |(| name |,| formula-role |,| cnf-formula annotations |)| |.|))
+   (|cnf| |(| name |,| formula-role |,| cnf-formula annotations |)| |.|
+	  #'(lambda (fof-symbol left-paren name comma-1 role comma-2 formula annotations right-paren full-stop)
+	      (declare (ignore fof-symbol
+			       left-paren
+			       comma-1
+			       comma-2
+			       right-paren
+			       full-stop))
+	      (make-instance 'cnf
+			     :name name
+			     :role role
+			     :formula formula
+			     :annotations annotations))))
 
   (annotations
-   (|,| source optional-info)
+   (|,| source optional-info
+	#'(lambda (comma s o-i)
+	    (declare (ignore comma))
+	    (make-instance 'annotation
+			   :source s
+			   :optional-info o-i)))
    ())
 
   (optional-info
@@ -407,9 +451,6 @@
    (|lower-word| |(| file-name file-info |)|)) ;; the content of the
 					       ;; lower-word should be
 					       ;; the string "file"
-
-  (file-name
-   |single-quoted|)
 
   (file-info
    (|,| name)
@@ -527,19 +568,50 @@
    fof-binary-assoc)
 
   (fof-binary-nonassoc
-   (fof-unitary-formula fof-binary-connective fof-unitary-formula))
+   (fof-unitary-formula fof-binary-connective fof-unitary-formula
+			#'(lambda (lhs connective rhs)
+			    (make-instance (cond ((string= connective "<=>")
+						  'equivalence)
+						 ((string= connective "<~>")
+						  'nonequivalence)
+						 ((string= connective "=>")
+						  'implication)
+						 ((string= connective "<=")
+						  'reverse-implication))
+					   :lhs lhs
+					   :rhs rhs))))
 
   (fof-binary-assoc
    fof-or-formula
    fof-and-formula)
 
   (fof-or-formula
-   (fof-unitary-formula |\|| fof-unitary-formula)
-   (fof-or-formula |\|| fof-unitary-formula))
+   (fof-unitary-formula |\|| fof-unitary-formula
+			#'(lambda (disjunct-1 vbar disjunct-2)
+			    (declare (ignore vbar))
+			    (make-instance 'binary-disjunction
+					   :lhs disjunct-1
+					   :rhs disjunct-2)))
+   (fof-or-formula |\|| fof-unitary-formula
+		   #'(lambda (disjunction vbar disjunct)
+		       (declare (ignore vbar))
+		       (make-instance 'binary-disjunction
+				      :lhs disjunction
+				      :rhs disjunct))))
 
   (fof-and-formula
-   (fof-unitary-formula |&| fof-unitary-formula)
-   (fof-and-formula |&| fof-unitary-formula))
+   (fof-unitary-formula |&| fof-unitary-formula
+			#'(lambda (conjunct-1 ampersand conjunct-2)
+			    (declare (ignore ampersand))
+			    (make-instance 'binary-conjunction
+					   :lhs conjunct-1
+					   :rhs conjunct-2)))
+   (fof-and-formula |&| fof-unitary-formula
+		    #'(lambda (conjunction ampersand conjunct)
+			    (declare (ignore ampersand))
+			    (make-instance 'binary-conjunction
+					   :lhs conjunction
+					   :rhs conjunct))))
 
   (fof-binary-connective
    |<=>|
@@ -550,13 +622,26 @@
    |~&|)
 
   (fof-unitary-formula
-   (|(| fof-logic-formula |)|)
+   (|(| fof-logic-formula |)|
+	#'(lambda (left-paren formula right-paren)
+	    (declare (ignore left-paren right-paren))
+	    formula))
    fof-quantified-formula
    fof-unary-formula
    atomic-formula)
 
   (fof-quantified-formula
-   (fol-quantifier |[| fof-variable-list |]| |:| fof-unitary-formula))
+   (fol-quantifier |[| fof-variable-list |]| |:| fof-unitary-formula
+		   #'(lambda (quantifier left-bracket variable-list right-bracket colon matrix)
+		       (declare (ignore left-bracket right-bracket colon))
+		       (make-instance (cond ((string= quantifier "!")
+					     'universal-generalization)
+					    ((string= quantifier "?")
+					     'existential-generalization)
+					    (t
+					     (error "Unknown quantifier '~a'." quantifier)))
+				      :bindings variable-list
+				      :matrix matrix))))
 
   (atomic-formula
    plain-atomic-formula
@@ -575,13 +660,19 @@
       defined-infix-formula)
 
   (defined-infix-formula
-      (term defined-infix-pred term))
+      (term defined-infix-pred term
+	    #'(lambda (left pred right)
+		(make-instance 'atomic-formula
+			       :predicate pred
+			       :arguments (list left right)))))
 
   (defined-infix-pred
       infix-equality)
 
   (infix-equality
-   |=|)
+   (|=| #'(lambda (x)
+	    (declare (ignore x))
+	    (intern "="))))
 
   (defined-plain-formula
       defined-prop
@@ -602,14 +693,25 @@
    |?|)
 
   (fof-variable-list
-   variable
-   (variable |,| fof-variable-list))
+   (variable
+    #'(lambda (x) (list x)))
+   (variable |,| fof-variable-list
+	     #'(lambda (head-variable comma more-variables)
+		 (declare (ignore comma))
+		 (cons head-variable more-variables))))
 
   (variable
-   |upper-word|)
+   (|upper-word| #'(lambda (x)
+		     (make-instance 'variable-term
+				    :head (intern x)))))
 
   (fof-unary-formula
-   (unary-connective fof-unitary-formula)
+   (unary-connective fof-unitary-formula
+		     #'(lambda (connective argument)
+			 (unless (string= connective "~")
+			   (error "Unknown unary connective '~a'." connective))
+			 (make-instance 'negation
+					:argument argument)))
    fol-infix-unary)
 
   (unary-connective
@@ -639,7 +741,7 @@
    (functor |(| arguments |)|
 	    #'(lambda (f lparen args rparen)
 		(declare (ignore lparen rparen))
-		(make-instance 'atomic-expression
+		(make-instance 'function-term
 			       :head (make-symbol f)
 			       :arguments args))))
 
@@ -650,8 +752,12 @@
    atomic-word)
 
   (arguments
-   term
-   (term |,| arguments))
+   (term #'(lambda (x)
+	     (list x)))
+   (term |,| arguments
+	 #'(lambda (head-term comma more-terms)
+	     (declare (ignore comma))
+	     (cons head-term more-terms))))
 
   (defined-term
       defined-atom
