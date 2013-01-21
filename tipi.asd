@@ -40,4 +40,5 @@
 	       (:file "minimal")
 	       (:file "independent")
 	       (:file "parse")
+	       (:file "site")
 	       (:file "tests")))
