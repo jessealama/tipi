@@ -14,6 +14,13 @@
     :accessor arguments
     :type list)))
 
+(defmethod print-object ((term atomic-expression) stream)
+  (with-slots (head arguments)
+      term
+    (if (null arguments)
+	(format stream "~a" head)
+	(format stream "~a(~{~a~^,~})" head arguments))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Terms
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -25,13 +32,6 @@
 
 (defclass function-term (atomic-expression term)
   nil)
-
-(defmethod print-object ((function function-term) stream)
-  (let ((func (head function))
-	(args (arguments function)))
-    (if (null args)
-	(format stream "~a" func)
-	(format stream "~a(~{~a~^,~})" func args))))
 
 (defun make-function-term (function &rest args)
   (make-instance 'function-term
