@@ -1,6 +1,73 @@
-;;; formulas.lisp A representation for propositional and first-order formulas
 
 (in-package :tipi)
+
+(defclass expression ()
+  nil)
+
+(defclass atomic-expression (expression)
+  ((head
+    :initarg :head
+    :accessor head
+    :type symbol)
+   (arguments
+    :initarg :arguments
+    :accessor arguments
+    :type list)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Terms
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defclass term (expression) nil)
+
+(defun term? (thing)
+  (typep thing 'term))
+
+(defclass function-term (atomic-expression term)
+  nil)
+
+(defmethod print-object ((function function-term) stream)
+  (let ((func (head function))
+	(args (arguments function)))
+    (if (null args)
+	(format stream "~a" func)
+	(format stream "~a(~{~a~^,~})" func args))))
+
+(defun make-function-term (function &rest args)
+  (make-instance 'function-term
+		 :function function
+		 :args args))
+
+(defclass variable-term (atomic-expression term)
+  nil)
+
+(defmethod print-object ((var variable-term) stream)
+  (format stream "~a" (head var)))
+
+(defun variable? (thing)
+  (typep thing 'variable-term))
+
+(defgeneric form->term (form)
+  (:documentation "Attempt to understand FORM as a term."))
+
+(defmethod form->term ((list list))
+  (if (null list)
+      (error 'parse-form-empty-list-supplied-error)
+      (op-and-args->term (symbolify-here (car list))
+			 (cdr list))))
+
+(defmethod form->term ((term string))
+  (list term))
+
+(defmethod form->term ((sym symbol))
+  (let ((name (symbol-name sym)))
+    (if (empty-string? name)
+	(error 'parse-form-empty-string-supplied)
+	(let ((first-char (char name 0)))
+	  (if (char= first-char #\?)
+	      (make-instance 'variable-term
+			     :name (subseq name 1))
+	      (make-function-term name))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Operators
@@ -28,7 +95,7 @@
 (defclass atomic-formula (formula)
   ((predicate :initarg :predicate
 	      :accessor predicate)
-   (args :initarg :args
+   (args :initarg :arguments
 	 :accessor arguments
 	 :type list)))
 
@@ -235,7 +302,7 @@
 (defmethod make-atomic-formula ((predicate symbol) &rest arguments)
   (make-instance 'atomic-formula
 		 :predicate predicate
-		 :args (mapcar #'form->term arguments)))
+		 :arguments (mapcar #'form->term arguments)))
 
 (defparameter contradiction (make-atomic-formula 'bottom))
 
@@ -569,7 +636,7 @@ class ATOMIC-FORMULA.  This function expresses that disjointedness."
 		(make-implication antecedent consequent))
 	      (error 'parse-form-exactly-two-args-expected-but-at-least-three-supplied-error
 		     :operator op
-		     :args arguments)))))
+		     :arguments arguments)))))
 
 (defmethod op-and-args->formula ((op (eql *equivalence-symbol*)) arguments)
   (if (null arguments)
