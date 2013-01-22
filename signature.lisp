@@ -135,7 +135,7 @@
 (defmethod signature ((term function-term))
   (let ((arguments (arguments term)))
     (let ((func-symbol (make-instance 'function-symbol
-				      :name (function-symbol term)
+				      :name (head term)
 				      :arity (length arguments))))
       (let ((sig (make-instance 'first-order-signature
 				:functions (list func-symbol))))
