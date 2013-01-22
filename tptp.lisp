@@ -367,6 +367,9 @@
 
 (defgeneric formula-with-name (tptp-db name))
 
+(defmethod formula-with-name ((tptp-db tptp-db) (name integer))
+  (formula-with-name tptp-db (format nil "~d" name)))
+
 (defmethod formula-with-name ((tptp-db tptp-db) (name symbol))
   (formula-with-name tptp-db (symbol-name name)))
 
