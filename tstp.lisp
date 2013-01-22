@@ -34,7 +34,7 @@
 
 (defmethod restrict-solution-to-problem-language ((tstp tstp-db))
   (loop
-     with problem = (problem tstp)
+     with problem = (expand-includes (problem tstp))
      with problem-signature = (signature problem)
      for formula in (formulas tstp)
      when (belongs-to-signature formula problem-signature)
