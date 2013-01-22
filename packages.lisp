@@ -18,6 +18,7 @@
 		#:in-readtable)
   (:import-from :cl-fad
 		#:file-exists-p
+		#:directory-exists-p
 		#:directory-pathname-p
 		#:pathname-as-directory)
   (:import-from :alexandria
