@@ -205,7 +205,8 @@
     (if conjecture
 	(make-instance 'derivability-problem
 		       :formulas (non-conjecture-formulas formulas)
-		       :conjecture conjecture)
+		       :conjecture conjecture
+		       :path (path formulas))
 	(error "There is no conjecture formula in ~a." formulas))))
 
 (defmethod make-derivability-problem ((formulas null))
