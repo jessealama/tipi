@@ -157,6 +157,12 @@
 	  (format stream "~{~a~%~}" formulas)
 	  (format stream "(empty list of formulas/clauses)")))))
 
+(defun problem-directory (tptp-db)
+  (with-slots (path)
+      tptp-db
+    (when (pathnamep path)
+      (directory-namestring path))))
+
 (defmethod signature ((formula tptp-formula))
   (signature (formula formula)))
 
