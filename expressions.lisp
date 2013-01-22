@@ -38,11 +38,36 @@
 		 :function function
 		 :args args))
 
+(defmethod render-html ((x function-term))
+  (with-slots (head arguments)
+      x
+    (if (null arguments)
+	(with-html-output-to-string (dummy)
+	  (htm ((:span :class "function-name") (fmt "~a" head))))
+	(with-html-output-to-string (dummy)
+	  (htm ((:span :class "function-name") (fmt "~a" head)))
+	  (str "(")
+	  (loop
+	     :with len = (length arguments)
+	     :for i :from 1 upto len
+	     :for arg :in arguments
+	     :do
+	     (htm (fmt "~a" (render-html arg)))
+	     (when (< i len)
+	       (htm (str ", "))))
+	  (str ")")))))
+
 (defclass variable-term (atomic-expression term)
   nil)
 
 (defmethod print-object ((var variable-term) stream)
   (format stream "~a" (head var)))
+
+(defmethod render-html ((var variable-term))
+  (with-slots (head)
+      var
+    (with-html-output-to-string (dummy)
+      ((:span :class "variable") (fmt "~a" head)))))
 
 (defun variable? (thing)
   (typep thing 'variable-term))
@@ -96,13 +121,32 @@
   ((predicate
     :initarg :predicate
     :accessor predicate)
-   (args
+   (arguments
     :initarg :arguments
     :accessor arguments
     :type list)))
 
 (defun atomic-formula? (thing)
   (typep thing 'atomic-formula))
+
+(defmethod render-html ((x atomic-formula))
+  (with-slots (predicate arguments)
+      x
+    (if (null arguments)
+	(with-html-output-to-string (dummy)
+	  (htm ((:span :class "predicate-symbol") (fmt "~a" predicate))))
+	(with-html-output-to-string (dummy)
+	  (htm ((:span :class "predicate-symbol") (fmt "~a" predicate)))
+	  (str "(")
+	  (loop
+	     :with len = (length arguments)
+	     :for i :from 1 upto len
+	     :for arg :in arguments
+	     :do
+	     (htm (fmt "~a" (render-html arg)))
+	     (when (< i len)
+	       (htm (str ", "))))
+	  (str ")")))))
 
 (defparameter *nullary-true*
   (make-instance 'atomic-formula
@@ -127,6 +171,12 @@
 (defmethod arguments :around ((x equation))
   (list (lhs x) (rhs x)))
 
+(defmethod render-html ((x equation))
+  (with-slots (lhs rhs)
+      x
+    (with-html-output-to-string (dummy)
+      (fmt "~a = ~a" (render-html lhs) (render-html rhs)))))
+
 (defclass disequation (atomic-formula)
   ((lhs
     :accessor lhs
@@ -143,6 +193,12 @@
 	(list (lhs x) (rhs x)))
   (setf (predicate x) (intern "!="))
   x)
+
+(defmethod render-html ((x disequation))
+  (with-slots (lhs rhs)
+      x
+    (with-html-output-to-string (dummy)
+      (fmt "~a &ne; ~a" (render-html lhs) (render-html rhs)))))
 
 (defclass unary-connective-formula (composite-formula)
   ((argument :initarg :argument
@@ -303,6 +359,12 @@
 (defmethod render-fancily ((formula implication))
   "→")
 
+(defmethod render-html ((formula implication))
+  (with-slots (lhs rhs)
+      formula
+    (with-html-output-to-string (dummy)
+      (fmt "(~a &rarr; ~a)" (render-html lhs) (render-html rhs)))))
+
 (defmethod render-plainly ((formula equivalence))
   "<-->")
 
@@ -320,6 +382,21 @@
 
 (defmethod render-fancily ((formula universal-generalization))
   "∀")
+
+(defmethod render-html ((formula universal-generalization))
+  (with-slots (bindings matrix)
+      formula
+    (with-html-output-to-string (dummy)
+      (str "&forall; [")
+      (loop
+	 :with len = (length bindings)
+	 :for binding :in bindings
+	 :for i :from 1 :upto len
+	 :do
+	 (htm ((:span :class "variable") (fmt "~a" binding)))
+	 (when (< i len)
+	   (htm (str ", "))))
+      (fmt "] : (~a)" (render-html matrix)))))
 
 (defmethod render-plainly ((formula existential-generalization))
   "exists")
@@ -548,6 +625,12 @@ class ATOMIC-FORMULA.  This function expresses that disjointedness."
 
 (defmethod print-object ((con binary-conjunction) stream)
   (format stream "&"))
+
+(defmethod render-html ((con binary-conjunction))
+  (with-slots (lhs rhs)
+      con
+    (with-html-output-to-string (dummy)
+      (fmt "(~a &and; ~a)" (render-html lhs) (render-html rhs)))))
 
 (defclass multiple-arity-conjunction (multiple-arity-connective-formula)
   nil)

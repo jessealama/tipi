@@ -59,17 +59,49 @@
 	  (format stream "~a (~a): ~a  [~a]" name role formula annotations)
 	  (format stream "~a (~a): ~a" name role formula)))))
 
+(defgeneric render (tptp-thing)
+  (:documentation "A plain text rendering of TPTP-THING."))
+
+(defgeneric render-html (tptp-thing)
+  (:documentation "An HTML rendering of TPTP-THING."))
+
 (defmethod render ((formula fof))
   (format nil "fof(~a,~a,~a)."
 	  (name formula)
 	  (role formula)
 	  (formula formula)))
 
+(defmethod render-html ((fof fof))
+  (with-slots (name role formula annotations)
+      fof
+    (with-html-output-to-string (dummy)
+      ((:tr :id (format nil "~a" name)
+	    :class (format nil "fof ~a" role))
+       ((:td :class "formula-name")
+	(fmt "~a" name))
+       ((:td :class "formula-proper")
+	(fmt "~a" (render-html formula)))
+       ((:td :class "formula-annotation")
+	(fmt "~a" (render-html annotations)))))))
+
 (defmethod render ((formula cnf))
   (format nil "cnf(~a,~a,~a)."
 	  (name formula)
 	  (role formula)
 	  (formula formula)))
+
+(defmethod render-html ((cnf cnf))
+  (with-slots (name role formula annotations)
+      cnf
+    (with-html-output-to-string (dummy)
+      ((:tr :id (format nil "~a" name)
+	    :class (format nil "cnf ~a" role))
+       ((:td :class "formula-name")
+	(fmt "~a" name))
+       ((:td :class "formula-proper")
+	(fmt "~a" (render-html formula)))
+       ((:td :class "formula-annotation")
+	(fmt "~a" (render-html annotations)))))))
 
 (defgeneric make-tptp-formula (thing))
 
@@ -225,11 +257,65 @@
 
 (defmethod render ((formulas list))
   (if formulas
-      (format nil "(empty formula list)")
-      (format nil "~{~a~%~}" (mapcar #'render formulas))))
+      (format nil "~{~a~%~}" (mapcar #'render formulas))
+      (format nil "(empty formula list)")))
 
 (defmethod render ((problem tptp-db))
   (render (formulas problem)))
+
+(defmethod render-html ((formula-list null))
+  "")
+
+(defmethod render-html ((formula-list list))
+  (with-html-output-to-string (dummy)
+    ((:table :class "tptp-db" :title "TPTP formulas")
+     (:caption "TPTP formulas")
+     (:thead
+      (:tr
+       (:th "Name")
+       (:th "Formula")
+       (:th "Annotation")))
+     (:tbody
+      (dolist (formula formula-list)
+	(htm (fmt "~a" (render-html formula)))))
+     (:tfoot
+      (:tr
+       ((:td :colspan 3)
+	(:p ((:span :class "conjecture") "Conjectures")
+	    ", "
+	    ((:span :class "definition") "Definitions")
+	    ", "
+	    ((:span :class "axiom") "Axioms")
+	    ", "
+	    ((:span :class "lemma") "Lemmas")
+	    ", "
+	    ((:span :class "hypothesis") "Hypotheses"))))))))
+
+(defmethod render-html ((problem tptp-db))
+  (with-slots (formulas)
+      problem
+    (with-html-output-to-string (dummy)
+      (let ((includes (remove-if-not #'(lambda (x) (eql (type-of x) 'include-instruction)) formulas))
+	    (non-includes (remove-if #'(lambda (x) (eql (type-of x) 'include-instruction)) formulas)))
+	(when includes
+	  (htm
+	   ((:table :title "Include statements" :class "include-table")
+	    (:caption "Include statements")
+	    (:thead
+	     (:tr
+	      (:th "File")
+	      (:th "Selection")))
+	    (dolist (include includes)
+	      (htm (:tbody
+		    (fmt "~a" (render-html include)))))
+	    (:tfoot
+	     ((:form :method "post"
+		     :action "expand"
+		     :enctype "multipart/form-data")
+	      ((:input :type "submit"
+		       :title "Expand these include statements"
+		       :value "Expand")))))))
+	(htm (fmt "~a" (render-html non-includes)))))))
 
 (defmethod render ((problem derivability-problem))
   (with-output-to-string (s)
@@ -442,6 +528,29 @@
   (print-unreadable-object (include stream :type t :identity nil)
     (format stream "~a : (~{~a~^ ~})" (file include) (selection include))))
 
+(defmethod render ((include include-instruction))
+  (with-slots (file selection)
+      include
+    (format nil "include(~a,[~{~a~^,~}])." file selection)))
+
+(defmethod render-html ((include include-instruction))
+  (with-slots (file selection)
+      include
+    (with-html-output-to-string (dummy)
+      (:tr
+       ((:td :class "file-name") (fmt "~a" file))
+       (if (null selection)
+	   (htm ((:td :class "formula-selection") "(none)"))
+	   (htm ((:td :class "formula-selection")
+		 (loop
+		    :with len = (length selection)
+		    :for formula :in selection
+		    :for i :from 1
+		    :do
+		    (htm ((:span :class "formula-name") (fmt "~a" formula)))
+		    (when (< i len)
+		      (htm (str ", ")))))))))))
+
 (defgeneric simplify-justification (tptp))
 
 (defmethod simplify-justification ((tptp-string string))
@@ -540,3 +649,9 @@
     (make-instance 'tptp-db
 		   :formulas (reverse new-formulas)
 		   :path path)))
+
+(defun include-instructions (tptp-db)
+  (remove-if-not #'(lambda (x) (eql (type-of x) 'include-instruction)) (formulas tptp-db)))
+
+(defun formulas-w/o-includes (tptp-db)
+  (remove-if #'(lambda (x) (eql (type-of x) 'include-instruction)) (formulas tptp-db)))

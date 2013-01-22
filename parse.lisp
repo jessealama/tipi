@@ -95,7 +95,7 @@
 	))
 
 (defparameter *whitespace-characters*
-  '(#\Space #\Tab #\Newline))
+  '(#\Space #\Tab #\Newline #\Return))
 
 (let (toplevel-p num-commas-read within-include)
 
@@ -121,16 +121,16 @@
 
 	   ((digit-char-p c)
 	    (unread-char c stream)
-	    (return-from lexer (values (intern "integer")
+	    (return-from lexer (values (intern "integer" :tipi)
 				       (read-integer stream))))
 
 	   ((char= c #\')
 	    (unread-char c stream)
 	    (let ((quoted (read-quoted-atom stream)))
-	      (return-from lexer (values (intern "single-quoted") quoted))))
+	      (return-from lexer (values (intern "single-quoted" :tipi) quoted))))
 
 	   ((char= c #\$)
-	    (return-from lexer (values (intern "$") "$")))
+	    (return-from lexer (values (intern "$" :tipi) "$")))
 
 	   ((member c '(#\( #\) #\. #\[ #\] #\: #\! #\? #\, #\< #\~ #\= #\&))
 	    ;; (break "Got a symbol: ~a" c)
@@ -139,7 +139,7 @@
 
 	    (when (char= c #\,)
 	     (incf num-commas-read)
-	     (return-from lexer (values (intern ",") ",")))
+	     (return-from lexer (values (intern "," :tipi) ",")))
 
 	    (when (char= c #\~)
 	      (let ((after-~ (read-char stream nil nil)))
@@ -147,12 +147,12 @@
 		       (lexer-error #\~))
 		      ((member after-~ *whitespace-characters*)
 		       (unread-char after-~ stream)
-		       (return-from lexer (values (intern "~") "~")))
+		       (return-from lexer (values (intern "~" :tipi) "~")))
 		      ((char= after-~ #\&)
-		       (return-from lexer (values (intern "~&") "~&")))
+		       (return-from lexer (values (intern "~&" :tipi) "~&")))
 		      (t
 		       (unread-char after-~ stream)
-		       (return-from lexer (values (intern "~") "~"))))))
+		       (return-from lexer (values (intern "~" :tipi) "~"))))))
 
 	    (when (char= c #\!)
 	      (let ((after-! (read-char stream nil nil)))
@@ -160,12 +160,12 @@
 		       (lexer-error #\!))
 		      ((member after-! *whitespace-characters*)
 		       (unread-char after-! stream)
-		       (return-from lexer (values (intern "!") "!")))
+		       (return-from lexer (values (intern "!" :tipi) "!")))
 		      ((char= after-! #\=)
-		       (return-from lexer (values (intern "!=") "!=")))
+		       (return-from lexer (values (intern "!=" :tipi) "!=")))
 		      (t
 		       (unread-char after-! stream)
-		       (return-from lexer (values (intern "!") "!"))))))
+		       (return-from lexer (values (intern "!" :tipi) "!"))))))
 
 	    (when (char= c #\<)
 	      (let ((after-< (read-char stream nil nil)))
@@ -178,9 +178,9 @@
 			 (cond ((null after-after-<)
 				(lexer-error after-<))
 			       ((char= after-after-< #\>)
-				(return-from lexer (values (intern "<=>") "<=>")))
+				(return-from lexer (values (intern "<=>" :tipi) "<=>")))
 			       (t
-				(return-from lexer (values (intern "<=") "<="))))))
+				(return-from lexer (values (intern "<=" :tipi) "<="))))))
 		      (t
 		       (lexer-error #\<)))))
 
@@ -188,16 +188,16 @@
 	      (let ((d (read-char stream nil nil)))
 		(if d
 		    (if (char= d #\>)
-			(return-from lexer (values (intern "=>") "=>"))
+			(return-from lexer (values (intern "=>" :tipi) "=>"))
 			(progn
 			    (unread-char d stream)
-			    (return-from lexer (values (intern "=") "="))))
+			    (return-from lexer (values (intern "=" :tipi) "="))))
 		    (lexer-error d))))
 
-	    (return-from lexer (values (intern (string c)) (string c))))
+	    (return-from lexer (values (intern (string c) :tipi) (string c))))
 
 	   ((char= c #\|)
-	    (return-from lexer (values (intern "|") "|")))
+	    (return-from lexer (values (intern "|" :tipi) "|")))
 
 	   ;; try to read an atom
 
@@ -209,7 +209,7 @@
 		    (when (string= next-word "include")
 		      (setf within-include t))
 		    (setf toplevel-p nil)
-		    (return-from lexer (values (intern next-word) next-word)))
+		    (return-from lexer (values (intern next-word :tipi) next-word)))
 		  (error "Don't know how to handle the toplevel word '~a'." next-word))))
 
 	   ((and (= num-commas-read 1)
@@ -218,7 +218,7 @@
 	    (let ((next-word (read-word stream)))
 	      (if (member next-word *formula-roles* :test #'string=)
 		  (progn
-		    (return-from lexer (values (intern next-word) next-word)))
+		    (return-from lexer (values (intern next-word :tipi) next-word)))
 		  (error "Unknown formula role '~a'." next-word))))
 
 	   ((alpha-char-p c)
@@ -226,14 +226,13 @@
 	    (let ((next-word (read-word stream)))
 	      ;; (break "next-word = ~a" next-word)
 	      (cond ((lower-case-p c)
-		     (return-from lexer (values (intern "lower-word") next-word)))
+		     (return-from lexer (values (intern "lower-word" :tipi) next-word)))
 		    ((upper-case-p c)
-		     (return-from lexer (values (intern "upper-word") next-word)))
+		     (return-from lexer (values (intern "upper-word" :tipi) next-word)))
 		    (t
 		     (error "Don't know how to handle '~a'." next-word)))))
 
 	   (t
-	    (break "falling through a cond")
 	    (lexer-error c))))))
 
 ;;; The parser and semantic actions
@@ -497,7 +496,7 @@
 		#'(lambda (word left-paren terms right-paren)
 		    (declare (ignore left-paren right-paren))
 		    (make-instance 'atomic-expression
-				   :head (intern word)
+				   :head (intern word :tipi)
 				   :arguments terms))))
 
   (name
@@ -651,9 +650,15 @@
 
   (plain-atomic-formula
    (plain-term #'(lambda (x)
-		   (make-instance 'atomic-formula
-				  :predicate (head x)
-				  :arguments (arguments x)))))
+		   (let ((head (head x))
+			 (args (arguments x)))
+		     (if (string= (format nil "~a" head) "=")
+			 (make-instance 'equation
+					:lhs (first args)
+					:rhs (second args))
+			 (make-instance 'atomic-formula
+				    :predicate (head x)
+				    :arguments (arguments x)))))))
 
   (defined-atomic-formula
       defined-plain-formula
@@ -662,9 +667,13 @@
   (defined-infix-formula
       (term defined-infix-pred term
 	    #'(lambda (left pred right)
-		(make-instance 'atomic-formula
-			       :predicate pred
-			       :arguments (list left right)))))
+		(unless (string= (format nil "~a" pred) "=")
+		  (error "Unknown infix predicate '~a'." pred))
+		(make-instance 'equation
+			       :predicate (intern "=" :tipi)
+			       :arguments (list left right)
+			       :lhs left
+			       :rhs right))))
 
   (defined-infix-pred
       infix-equality)
@@ -672,7 +681,7 @@
   (infix-equality
    (|=| #'(lambda (x)
 	    (declare (ignore x))
-	    (intern "="))))
+	    (intern "=" :tipi))))
 
   (defined-plain-formula
       defined-prop
@@ -710,7 +719,7 @@
   (variable
    (|upper-word| #'(lambda (x)
 		     (make-instance 'variable-term
-				    :head (intern x)))))
+				    :head (intern x :tipi)))))
 
   (fof-unary-formula
    (unary-connective fof-unitary-formula
@@ -751,13 +760,13 @@
    (constant
     #'(lambda (c)
 	(make-instance 'atomic-expression
-		       :head (intern c)
+		       :head (intern c :tipi)
 		       :arguments nil)))
    (functor |(| arguments |)|
 	    #'(lambda (f lparen args rparen)
 		(declare (ignore lparen rparen))
 		(make-instance 'function-term
-			       :head (make-symbol f)
+			       :head (intern f :tipi)
 			       :arguments args))))
 
   (constant

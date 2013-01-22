@@ -1,0 +1,49 @@
+/* @override 
+	http://localhost:5678/tipi.css */
+	
+span.variable {
+	font-style: italic;
+}
+
+tr.conjecture td.formula-proper {
+	background-color: red;
+}
+
+span.conjecture {
+	background-color: red;
+}
+
+span.definition {
+	background-color: green;
+}
+
+span.lemma {
+	background-color: yellow;
+}
+
+span.theorem {
+	background: orange;
+}
+
+span.hypothesis {
+	background-color: silver;
+}
+
+span.axiom {
+	background-color: pink;
+}
+
+tfoot {
+	text-align: center;
+	font-size: small;
+	font-style: italic;
+	font-weight: bold;
+}
+
+.formula-name {
+	font-family: "Courier New", Courier, mono;
+}
+
+.file-name {
+	font-family: "Courier New", Courier, mono;
+}

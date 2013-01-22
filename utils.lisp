@@ -155,3 +155,13 @@
 	 (sb-posix:chdir ,cwd))))
   #-sbcl
   (error "We support only SBCL at the moment."))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Numbers
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun first-n-numbers (n)
+  (loop
+     :for i :from 1 :upto n
+     :collect i :into numbers
+     :finally (return numbers)))
