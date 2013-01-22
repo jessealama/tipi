@@ -190,11 +190,11 @@
 (defmethod initialize-instance :after ((problem derivability-problem) &rest initargs &key &allow-other-keys)
   (declare (ignore initargs))
   (when (some #'(lambda (premise)
-		  (string= (status premise) "conjecture"))
+		  (string= (role premise) "conjecture"))
 	      (formulas problem))
     (error "Some non-conjecture formula has the TPTP status 'conjecture'."))
   (let ((conjecture (conjecture problem)))
-    (unless (string= (status conjecture) "conjecture")
+    (unless (string= (role conjecture) "conjecture")
       (setf (conjecture problem) (change-status conjecture "conjecture"))))
   problem)
 
@@ -212,9 +212,9 @@
   (error "The empty list does not contain a conjecture formula."))
 
 (defmethod make-derivability-problem ((formulas list))
-  (let ((conjecture (find "conjecture" formulas :test #'string= :key #'status))
+  (let ((conjecture (find "conjecture" formulas :test #'string= :key #'role))
 	(non-conjecture-formulas (remove-if #'(lambda (formula)
-						(string= (status formula) "conjecture"))
+						(string= (role formula) "conjecture"))
 					    formulas)))
     (if conjecture
 	(make-instance 'derivability-problem
@@ -247,7 +247,7 @@
 (defun has-conjecture-formula? (problem)
   (first (member "conjecture"
 		 (formulas problem)
-		 :key #'status
+		 :key #'role
 		 :test #'string=)))
 
 (defun conjecture-string? (string)
@@ -257,7 +257,7 @@
   (make-instance 'tptp-db
 		 :formulas (remove-if #'conjecture-string?
 				      (formulas problem)
-				      :key #'status)))
+				      :key #'role)))
 
 (defgeneric remove-formula (formulas formula))
 
@@ -286,31 +286,28 @@
 (defun formulas-with-status (problem status)
   (remove-if-not #'(lambda (stat) (string= stat status))
 		 (formulas problem)
-		 :key #'status))
+		 :key #'role))
 
 (defun statuses-of-formulas (problem)
   (loop
      with statuses = (make-hash-table :test #'equal)
      for formula in (formulas problem)
-     for status = (status formula)
+     for status = (role formula)
      do (setf (gethash status statuses) 0)
      finally (return (hash-table-keys statuses))))
 
 (defun non-conjecture-formulas (problem)
   (remove-if #'(lambda (stat) (string= stat "conjecture"))
 	     (formulas problem)
-	     :key #'status))
+	     :key #'role))
 
 (defun change-status (formula new-status)
   (make-instance 'tptp-formula
 		 :name (name formula)
-		 :syntax (syntax formula)
+		 :syntax (role formula)
 		 :status new-status
 		 :formula (formula formula)
-		 :source (when (slot-boundp formula 'source)
-			   (source formula))
-		 :useful-info (when (slot-boundp formula 'useful-info)
-				(useful-info formula))))
+		 :annotations (annotations formula)))
 
 (defgeneric change-status-of-formula-in (formula problem new-status)
   (:documentation "Change the TPTP status of FORMULA in PROBLEM to NEW-STATUS."))
