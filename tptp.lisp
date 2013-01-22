@@ -167,8 +167,10 @@
   (signature (formula formula)))
 
 (defmethod signature ((tptp tptp-db))
-  (reduce #'merge-signatures (mapcar #'signature
-				     (mapcar #'formula (formulas tptp)))))
+  (reduce #'merge-signatures
+	  (mapcar #'signature
+		  (mapcar #'formula
+			  (formulas (expand-includes tptp))))))
 
 (defclass derivability-problem (tptp-db)
   ((conjecture
