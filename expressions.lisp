@@ -141,6 +141,7 @@
   (declare (ignore initargs))
   (setf (arguments x)
 	(list (lhs x) (rhs x)))
+  (setf (predicate x) (intern "!="))
   x)
 
 (defclass unary-connective-formula (composite-formula)
