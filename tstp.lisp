@@ -29,20 +29,61 @@
 ;;; Filtering solutions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defun select-sensible-formulas (atom-list solution)
+  (let* ((sensible nil)
+	 (problem (problem solution))
+	 (problem-signature (signature problem)))
+    (dolist (atom atom-list)
+      (let ((formula (formula-with-name solution atom)))
+	(when formula
+	  (if (belongs-to-signature formula problem-signature)
+	      (push atom sensible)
+	      (let ((annotation (annotations formula)))
+		(let ((source (source annotation)))
+		  (let ((formula-atoms (flatten-tptp source)))
+		    (let ((referring-atoms (remove-if-not #'(lambda (atom)
+							     (formula-with-name solution atom))
+							  formula-atoms)))
+		      (setf sensible
+			    (append sensible (select-sensible-formulas referring-atoms solution)))))))))))
+    (remove-duplicates sensible :test #'string= :key #'(lambda (x) (format nil "~a" x)))))
+
+(defun restrict-annotation-to-problem-language (annotation solution)
+  (let ((source (source annotation)))
+    (let ((atoms (flatten-tptp source)))
+      (let ((referring-atoms (remove-if-not #'(lambda (atom)
+						(formula-with-name solution atom))
+					    atoms)))
+	(make-instance 'annotation
+		       :optional-info nil
+		       :source (select-sensible-formulas referring-atoms solution))))))
+
 (defgeneric restrict-solution-to-problem-language (tstp)
   (:documentation "Restrict TSTP to the language employed by its underlying problem.  The main application is to eexclude Skolem functions and splitting predicates that are present in the solution but not in the problem."))
 
+(defmethod restrict-solution-to-problem-language ((tptp tptp-db))
+  tptp)
+
 (defmethod restrict-solution-to-problem-language ((tstp tstp-db))
   (loop
+     with filtered-formulas = nil
      with problem = (expand-includes (problem tstp))
      with problem-signature = (signature problem)
-     for formula in (formulas tstp)
-     when (belongs-to-signature formula problem-signature)
-       collect formula into filtered-formulas
+     for x in (formulas tstp)
+     do
+       (when (belongs-to-signature x problem-signature)
+	 (with-slots (name role formula annotations)
+	     x
+	   (let ((new-formula
+		  (make-instance (class-of x)
+				 :name name
+				 :role role
+				 :formula formula
+				 :annotations (restrict-annotation-to-problem-language annotations tstp))))
+	   (push new-formula filtered-formulas))))
      finally
        (return (make-instance 'tptp-db
-			      :formulas filtered-formulas))))
-
+			      :formulas (reverse filtered-formulas)))))
 
 (defgeneric subproof-terminating-at (tstp step)
   (:documentation "The subproof of TSTP that terminates at STEP."))
