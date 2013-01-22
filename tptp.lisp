@@ -225,8 +225,13 @@
 (defmethod make-derivability-problem ((problem pathname))
   (make-derivability-problem (parse-tptp problem)))
 
+(defmethod render ((formulas list))
+  (if formulas
+      (format nil "(empty formula list)")
+      (format nil "~{~a~%~}" (mapcar #'render formulas))))
+
 (defmethod render ((problem tptp-db))
-  (format nil "~{~a~%~}" (mapcar #'render (formulas problem))))
+  (render (formulas problem)))
 
 (defmethod render ((problem derivability-problem))
   (with-output-to-string (s)
