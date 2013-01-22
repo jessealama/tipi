@@ -322,7 +322,7 @@
 
   (file-name
    (|single-quoted| #'(lambda (x)
-			(format nil "'~a'" x))))
+			(format nil "~a" x))))
 
   (formula-selection
    ()
