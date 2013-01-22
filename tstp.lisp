@@ -17,6 +17,7 @@
 (defmethod parse-tstp ((tstp-file pathname) source-problem)
   (make-instance 'tstp-db
 		 :formulas (formulas (parse-tptp tstp-file))
+		 :path tstp-file
 		 :problem (parse-tptp source-problem)))
 
 (defmethod parse-tstp ((tstp-string string) source-problem)
