@@ -136,23 +136,20 @@
 	     :accessor formulas
 	     :initform nil)
    (path
-    :type pathname
+    :type (or null pathname)
     :accessor path
+    :initform nil
     :initarg :path)))
 
-(defmethod initialize-instance :after ((db tptp-db) &rest initargs &key &allow-other-keys)
-  (declare (ignore initargs))
-  (if (slot-boundp db 'path)
-      (let ((path (path db)))
-	(if (file-exists-p path)
-	    db
-	    (error "No such file '~a'." path)))
-      db))
-
 (defmethod print-object ((problem tptp-db) stream)
-  (print-unreadable-object
-      (problem stream :type t :identity nil)
-    (let ((formulas (formulas problem)))
+  (with-slots (formulas path)
+      problem
+    (print-unreadable-object
+	(problem stream :type t :identity nil)
+      (if (pathnamep path)
+	  (format stream "~a" (namestring path))
+	  (format stream "(unknown path)"))
+      (format stream " ")
       (if formulas
 	  (format stream "~{~a~%~}" formulas)
 	  (format stream "(empty list of formulas/clauses)")))))
