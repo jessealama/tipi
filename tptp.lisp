@@ -59,18 +59,16 @@
 	  (format stream "~a (~a): ~a  [~a]" name role formula annotations)
 	  (format stream "~a (~a): ~a" name role formula)))))
 
-(defun render-syntax (formula)
-  (let ((syntax (syntax formula)))
-    (cond ((string= syntax "formula") "fof")
-	  ((string= syntax "clause") "cnf")
-	  (t
-	   (error "Don't know how to render formulas whose syntax is '~a'." syntax)))))
-
-(defmethod render ((formula tptp-formula))
-  (format nil "~a(~a,~a,~a)."
-	  (render-syntax formula)
+(defmethod render ((formula fof))
+  (format nil "fof(~a,~a,~a)."
 	  (name formula)
-	  (status formula)
+	  (role formula)
+	  (formula formula)))
+
+(defmethod render ((formula cnf))
+  (format nil "cnf(~a,~a,~a)."
+	  (name formula)
+	  (role formula)
 	  (formula formula)))
 
 (defgeneric make-tptp-formula (thing))
