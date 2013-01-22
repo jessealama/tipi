@@ -543,11 +543,20 @@
 
   (disjunction
    literal
-   (literal |\|| disjunction))
+   (literal |\|| disjunction
+	    #'(lambda (head vbar tail)
+		(declare (ignore vbar))
+		(make-instance 'binary-disjunction
+			       :lhs head
+			       :rhs tail))))
 
   (literal
    atomic-formula
-   (|~| atomic-formula)
+   (|~| atomic-formula
+	#'(lambda (neg formula)
+	    (declare (ignore neg))
+	    (make-instance 'negation
+			   :argument formula)))
    fol-infix-unary)
 
   (fof-logic-formula
@@ -816,8 +825,10 @@
 			       :if-does-not-exist :error)
     (let ((*standard-input* tptp-stream))
       (initialize-lexer)
-      (parse-with-lexer #'lexer
-			*tptp-v5.4.0.0-parser*))))
+      (let ((db (parse-with-lexer #'lexer
+				  *tptp-v5.4.0.0-parser*)))
+	(setf (path db) tptp-path)
+	db))))
 
 (defun lex-tptp-formula (string)
   (with-input-from-string (stream string)
