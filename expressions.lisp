@@ -93,11 +93,13 @@
   (typep thing 'formula))
 
 (defclass atomic-formula (formula)
-  ((predicate :initarg :predicate
-	      :accessor predicate)
-   (args :initarg :arguments
-	 :accessor arguments
-	 :type list)))
+  ((predicate
+    :initarg :predicate
+    :accessor predicate)
+   (args
+    :initarg :arguments
+    :accessor arguments
+    :type list)))
 
 (defun atomic-formula? (thing)
   (typep thing 'atomic-formula))
