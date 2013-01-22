@@ -106,12 +106,12 @@
 
 (defparameter *nullary-true*
   (make-instance 'atomic-formula
-		 :predicate "true"
+		 :predicate (intern "true")
 		 :arguments nil))
 
 (defparameter *nullary-false*
   (make-instance 'atomic-formula
-		 :predicate "false"
+		 :predicate (intern "false")
 		 :arguments nil))
 
 (defclass equation (atomic-formula)
