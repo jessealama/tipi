@@ -109,9 +109,6 @@
 (defgeneric signature (tptp)
   (:documentation "The signature of TPTP."))
 
-(defmethod signature ((formula tptp-formula))
-  (signature (formula formula)))
-
 (defmethod signature ((formula atomic-formula))
   (let ((arguments (arguments formula)))
     (let ((pred-symbol (make-instance 'predicate-symbol

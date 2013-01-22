@@ -1,6 +1,107 @@
 
 (in-package :tipi)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Formulas
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defclass tptp-formula ()
+  ((name
+    :initarg :name
+    :initform (error "An fof needs a name.")
+    :accessor name)
+   (role
+    :initarg :role
+    :accessor role
+    :initform (error "An fof needs a role."))
+   (formula
+    :initarg :formula
+    :accessor formula
+    :initform (error "An fof needs a formula."))
+   (annotations
+    :initarg :annotations
+    :initform nil
+    :accessor annotations)))
+
+(defclass fof (tptp-formula)
+  nil)
+
+(defclass cnf (tptp-formula)
+  nil)
+
+(defclass annotation ()
+  ((source
+    :initarg :source
+    :initform nil
+    :accessor source)
+   (optional-info
+    :initarg :optional-info
+    :initform nil
+    :accessor optional-info)))
+
+(defmethod print-object ((x annotation) stream)
+  (with-slots (optional-info source)
+      x
+    (print-unreadable-object (x stream :type t :identity nil)
+      (if optional-info
+	  (if source
+	      (format stream "source: ~a ; optional-info: ~a" source optional-info)
+	      (format stream "optional info: ~a (no source)" optional-info))
+	  (if source
+	      (format stream "source: ~a ; (no optional info)" source)
+	      (format stream "(no source; no optional info)"))))))
+
+(defmethod print-object ((x tptp-formula) stream)
+  (with-slots (name role formula annotations)
+      x
+    (print-unreadable-object (x stream :type t :identity nil)
+      (if annotations
+	  (format stream "~a (~a): ~a  [~a]" name role formula annotations)
+	  (format stream "~a (~a): ~a" name role formula)))))
+
+(defun render-syntax (formula)
+  (let ((syntax (syntax formula)))
+    (cond ((string= syntax "formula") "fof")
+	  ((string= syntax "clause") "cnf")
+	  (t
+	   (error "Don't know how to render formulas whose syntax is '~a'." syntax)))))
+
+(defmethod render ((formula tptp-formula))
+  (format nil "~a(~a,~a,~a)."
+	  (render-syntax formula)
+	  (name formula)
+	  (status formula)
+	  (formula formula)))
+
+(defgeneric make-tptp-formula (thing))
+
+(defmethod make-tptp-formula ((thing list))
+  (destructuring-bind (syntax name status formula . more-stuff)
+      thing
+    (if more-stuff
+	(destructuring-bind (source . useful-info)
+	    more-stuff
+	  (make-instance 'tptp-formula
+		   :name (if (symbolp name)
+			     (symbol-name name)
+			     (format nil "~a" name))
+		   :syntax (symbol-name syntax)
+		   :status (symbol-name status)
+		   :formula (form->formula formula)
+		   :source source
+		   :useful-info useful-info))
+	(make-instance 'tptp-formula
+		   :name (if (symbolp name)
+			     (symbol-name name)
+			     (format nil "~a" name))
+		   :syntax (symbol-name syntax)
+		   :status (symbol-name status)
+		   :formula (form->formula formula)))))
+
+(defun sort-formula-list (formula-list)
+  (let ((sorted (sort formula-list #'string< :key #'name)))
+    (mapcar #'name sorted)))
+
 (defparameter *tptp-to-lisp-stylesheet*
   #p"/Users/alama/sources/xsl4tptp/tptp-to-lisp.xsl")
 
@@ -57,6 +158,9 @@
       (if formulas
 	  (format stream "~{~a~%~}" formulas)
 	  (format stream "(empty list of formulas/clauses)")))))
+
+(defmethod signature ((formula tptp-formula))
+  (signature (formula formula)))
 
 (defmethod signature ((tptp tptp-db))
   (reduce #'merge-signatures (mapcar #'signature

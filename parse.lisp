@@ -245,60 +245,6 @@
     b)
   )
 
-(defclass tptp-formula ()
-  ((name
-    :initarg :name
-    :initform (error "An fof needs a name.")
-    :accessor name)
-   (role
-    :initarg :role
-    :accessor role
-    :initform (error "An fof needs a role."))
-   (formula
-    :initarg :formula
-    :accessor formula
-    :initform (error "An fof needs a formula."))
-   (annotations
-    :initarg :annotations
-    :initform nil
-    :accessor annotations)))
-
-(defclass fof (tptp-formula)
-  nil)
-
-(defclass cnf (tptp-formula)
-  nil)
-
-(defclass annotation ()
-  ((source
-    :initarg :source
-    :initform nil
-    :accessor source)
-   (optional-info
-    :initarg :optional-info
-    :initform nil
-    :accessor optional-info)))
-
-(defmethod print-object ((x annotation) stream)
-  (with-slots (optional-info source)
-      x
-    (print-unreadable-object (x stream :type t :identity nil)
-      (if optional-info
-	  (if source
-	      (format stream "source: ~a ; optional-info: ~a" source optional-info)
-	      (format stream "optional info: ~a (no source)" optional-info))
-	  (if source
-	      (format stream "source: ~a ; (no optional info)" source)
-	      (format stream "(no source; no optional info)"))))))
-
-(defmethod print-object ((x tptp-formula) stream)
-  (with-slots (name role formula annotations)
-      x
-    (print-unreadable-object (x stream :type t :identity nil)
-      (if annotations
-	  (format stream "~a (~a): ~a  [~a]" name role formula annotations)
-	  (format stream "~a (~a): ~a" name role formula)))))
-
 (define-parser *tptp-v5.4.0.0-parser*
   (:start-symbol tptp-file)
   (:terminals (|fof|

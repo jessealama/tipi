@@ -789,53 +789,6 @@ class ATOMIC-FORMULA.  This function expresses that disjointedness."
   `(negate ,argument))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Formulas
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defun render-syntax (formula)
-  (let ((syntax (syntax formula)))
-    (cond ((string= syntax "formula") "fof")
-	  ((string= syntax "clause") "cnf")
-	  (t
-	   (error "Don't know how to render formulas whose syntax is '~a'." syntax)))))
-
-(defmethod render ((formula tptp-formula))
-  (format nil "~a(~a,~a,~a)."
-	  (render-syntax formula)
-	  (name formula)
-	  (status formula)
-	  (formula formula)))
-
-(defgeneric make-tptp-formula (thing))
-
-(defmethod make-tptp-formula ((thing list))
-  (destructuring-bind (syntax name status formula . more-stuff)
-      thing
-    (if more-stuff
-	(destructuring-bind (source . useful-info)
-	    more-stuff
-	  (make-instance 'tptp-formula
-		   :name (if (symbolp name)
-			     (symbol-name name)
-			     (format nil "~a" name))
-		   :syntax (symbol-name syntax)
-		   :status (symbol-name status)
-		   :formula (form->formula formula)
-		   :source source
-		   :useful-info useful-info))
-	(make-instance 'tptp-formula
-		   :name (if (symbolp name)
-			     (symbol-name name)
-			     (format nil "~a" name))
-		   :syntax (symbol-name syntax)
-		   :status (symbol-name status)
-		   :formula (form->formula formula)))))
-
-(defun sort-formula-list (formula-list)
-  (let ((sorted (sort formula-list #'string< :key #'name)))
-    (mapcar #'name sorted)))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Flatten
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
