@@ -243,7 +243,6 @@
 			  	      (emit-xhtml ("no such include")
 				        (:p (fmt "no known include with the name '~a'" file)))))))
 			    (setf new-formulas (reverse new-formulas))
-			    (setf (session-value :fuck session) "you")
 			    (setf (session-value :problem session)
 			  	  (make-instance 'tptp-db
 			  			 :formulas (append new-formulas
