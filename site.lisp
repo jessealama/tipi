@@ -134,17 +134,22 @@
 (defparameter *xhtml-11-doctype*
   "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.1//EN\" \"http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd\">")
 
-(defmacro emit-xhtml (html)
+(defmacro emit-xhtml ((title) &body body)
   `(progn
      (setf (content-type*) "application/xhtml+xml")
      (with-html (:doctype *xhtml-11-doctype*)
-       (str ,html))))
+       (:head
+	(:link :rel "stylesheet" :href "tipi.css" :type "text/css" :media "screen")
+	(:link :rel "icon" :href "favicon.ico" :type "image/png")
+	(:title ,title))
+       (:body
+	,@body))))
 
 (defgeneric handle-/ (request method session))
 
 (defmethod handle-/ (request (method (eql :get)) session)
   (return-message +http-ok+
-		  :message (emit-xhtml *main-page*)
+		  :message (emit-xhtml ("tipi") (str *main-page*))
 		  :mime-type "application/xhtml+xml"))
 
 (defmethod handle-/ (request (method t) session)
@@ -166,25 +171,23 @@
 		(mapcar #'namestring
 			(remove-duplicates included-files :test #'string= :key #'namestring)))
 	  (setf (session-value :missing-includes session) included-files)
-	  (emit-xhtml
-	   (with-html-output-to-string (dummy)
-	     (:head (:title "gimme"))
-	     (:p
-	      "Please supply the following files:")
-	     ((:form :method "post"
-		     :action "upload-includes"
-		     :enctype "multipart/form-data")
-	      (:ul
-	       (loop
-		  :for file :in included-files
-		  :for i from 1
-		  :do
-		  (htm (:li (:p (fmt "~a" file))
-			    (:textarea :id (format nil "include-~d" i)
-				       :name (format nil "include-~d" i))))))
-	      ((:input :type "submit"
-		       :title "Upload missing TPTP files"
-		       :value "Upload")))))))))
+	  (emit-xhtml ("gimme")
+	    (:p
+	     "Please supply the following files:")
+	    ((:form :method "post"
+		    :action "upload-includes"
+		    :enctype "multipart/form-data")
+	     (:ul
+	      (loop
+		 :for file :in included-files
+		 :for i from 1
+		 :do
+		 (htm (:li (:p (fmt "~a" file))
+			   (:textarea :id (format nil "include-~d" i)
+				      :name (format nil "include-~d" i))))))
+	     ((:input :type "submit"
+		      :title "Upload missing TPTP files"
+		      :value "Upload"))))))))
 
 (defmethod handle-/expand (request (method t) session)
   (return-message +http-method-not-allowed+))
@@ -235,16 +238,10 @@
 			  		(let ((new-formula (formula-with-name db-for-file selected-name)))
 			  		  (if new-formula
 			  		      (push new-formula new-formulas)
-			  		      (emit-xhtml
-			  		       (with-html-output-to-string (dummy)
-			  			 (:head (:title "no such formula"))
-			  			 (:body
-			  			  (:p (fmt "no known formula in '~a' with the name '~a'" file selected-name))))))))
-			  	      (emit-xhtml
-			  	       (with-html-output-to-string (dummy)
-			  		 (:head (:title "no such include"))
-			  		 (:body
-			  		  (:p (fmt "no known include with the name '~a'" file)))))))))
+			  		      (emit-xhtml ("no such formula")
+					        (:p (fmt "no known formula in '~a' with the name '~a'" file selected-name))))))
+			  	      (emit-xhtml ("no such include")
+				        (:p (fmt "no known include with the name '~a'" file)))))))
 			    (setf new-formulas (reverse new-formulas))
 			    (setf (session-value :fuck session) "you")
 			    (setf (session-value :problem session)
@@ -252,16 +249,11 @@
 			  			 :formulas (append new-formulas
 			  					   non-includes))))
 			  (redirect "/analyze" :add-session-id t))
-			(emit-xhtml
-			 (with-html-output-to-string (dummy)
-			   (:body
-			    (:p "every is false.  parameters: " (fmt "~a" parameters)))))
-			))
+			(emit-xhtml ("failed condition")
+			  (:p "every is false.  parameters: " (fmt "~a" parameters)))))
 		(redirect "/analyze" :add-session-id t)))
-	  (emit-xhtml
-	   (with-html-output-to-string (dummy)
-	     (:body
-	      (:p "problem is not known"))))))))
+	  (emit-xhtml ("unknown problem")
+	    (:p "problem is not known"))))))
 
 (defmethod handle-/upload-includes (request (method t) session)
   (return-message +http-method-not-allowed+))
@@ -283,15 +275,9 @@
 		(setf (session-value :problem session) db)
 		(redirect "/analyze" :add-session-id t))
 	      (return-message +http-bad-request+
-			      :message (emit-xhtml
-					(with-html-output-to-string (dummy)
-					  (:head
-					   (:link :rel "stylesheet" :href "tipi.css" :type "text/css" :media "screen")
-					   (:link :rel "icon" :href "favicon.ico" :type "image/png")
-					   (:title "something failed"))
-					  (:body
-					   (:p "Something went wrong.  It's possible that your TPTP/TSTP file is malformed, or the TPTP parser implemented by this site may be flawed. Here is the error message:")
-					   (:pre (fmt "~a" (escape-string error-message))))))
+			      :message (emit-xhtml ("something failed")
+				         (:p "Something went wrong.  It's possible that your TPTP/TSTP file is malformed, or the TPTP parser implemented by this site may be flawed. Here is the error message:")
+					 (:pre (fmt "~a" (escape-string error-message))))
 			      :mime-type "application/xhtml+xml")))
 	(return-message +http-internal-server-error+
 		    :message "Don't know how to handle a POST request that lacks a value for 'fragment'.  (Functionality may not yet be implemented.)"
@@ -303,14 +289,8 @@
       (session-value :problem session)
     (if problem-known-p
 	(return-message +http-ok+
-			:message (emit-xhtml
-				  (with-html-output-to-string (dummy)
-				    (:head
-				     (:link :rel "stylesheet" :href "tipi.css" :type "text/css" :media "screen")
-				     (:link :rel "icon" :href "favicon.ico" :type "image/png")
-				     (:title "parseable!"))
-				    (:body
-				     (fmt "~a" (render-html old-problem)))))
+			:message (emit-xhtml ("parseable!")
+				   (fmt "~a" (render-html old-problem)))
 			:mime-type "application/xhtml+xml")
 	(redirect "/" :add-session-id t))))
 
