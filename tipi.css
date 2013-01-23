@@ -5,28 +5,56 @@ span.variable {
 	font-style: italic;
 }
 
-tr.conjecture td.formula-proper {
+tr.conjecture td.formula-name {
 	background-color: red;
+}
+
+table.tptp-db tr td {
+	border-bottom: 1px solid #333;
+}
+
+table.tptp-db tr td.formula-name {
+	border-right: 1px solid #333;
 }
 
 span.conjecture {
 	background-color: red;
 }
 
+tr.definition td.formula-name {
+	background-color: green;
+}
+
 span.definition {
 	background-color: green;
+}
+
+tr.lemma td.formula-name {
+	background-color: yellow;
 }
 
 span.lemma {
 	background-color: yellow;
 }
 
+tr.theorem td.formula-name {
+	background-color: orange;
+}
+
 span.theorem {
 	background: orange;
 }
 
+tr.hypothesis td.formula-name {
+	background-color: silver;
+}
+
 span.hypothesis {
 	background-color: silver;
+}
+
+tr.axiom td.formula-name {
+	background-color: pink;
 }
 
 span.axiom {
