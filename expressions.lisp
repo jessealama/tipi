@@ -350,6 +350,12 @@
 (defmethod render-fancily ((formula binary-disjunction))
   "∨")
 
+(defmethod render-html ((con binary-disjunction))
+  (with-slots (lhs rhs)
+      con
+    (with-html-output-to-string (dummy)
+      (fmt "(~a &or; ~a)" (render-html lhs) (render-html rhs)))))
+
 (defmethod render-plainly ((formula implication))
   "-->")
 
@@ -370,6 +376,12 @@
 
 (defmethod render-fancily ((formula equivalence))
   "↔")
+
+(defmethod render-html ((formula equivalence))
+  (with-slots (lhs rhs)
+      formula
+    (with-html-output-to-string (dummy)
+      (fmt "(~a &harr; ~a)" (render-html lhs) (render-html rhs)))))
 
 (defmethod render-plainly ((formula nonequivalence))
   "<%~>")
