@@ -461,7 +461,7 @@
 
 (defmethod formula-with-name ((tptp-db tptp-db) (name string))
   (first (remove-if-not #'(lambda (x) (string= x name))
-			(formulas tptp-db)
+			(formulas-w/o-includes tptp-db)
 			:key #'(lambda (x) (format nil "~a" (name x))))))
 
 (defgeneric premises (problem))
