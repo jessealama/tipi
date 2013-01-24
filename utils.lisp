@@ -65,6 +65,12 @@
 	  (error "EXTENSION must be a string (possibly the empty string); '~a' is not a suitable value" extension))
       (error "TMP-DIR must be either a string or a pathname; '~a' is not a suitable argument" tmp-dir)))
 
+(defun file-contents (path)
+  (with-open-file (file path
+			:direction :input
+			:if-does-not-exist :error)
+    (stream-contents file)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Input and output
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
