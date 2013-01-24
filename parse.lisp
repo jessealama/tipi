@@ -841,6 +841,9 @@
 	(setf (path db) tptp-path)
 	db))))
 
+(defmethod parse-tptp ((tptp tptp-db))
+  tptp)
+
 (defun lex-tptp-formula (string)
   (with-input-from-string (stream string)
     (loop
