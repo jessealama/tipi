@@ -5,7 +5,12 @@
   ((problem
     :type tptp-db
     :accessor problem
-    :initarg :problem)))
+    :initarg :problem)
+   (signature-restricted-p
+    :type boolean
+    :reader solution-restricted-p
+    :initarg :restricted
+    :initform nil)))
 
 (defgeneric parse-tstp (tptp-thing source-problem))
 
