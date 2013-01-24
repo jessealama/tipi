@@ -361,24 +361,21 @@
 		 (let ((solution-properties (session-value :solution-properties session)))
 		   (let ((restrict-signature (gethash "restrict-signature" solution-properties))
 			 (kowalski (gethash "kowalski" solution-properties))
-			 (squeeze-quantifiers (gethash "squeeze-quantifiers" solution-properties)))
-		     (if (and restrict-signature
-			      (not (solution-restricted-p problem)))
-			 (let ((restricted (restrict-solution-to-problem-language problem)))
-			   (if kowalski
-			       (if squeeze-quantifiers
-				   (htm (fmt "~a" (render-html (squeeze-quantifiers (kowalski restricted)) session)))
-				   (htm (fmt "~a" (render-html (kowalski restricted) session))))
-			       (if squeeze-quantifiers
-				   (htm (fmt "~a" (render-html (squeeze-quantifiers restricted) session)))
-				   (htm (fmt "~a" (render-html restricted session))))))
-			 (if kowalski
-			     (if squeeze-quantifiers
-				 (htm (fmt "~a" (render-html (squeeze-quantifiers (kowalski non-includes)) session)))
-				 (htm (fmt "~a" (render-html (kowalski non-includes) session))))
-			     (if squeeze-quantifiers
-				 (htm (fmt "~a" (render-html (squeeze-quantifiers non-includes) session)))
-				 (htm (fmt "~a" (render-html non-includes session)))))))))
+			 (squeeze-quantifiers (gethash "squeeze-quantifiers" solution-properties))
+			 (supporting-axioms (gethash "supporting-axioms" solution-properties)))
+		     (let ((reformulated non-includes))
+		       (when restrict-signature
+			 (when (not (solution-restricted-p problem))
+			   (setf reformulated (restrict-solution-to-problem-language problem))))
+		       (when kowalski
+			 (setf reformulated (kowalski reformulated)))
+		       (when squeeze-quantifiers
+			 (setf reformulated (squeeze-quantifiers reformulated)))
+		       (when supporting-axioms
+			 (setf reformulated (supporting-axioms (if (typep reformulated 'tptp-db)
+								   reformulated
+								   problem))))
+		       (htm (fmt "~a" (render-html reformulated session)))))))
 		(t
 		 (htm (fmt "~a" (render-html non-includes session))))))))))
 
@@ -753,3 +750,55 @@
 		 :role (role formula)
 		 :formula (squeeze-quantifiers (formula formula))
 		 :annotations (annotations formula)))
+
+(defgeneric supporting-axioms (tptp))
+
+(defun exists-path (from to table)
+  (if (string= from to)
+      t
+      (let ((predecessors (gethash from table)))
+	(some #'(lambda (x) (exists-path x to table))
+	      predecessors))))
+
+(defmethod supporting-axioms ((db tptp-db))
+  (with-slots (formulas path)
+      db
+    (let ((support-table (make-hash-table :test #'equal)))
+      (loop
+	 :for formula :in formulas
+	 :for annotation = (annotations formula)
+	 :for source = (source annotation)
+	 :for flattened-source = (flatten-tptp source)
+	 :for flattened-no-dups = (remove-duplicates flattened-source :test #'string= :key #'stringify)
+	 :for refs = (remove-if-not #'(lambda (x)
+					(member x formulas :test #'string= :key #'(lambda (x) (stringify (name x)))))
+				    (mapcar #'stringify flattened-no-dups))
+	 :do
+	 (setf (gethash (format nil "~a" (name formula)) support-table) refs))
+      (let ((axioms (remove-if-not #'(lambda (x) (null (gethash x support-table)))
+				   (hash-table-keys support-table)))
+	    (non-axioms (remove-if #'(lambda (x) (null (gethash x support-table)))
+				   (hash-table-keys support-table))))
+	(let ((full-table (make-hash-table :test #'equal)))
+	  (dolist (axiom axioms)
+	    (setf (gethash axiom full-table) nil))
+	  (dolist (non-axiom non-axioms)
+	    (let ((supporting (remove-if-not #'(lambda (axiom) (exists-path non-axiom axiom support-table))
+					     axioms)))
+	      (setf (gethash non-axiom full-table)
+		    supporting)))
+	  (let ((new-formulas (mapcar
+			       #'(lambda (formula)
+				   (make-instance (class-of formula)
+						  :name (name formula)
+						  :role (role formula)
+						  :formula (formula formula)
+						  :annotations (make-instance 'annotation
+									      :source (source (annotations formula))
+									      :optional-info (make-instance 'general-list
+													    :terms (gethash (stringify (name formula))
+															    full-table)))))
+				      formulas)))
+	    (make-instance 'tptp-db
+			   :path path
+			   :formulas new-formulas)))))))

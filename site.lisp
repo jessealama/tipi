@@ -394,7 +394,8 @@
 	(let ((kowalski (assoc "kowalski" parameters :test #'string=))
 	      (simplify-sources (assoc "simplify-sources" parameters :test #'string=))
 	      (restrict-signature (assoc "restrict-signature" parameters :test #'string=))
-	      (squeeze-quantifiers (assoc "squeeze-quantifiers" parameters :test #'string=)))
+	      (squeeze-quantifiers (assoc "squeeze-quantifiers" parameters :test #'string=))
+	      (supporting-axioms (assoc "supporting-axioms" parameters :test #'string=)))
 	  (unless (hash-table-p (session-value :solution-properties session))
 	    (setf (session-value :solution-properties session)
 		  (make-hash-table :test #'equal)))
@@ -407,6 +408,8 @@
 		  (not (null restrict-signature)))
 	    (setf (gethash "squeeze-quantifiers" solution-properties)
 		  (not (null squeeze-quantifiers)))
+	    (setf (gethash "supporting-axioms" solution-properties)
+		  (not (null supporting-axioms)))
 	    (setf (session-value :solution-properties session) solution-properties))
 	  (redirect "/analyze" :add-session-id t)))))
 
@@ -428,7 +431,8 @@
 		(let ((kowalski (gethash "kowalski" solution-properties))
 		      (restrict-signature (gethash "restrict-signature" solution-properties))
 		      (simplify-sources (gethash "simplify-sources" solution-properties))
-		      (squeeze-quantifiers (gethash "squeeze-quantifiers" solution-properties)))
+		      (squeeze-quantifiers (gethash "squeeze-quantifiers" solution-properties))
+		      (supporting-axioms (gethash "supporting-axioms" solution-properties)))
 		  (return-message +http-ok+
 				  :message (emit-xhtml ("parseable!")
 					     ((:div :id "problem")
@@ -459,7 +463,8 @@
 						 "Restrict solution to the signature of the problem"
 						 (:br)
 						 (if (or simplify-sources
-							 restrict-signature)
+							 restrict-signature
+							 supporting-axioms)
 						     (htm (:input
 							   :type "checkbox"
 							   :checked "checked"
@@ -499,7 +504,21 @@
 							   :title "Squeeze quantifiers"
 							   :id "squeeze-quantifiers"
 							   :name "squeeze-quantifiers")))
-						 "Squeeze quantifiers")
+						 "Squeeze quantifiers"
+						 (:br)
+						 (if supporting-axioms
+						     (htm (:input
+							   :type "checkbox"
+							   :checked "checked"
+							   :title "Show which axioms support which steps"
+							   :id "supporting-axioms"
+							   :name "supporting-axioms"))
+						     (htm (:input
+							   :type "checkbox"
+							   :title "Show which axioms support which steps"
+							   :id "supporting-axioms"
+							   :name "supporting-axioms")))
+						 "Show axiomatic support")
 						((:p :class "submit-button")
 						 ((:input :type "submit"
 							  :title "Reformulate solution as specified"

@@ -150,3 +150,11 @@
 		 :path (path db)
 		 :problem (problem db)
 		 :formulas (mapcar #'squeeze-quantifiers (formulas db))))
+
+(defmethod supporting-axioms :around ((db tstp-db))
+  (let ((new-db (call-next-method)))
+    (make-instance 'tstp-db
+		   :restricted (solution-restricted-p db)
+		   :path (path db)
+		   :problem (problem db)
+		   :formulas (formulas new-db))))
