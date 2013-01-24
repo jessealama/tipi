@@ -48,7 +48,7 @@
      (:link :rel "stylesheet" :href "tipi.css" :type "text/css" :media "screen")
      (:link :rel "icon" :href "favicon.ico" :type "image/png"))
     (:body
-     (:h1 "Analyze your problems and their solutions")
+     (:h1 "Analyze your TPTP problems and their solutions")
      ((:div :id "main-forms")
       ((:ul :id "main-form-list")
        (:li ((:a :href "#analyze-by-uri") "Analyze by URI"))
@@ -157,6 +157,120 @@
 		      :message (format nil "Inappropriate method ~a for resource '/'." method)
 		      :mime-type "text/plain"))
 
+(defgeneric handle-/solution (request method session))
+
+(defmethod handle-/solution (request (method (eql :get)) session)
+  (let ((page (with-html-output-to-string (dummy)
+		(:h1 "Submit a solution")
+		((:div :id "main-forms")
+		 ((:ul :id "main-form-list")
+		  (:li ((:a :href "#analyze-by-uri") "Submit solution by URI"))
+		  (:li ((:a :href "#analyze-by-upload") "Submit solution by File Upload"))
+		  (:li ((:a :href "#analyze-by-input") "Submit solution by Direct Input"))))
+		((:div :id "fields")
+		 ((:fieldset :id "submit-by-uri" :class "tabset-content front")
+		  ((:legend :class "tabset-label") "Analyze by URI")
+		  ((:form
+		    :id "tipi-form"
+		    :title "Submit your TSTP solution for analysis"
+		    :action "solution"
+		    :method "get")
+		   ((:p :class "instructions")
+		    "A TSTP solution that can be fetched via the Internet."
+		    ((:label :title "Address of solution"
+			     :for "uri")
+		     "Address:")
+		    ((:input
+		      :type "text"
+		      :id "uri"
+		      :size "50")))
+		   ((:p :class "submit-button")
+		    ((:input :type "submit"
+			     :title "Submit for analysis"
+			     :value "Analyze")))))
+		 ((:fieldset
+		   :id "analyze-by-upload"
+		   :class "tabset-content front")
+		  ((:legend :class "tabset-label")
+		   "Analyze by File Upload")
+		  ((:form
+		    :method "post"
+		    :enctype "multipart/form-data"
+		    :action "solution")
+		   ((:p :class "instructions")
+		    "Upload a solution")
+		   ((:p)
+		    ((:label :title "Choose a file"
+			     :for "uploaded-file"))
+		    ((:input :type "file"
+			     :id "uploaded-file"
+			     :size "30")))
+		   ((:p :class "submit-button")
+		    ((:input :title "Submit for analysis"
+			     :type "submit"
+			     :value "Analyze")))))
+		 ((:fieldset
+		   :id "analyze-by-input"
+		   :class "tabset-content front")
+		  ((:legend :class "tabset-label") "Analyze by direct input")
+		  ((:form
+		    :method "post"
+		    :enctype "multipart/form-data"
+		    :action "solution")
+		   ((:p :class "instructions")
+		    ((:label :title "Paste a solution here") "Enter the text of the TSTP file to be analyzed")
+		    ":"
+		    (:br)
+		    ((:textarea
+		      :id "fragment"
+		      :name "fragment"
+		      :rows "12"
+		      :cols "80")))
+		   ((:p :class "submit-button")
+		    ((:input :title "Submit solution"
+			     :type "submit"
+			     :value "Analyze"))))))
+		((:div :class "intro" :id "documentation")
+		 ((:ul :class "navigation-bar")
+		  (:li ((:a :href "about" :title "Information about this service") "About"))))
+		((:div :id "footer")
+		 ((:p :class "logo")
+		  ((:a :href "http://www.tptp.org")
+		   ((:img :src "tptp.png" :alt "The TPTP logo" :title "TPTP"))))))))
+    (return-message +http-ok+
+		    :message (emit-xhtml ("solution")
+			       (str page))
+		    :mime-type "application/xhtml+xml")))
+
+(defmethod handle-/solution (request (method (eql :post)) session)
+  (let* ((parameters (post-parameters request))
+	 (fragment (assoc "fragment" parameters
+			  :test #'string=))
+	 (error-message nil))
+    (multiple-value-bind (problem problem-known-p)
+	(session-value :problem session)
+      (if problem-known-p
+	  (if fragment
+	      (let ((db (handler-case (parse-tstp (cdr fragment) problem)
+			  (error (c)
+			    (setf error-message (format nil "~a" c))
+			    nil))))
+		(if db
+		    (progn
+		      (setf (session-value :solution session) db)
+		      (redirect "/analyze" :add-session-id t))
+		    (return-message +http-bad-request+
+				    :message (emit-xhtml ("something failed")
+					       (:p "Something went wrong.  It's possible that your TSTP file is malformed, or the TPTP parser implemented by this site may be flawed. Here is the error message:")
+					       (:pre (fmt "~a" (escape-string error-message))))
+				    :mime-type "application/xhtml+xml")))
+	      (return-message +http-internal-server-error+
+			      :message "Don't know how to handle a POST request that lacks a value for 'fragment'.  (Functionality may not yet be implemented.)"
+			      :mime-type "text/plain"))
+	  (return-message +http-bad-request+
+			:message "Please submit a problem before submitting a solution."
+			:mime-type "text/plain")))))
+
 (defgeneric handle-/expand (request method session))
 
 (defmethod handle-/expand (request (method (eql :post)) session)
@@ -260,15 +374,14 @@
 (defgeneric handle-/analyze (request method session))
 
 (defmethod handle-/analyze (request (method (eql :post)) session)
-  (let* ((parameters (post-parameters request))
-	 (fragment (assoc "fragment" parameters
-			  :test #'string=))
-	 (error-message nil))
-    (if fragment
-	(let ((db (handler-case (parse-tptp (cdr fragment))
-		    (error (c)
-		      (setf error-message (format nil "~a" c))
-		      nil))))
+  (let ((parameters (post-parameters request)))
+    (if (assoc "fragment" parameters :test #'string=)
+	(let* ((fragment (assoc "fragment" parameters :test #'string=))
+	       (error-message nil)
+	       (db (handler-case (parse-tptp (cdr fragment))
+		     (error (c)
+		       (setf error-message (format nil "~a" c))
+		       nil))))
 	  (if db
 	      (progn
 		(setf (session-value :problem session) db)
@@ -278,19 +391,130 @@
 				         (:p "Something went wrong.  It's possible that your TPTP/TSTP file is malformed, or the TPTP parser implemented by this site may be flawed. Here is the error message:")
 					 (:pre (fmt "~a" (escape-string error-message))))
 			      :mime-type "application/xhtml+xml")))
-	(return-message +http-internal-server-error+
-		    :message "Don't know how to handle a POST request that lacks a value for 'fragment'.  (Functionality may not yet be implemented.)"
-		    :mime-type "text/plain"))))
+	(let ((kowalski (assoc "kowalski" parameters :test #'string=))
+	      (simplify-sources (assoc "simplify-sources" parameters :test #'string=))
+	      (restrict-signature (assoc "restrict-signature" parameters :test #'string=))
+	      (squeeze-quantifiers (assoc "squeeze-quantifiers" parameters :test #'string=)))
+	  (unless (hash-table-p (session-value :solution-properties session))
+	    (setf (session-value :solution-properties session)
+		  (make-hash-table :test #'equal)))
+	  (let ((solution-properties (session-value :solution-properties session)))
+	    (setf (gethash "kowalski" solution-properties)
+		  (not (null kowalski)))
+	    (setf (gethash "simplify-sources" solution-properties)
+		  (not (null simplify-sources)))
+	    (setf (gethash "restrict-signature" solution-properties)
+		  (not (null restrict-signature)))
+	    (setf (gethash "squeeze-quantifiers" solution-properties)
+		  (not (null squeeze-quantifiers)))
+	    (setf (session-value :solution-properties session) solution-properties))
+	  (redirect "/analyze" :add-session-id t)))))
 
 (defmethod handle-/analyze (request (method (eql :get)) session)
   (declare (ignore request))
   (multiple-value-bind (old-problem problem-known-p)
       (session-value :problem session)
     (if problem-known-p
-	(return-message +http-ok+
-			:message (emit-xhtml ("parseable!")
-				   (fmt "~a" (render-html old-problem)))
-			:mime-type "application/xhtml+xml")
+	(multiple-value-bind (solution solution-known-p)
+	    (session-value :solution session)
+	  (if solution-known-p
+	      (multiple-value-bind (solution-properties solution-properties-known-p)
+		  (session-value :solution-properties session)
+		(unless solution-properties-known-p
+		  (let ((fresh-table (make-hash-table :test #'equal)))
+		    (setf (session-value :solution-properties session)
+			  fresh-table)
+		    (setf solution-properties fresh-table)))
+		(let ((kowalski (gethash "kowalski" solution-properties))
+		      (restrict-signature (gethash "restrict-signature" solution-properties))
+		      (simplify-sources (gethash "simplify-sources" solution-properties))
+		      (squeeze-quantifiers (gethash "squeeze-quantifiers" solution-properties)))
+		  (return-message +http-ok+
+				  :message (emit-xhtml ("parseable!")
+					     ((:div :id "problem")
+					      (fmt "~a" (render-html old-problem session)))
+					     ((:div :id "solution")
+					      (fmt "~a" (render-html solution session)))
+					     ((:div :id "analysis")
+					      ((:fieldset :id "solution-analysis" :class "tabset-content front")
+					       ((:legend :class "tabset-label") "Analyze solution")
+					       ((:form
+						 :id "solution-analysis"
+						 :title "Study solution"
+						 :action "analyze"
+						 :method "post")
+						(:p
+						 (if restrict-signature
+						     (htm (:input
+							   :type "checkbox"
+							   :checked "checked"
+							   :title "Restrict solution to the signature of the problem"
+							   :id "restrict-signature"
+							   :name "restrict-signature"))
+						     (htm (:input
+							   :type "checkbox"
+							   :title "Restrict solution to the signature of the problem"
+							   :id "restrict-signature"
+							   :name "restrict-signature")))
+						 "Restrict solution to the signature of the problem"
+						 (:br)
+						 (if (or simplify-sources
+							 restrict-signature)
+						     (htm (:input
+							   :type "checkbox"
+							   :checked "checked"
+							   :title "Simplify sources (flat list of formula names)"
+							   :id "simplify-sources"
+							   :name "simplify-sources"))
+						     (htm (:input
+							   :type "checkbox"
+							   :title "Simplify sources (flat list of formula names)"
+							   :id "simplify-sources"
+							   :name "simplify-sources")))
+						 "Simplify sources (flat list of formula names)"
+						 (:br)
+						 (if kowalski
+						     (htm (:input
+							   :type "checkbox"
+							   :checked "checked"
+							   :title "Present clauses in Kowalski form"
+							   :id "kowalski"
+							   :name "kowalski"))
+						     (htm (:input
+							   :type "checkbox"
+							   :title "Present clauses in Kowalski form"
+							   :id "kowalski"
+							   :name "kowalski")))
+						 "Present clauses in Kowalski form"
+						 (:br)
+						 (if squeeze-quantifiers
+						     (htm (:input
+							   :type "checkbox"
+							   :checked "checked"
+							   :title "Squeeze quantifiers"
+							   :id "squeeze-quantifiers"
+							   :name "squeeze-quantifiers"))
+						     (htm (:input
+							   :type "checkbox"
+							   :title "Squeeze quantifiers"
+							   :id "squeeze-quantifiers"
+							   :name "squeeze-quantifiers")))
+						 "Squeeze quantifiers")
+						((:p :class "submit-button")
+						 ((:input :type "submit"
+							  :title "Reformulate solution as specified"
+							  :value "Reformulate")))))))
+				  :mime-type "application/xhtml+xml")))
+	      (return-message +http-ok+
+			      :message (emit-xhtml ("parseable!")
+					 ((:div :id "problem")
+					  (fmt "~a" (render-html old-problem session)))
+					 ((:div :id "solution")
+					  ((:form :method "get"
+						  :action "solution")
+					   (:p "No solution associated with this problem.")
+					   ((:input :type "submit" :value "Submit one" :title "Submit a solution to this problem"))))
+					 ((:div :id "analysis"))))))
 	(redirect "/" :add-session-id t))))
 
 (defmethod acceptor-dispatch-request ((acceptor tipi-acceptor) request)
@@ -308,6 +532,8 @@
 	   (handle-/expand request method session))
 	  ((string= uri "/upload-includes")
 	   (handle-/upload-includes request method session))
+	  ((string= uri "/solution")
+	   (handle-/solution request method session))
 	  ((string= uri "/analyze")
 	   (handle-/analyze request method session))
 	  (t
