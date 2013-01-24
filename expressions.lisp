@@ -1218,4 +1218,41 @@ class ATOMIC-FORMULA.  This function expresses that disjointedness."
 	  (apply #'make-multiple-arity-disjunction
 		 (mapcar #'kowalski non-negated-disjuncts))))))
 
+(defun same-variable-name (variable-1 variable-2)
+  (string= (stringify (head variable-1))
+	   (stringify (head variable-2))))
+
+(defgeneric free-variables (expression))
+
+(defmethod free-variables :around ((expression t))
+  (let ((free (call-next-method)))
+    (remove-duplicates free :test #'same-variable-name)))
+
+(defmethod free-variables ((gen generalization))
+  (with-slots (bindings matrix)
+      gen
+    (set-difference (free-variables matrix) bindings
+		    :test #'same-variable-name)))
+
+(defmethod free-variables ((x atomic-formula))
+  (remove-if-not #'variable-term-p (flatten-tptp x)))
+
+(defmethod free-variables ((x binary-connective-formula))
+  (append (free-variables (lhs x))
+	  (free-variables (rhs x))))
+
+(defmethod free-variables ((x multiple-arity-connective-formula))
+  (reduce #'append (mapcar #'free-variables (items x))))
+
+(defmethod free-variables ((x negation))
+  (free-variables (argument x)))
+
+(defun universally-close (formula)
+  (let ((free (free-variables formula)))
+    (if (null free)
+	formula
+	(make-instance 'universal-generalization
+		       :bindings free
+		       :matrix formula))))
+
 ;;; formulas.lisp ends here
