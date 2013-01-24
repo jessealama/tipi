@@ -1134,6 +1134,14 @@ class ATOMIC-FORMULA.  This function expresses that disjointedness."
 	 (list (head tptp-atom))
 	 (mapcar #'flatten-tptp (arguments tptp-atom))))
 
+(defmethod flatten-tptp ((tptp-atom atomic-formula))
+  (apply #'append
+	 (list (predicate tptp-atom))
+	 (mapcar #'flatten-tptp (arguments tptp-atom))))
+
+(defmethod flatten-tptp ((var variable-term))
+  (list var))
+
 (defmethod flatten-tptp ((l general-list))
   (flatten-tptp (terms l)))
 
