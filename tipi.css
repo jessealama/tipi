@@ -5,23 +5,43 @@ span.variable {
 	font-style: italic;
 }
 
-tr.conjecture td.formula-name {
-	background-color: red;
+td.formula-name {
+	text-align: right;
 }
 
-table.tptp-db tr td {
+table.tptp-db tr td.formula-proper {
 	border-bottom: 1px solid #333;
 }
 
-table.tptp-db tr td.formula-name {
-	border-right: 1px solid #333;
+table.tptp-db tr td.formula-proper {
+	border-left: 1px solid #333;
+}
+
+td.plain {
+	background-color: blue;
+}
+
+span.plain {
+	background-color: blue;
+}
+
+td.conjecture {
+	background-color: red;
 }
 
 span.conjecture {
 	background-color: red;
 }
 
-tr.definition td.formula-name {
+td.negated_conjecture {
+	background-color: red;
+}
+
+span.negated_conjecture {
+	background-color: red;
+}
+
+td.definition {
 	background-color: green;
 }
 
@@ -29,7 +49,7 @@ span.definition {
 	background-color: green;
 }
 
-tr.lemma td.formula-name {
+td.lemma {
 	background-color: yellow;
 }
 
@@ -37,7 +57,7 @@ span.lemma {
 	background-color: yellow;
 }
 
-tr.theorem td.formula-name {
+td.theorem {
 	background-color: orange;
 }
 
@@ -45,7 +65,7 @@ span.theorem {
 	background: orange;
 }
 
-tr.hypothesis td.formula-name {
+td.hypothesis {
 	background-color: silver;
 }
 
@@ -53,7 +73,7 @@ span.hypothesis {
 	background-color: silver;
 }
 
-tr.axiom td.formula-name {
+td.axiom {
 	background-color: pink;
 }
 
