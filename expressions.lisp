@@ -121,6 +121,9 @@
 (defclass variable-term (atomic-expression term)
   nil)
 
+(defun variable-term-p (x)
+  (typep x 'variable-term))
+
 (defmethod print-object ((var variable-term) stream)
   (format stream "~a" (head var)))
 
