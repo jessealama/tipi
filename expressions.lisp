@@ -63,8 +63,20 @@
       (str "]"))))
 
 (defmethod render-html ((x string) session)
-  (with-html-output-to-string (dummy)
-    (str "&ldquo;") (fmt "~a" x) (str "&rdquo;")))
+  (multiple-value-bind (problem problem-set-p)
+      (session-value :problem session)
+    (multiple-value-bind (solution solution-set-p)
+	(session-value :solution session)
+      (if (or problem-set-p
+	      solution-set-p)
+	  (if (or (member x (when problem-set-p (formulas problem)) :test #'string= :key #'(lambda (x) (stringify (name x))))
+		  (member x (when solution-set-p (formulas solution)) :test #'string= :key #'(lambda (x) (stringify (name x)))))
+	      (with-html-output-to-string (dummy)
+		((:a :href (format nil "#~a" x) :class "formula-reference") (fmt "~a" x)))
+	      (with-html-output-to-string (dummy)
+		(str "&ldquo;") (fmt "~a" x) (str "&rdquo;")))
+	  (with-html-output-to-string (dummy)
+	    (str "&ldquo;") (fmt "~a" x) (str "&rdquo;"))))))
 
 (defmethod render-html ((x integer) session)
   (with-html-output-to-string (dummy)
