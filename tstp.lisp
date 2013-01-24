@@ -88,8 +88,10 @@
 				 :annotations (restrict-annotation-to-problem-language annotations tstp))))
 	   (push new-formula filtered-formulas))))
      finally
-       (return (make-instance 'tptp-db
-			      :formulas (reverse filtered-formulas)))))
+       (return (make-instance 'tstp-db
+			      :formulas (reverse filtered-formulas)
+			      :problem problem
+			      :restricted t))))
 
 (defgeneric subproof-terminating-at (tstp step)
   (:documentation "The subproof of TSTP that terminates at STEP."))
