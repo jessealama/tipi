@@ -21,6 +21,55 @@
 	(format stream "~a" head)
 	(format stream "~a(~{~a~^,~})" head arguments))))
 
+(defmethod render-html ((x atomic-expression) session)
+  (with-slots (head arguments)
+      x
+    (if (null arguments)
+	(with-html-output-to-string (dummy)
+	  (htm ((:span :class "function-name") (fmt "~a" head))))
+	(with-html-output-to-string (dummy)
+	  (htm ((:span :class "function-name") (fmt "~a" head)))
+	  (str "(")
+	  (loop
+	     :with len = (length arguments)
+	     :for i :from 1 upto len
+	     :for arg :in arguments
+	     :do
+	     (htm (fmt "~a" (render-html arg session)))
+	     (when (< i len)
+	       (htm (str ", "))))
+	  (str ")")))))
+
+(defclass general-list ()
+  ((terms
+    :type list
+    :accessor terms
+    :initarg :terms
+    :initform nil)))
+
+(defmethod render-html ((l general-list) session)
+  (with-slots (terms)
+      l
+    (with-html-output-to-string (dummy)
+      (str "[")
+      (loop
+	 :with len = (length terms)
+	 :for i :from 1 upto len
+	 :for arg :in terms
+	 :do
+	 (htm (fmt "~a" (render-html arg session)))
+	 (when (< i len)
+	   (htm (str ", "))))
+      (str "]"))))
+
+(defmethod render-html ((x string) session)
+  (with-html-output-to-string (dummy)
+    (str "&ldquo;") (fmt "~a" x) (str "&rdquo;")))
+
+(defmethod render-html ((x integer) session)
+  (with-html-output-to-string (dummy)
+    ((:a :href (format nil "#~d" x) :class "formula-reference") (fmt "~d" x))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Terms
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -38,7 +87,7 @@
 		 :function function
 		 :args args))
 
-(defmethod render-html ((x function-term))
+(defmethod render-html ((x function-term) session)
   (with-slots (head arguments)
       x
     (if (null arguments)
@@ -52,7 +101,7 @@
 	     :for i :from 1 upto len
 	     :for arg :in arguments
 	     :do
-	     (htm (fmt "~a" (render-html arg)))
+	     (htm (fmt "~a" (render-html arg session)))
 	     (when (< i len)
 	       (htm (str ", "))))
 	  (str ")")))))
@@ -63,7 +112,7 @@
 (defmethod print-object ((var variable-term) stream)
   (format stream "~a" (head var)))
 
-(defmethod render-html ((var variable-term))
+(defmethod render-html ((var variable-term) session)
   (with-slots (head)
       var
     (with-html-output-to-string (dummy)
@@ -129,7 +178,7 @@
 (defun atomic-formula? (thing)
   (typep thing 'atomic-formula))
 
-(defmethod render-html ((x atomic-formula))
+(defmethod render-html ((x atomic-formula) session)
   (with-slots (predicate arguments)
       x
     (if (null arguments)
@@ -143,7 +192,7 @@
 	     :for i :from 1 upto len
 	     :for arg :in arguments
 	     :do
-	     (htm (fmt "~a" (render-html arg)))
+	     (htm (fmt "~a" (render-html arg session)))
 	     (when (< i len)
 	       (htm (str ", "))))
 	  (str ")")))))
@@ -153,10 +202,18 @@
 		 :predicate (intern "true")
 		 :arguments nil))
 
+(defmethod render-html ((x (eql *nullary-true*)) session)
+  (with-html-output-to-string (dummy)
+    (str "&#8868;")))
+
 (defparameter *nullary-false*
   (make-instance 'atomic-formula
 		 :predicate (intern "false")
 		 :arguments nil))
+
+(defmethod render-html ((x (eql *nullary-false*)) session)
+  (with-html-output-to-string (dummy)
+    (str "&#8869;")))
 
 (defclass equation (atomic-formula)
   ((lhs
@@ -171,11 +228,13 @@
 (defmethod arguments :around ((x equation))
   (list (lhs x) (rhs x)))
 
-(defmethod render-html ((x equation))
+(defmethod render-html ((x equation) session)
   (with-slots (lhs rhs)
       x
     (with-html-output-to-string (dummy)
-      (fmt "~a = ~a" (render-html lhs) (render-html rhs)))))
+      (fmt "~a = ~a"
+	   (render-html lhs session)
+	   (render-html rhs session)))))
 
 (defclass disequation (atomic-formula)
   ((lhs
@@ -194,11 +253,13 @@
   (setf (predicate x) (intern "!="))
   x)
 
-(defmethod render-html ((x disequation))
+(defmethod render-html ((x disequation) session)
   (with-slots (lhs rhs)
       x
     (with-html-output-to-string (dummy)
-      (fmt "~a &ne; ~a" (render-html lhs) (render-html rhs)))))
+      (fmt "~a &ne; ~a"
+	   (render-html lhs session)
+	   (render-html rhs session)))))
 
 (defclass unary-connective-formula (composite-formula)
   ((argument :initarg :argument
@@ -206,6 +267,10 @@
 
 (defclass negation (unary-connective-formula)
   nil)
+
+(defmethod render-html ((x negation) session)
+  (with-html-output-to-string (dummy)
+    (fmt "&not;~a" (render-html (argument x) session))))
 
 (defclass binary-connective-formula (composite-formula)
   ((lhs :initarg :lhs
@@ -350,11 +415,21 @@
 (defmethod render-fancily ((formula binary-disjunction))
   "∨")
 
-(defmethod render-html ((con binary-disjunction))
+(defmethod render-html ((dis binary-disjunction) session)
   (with-slots (lhs rhs)
-      con
+      dis
     (with-html-output-to-string (dummy)
-      (fmt "(~a &or; ~a)" (render-html lhs) (render-html rhs)))))
+      (let ((disjuncts (disjuncts dis)))
+	(loop
+	   :with len = (length disjuncts)
+	   :initially (htm (fmt "("))
+	   :for i :from 1 :upto len
+	   :for disjunct :in disjuncts
+	   :do
+	   (htm (fmt "~a" (render-html disjunct session)))
+	   (when (< i len)
+	     (htm (str " &or; ")))
+	   :finally (htm (fmt ")")))))))
 
 (defmethod render-plainly ((formula implication))
   "-->")
@@ -365,11 +440,11 @@
 (defmethod render-fancily ((formula implication))
   "→")
 
-(defmethod render-html ((formula implication))
+(defmethod render-html ((formula implication) session)
   (with-slots (lhs rhs)
       formula
     (with-html-output-to-string (dummy)
-      (fmt "(~a &rarr; ~a)" (render-html lhs) (render-html rhs)))))
+      (fmt "(~a &rarr; ~a)" (render-html lhs session) (render-html rhs session)))))
 
 (defmethod render-plainly ((formula equivalence))
   "<-->")
@@ -377,11 +452,11 @@
 (defmethod render-fancily ((formula equivalence))
   "↔")
 
-(defmethod render-html ((formula equivalence))
+(defmethod render-html ((formula equivalence) session)
   (with-slots (lhs rhs)
       formula
     (with-html-output-to-string (dummy)
-      (fmt "(~a &harr; ~a)" (render-html lhs) (render-html rhs)))))
+      (fmt "(~a &harr; ~a)" (render-html lhs session) (render-html rhs session)))))
 
 (defmethod render-plainly ((formula nonequivalence))
   "<%~>")
@@ -395,7 +470,7 @@
 (defmethod render-fancily ((formula universal-generalization))
   "∀")
 
-(defmethod render-html ((formula universal-generalization))
+(defmethod render-html ((formula universal-generalization) session)
   (with-slots (bindings matrix)
       formula
     (with-html-output-to-string (dummy)
@@ -408,7 +483,22 @@
 	 (htm ((:span :class "variable") (fmt "~a" binding)))
 	 (when (< i len)
 	   (htm (str ", "))))
-      (fmt "] : (~a)" (render-html matrix)))))
+      (fmt "] : ~a" (render-html matrix session)))))
+
+(defmethod render-html ((formula existential-generalization) session)
+  (with-slots (bindings matrix)
+      formula
+    (with-html-output-to-string (dummy)
+      (str "&exist; [")
+      (loop
+	 :with len = (length bindings)
+	 :for binding :in bindings
+	 :for i :from 1 :upto len
+	 :do
+	 (htm ((:span :class "variable") (fmt "~a" binding)))
+	 (when (< i len)
+	   (htm (str ", "))))
+      (fmt "] : ~a" (render-html matrix session)))))
 
 (defmethod render-plainly ((formula existential-generalization))
   "exists")
@@ -504,6 +594,33 @@ class ATOMIC-FORMULA.  This function expresses that disjointedness."
 
 (defgeneric connective-unit (multiple-arity-connective-formula))
 
+(defgeneric squeeze-quantifiers (generalization))
+
+(defmethod squeeze-quantifiers ((x atomic-formula))
+  x)
+
+(defmethod squeeze-quantifiers ((x negation))
+  (make-instance 'negation
+		 :argument (squeeze-quantifiers (argument x))))
+
+(defmethod squeeze-quantifiers ((x binary-connective-formula))
+  (make-instance (class-of x)
+		 :lhs (squeeze-quantifiers (lhs x))
+		 :rhs (squeeze-quantifiers (rhs x))))
+
+(defmethod squeeze-quantifiers ((x multiple-arity-connective-formula))
+  (make-instance (class-of x)
+		 :items (mapcar #'squeeze-quantifiers (items x))))
+
+(defmethod squeeze-quantifiers ((x generalization))
+  (if (eql (class-of x)
+	   (class-of (matrix x)))
+      (squeeze-quantifiers (make-instance (class-of x)
+					  :bindings (append (bindings x)
+							    (bindings (matrix x)))
+					  :matrix (matrix (matrix x))))
+      x))
+
 (defmethod print-object :around ((formula multiple-arity-connective-formula)
 				 stream)
   (let ((items (items formula)))
@@ -581,6 +698,43 @@ class ATOMIC-FORMULA.  This function expresses that disjointedness."
 (defclass multiple-arity-disjunction (multiple-arity-connective-formula)
   nil)
 
+(defgeneric disjuncts (formula))
+
+(defmethod disjuncts ((x t))
+  (list x))
+
+(defmethod disjuncts ((x binary-disjunction))
+  (append (disjuncts (lhs x))
+	  (disjuncts (rhs x))))
+
+(defmethod disjuncts ((x multiple-arity-disjunction))
+  (disjuncts (items x)))
+
+(defmethod disjuncts ((x null))
+  nil)
+
+(defmethod disjuncts ((l list))
+  (reduce #'append (mapcar #'disjuncts l)))
+
+(defmethod disjuncts ((x multiple-arity-disjunction))
+  (reduce #'append (mapcar #'disjuncts (items x))))
+
+(defmethod render-html ((dis multiple-arity-disjunction) session)
+  (with-slots (items)
+      dis
+    (with-html-output-to-string (dummy)
+      (let ((disjuncts (disjuncts items)))
+	(loop
+	   :with len = (length disjuncts)
+	   :initially (htm (fmt "("))
+	   :for i :from 1 :upto len
+	   :for disjunct :in disjuncts
+	   :do
+	   (htm (fmt "~a" (render-html disjunct session)))
+	   (when (< i len)
+	     (htm (str " &or; ")))
+	   :finally (htm (fmt ")")))))))
+
 (defmethod connective-unit ((mad multiple-arity-disjunction))
   (declare (ignore mad))
   top)
@@ -604,7 +758,10 @@ class ATOMIC-FORMULA.  This function expresses that disjointedness."
 	  (if (cddr disjuncts)
 	      (make-instance 'multiple-arity-disjunction
 			     :items disjuncts)
-	      (car disjuncts)))
+	      (make-instance 'binary-disjunction
+			     :lhs (first disjuncts)
+			     :rhs (second disjuncts)))
+	  (first disjuncts))
       top))
 
 (defun binary-disjunction->multiple-arity-disjunction (binary-disjunction)
@@ -638,14 +795,58 @@ class ATOMIC-FORMULA.  This function expresses that disjointedness."
 (defmethod print-object ((con binary-conjunction) stream)
   (format stream "&"))
 
-(defmethod render-html ((con binary-conjunction))
+(defgeneric conjuncts (formula))
+
+(defmethod conjuncts ((x t))
+  (list x))
+
+(defmethod conjuncts ((x binary-conjunction))
+  (append (conjuncts (lhs x))
+	  (conjuncts (rhs x))))
+
+(defmethod conjuncts ((x null))
+  nil)
+
+(defmethod conjuncts ((l list))
+  (reduce #'append (mapcar #'conjuncts l)))
+
+(defmethod render-html ((con binary-conjunction) session)
   (with-slots (lhs rhs)
       con
     (with-html-output-to-string (dummy)
-      (fmt "(~a &and; ~a)" (render-html lhs) (render-html rhs)))))
+      (let ((conjuncts (conjuncts con)))
+	(loop
+	   :with len = (length conjuncts)
+	   :initially (htm (fmt "("))
+	   :for i :from 1 :upto len
+	   :for conjunct :in conjuncts
+	   :do
+	   (htm (fmt "~a" (render-html conjunct session)))
+	   (when (< i len)
+	     (htm (str " &and; ")))
+	   :finally (htm (fmt ")")))))))
 
 (defclass multiple-arity-conjunction (multiple-arity-connective-formula)
   nil)
+
+(defmethod conjuncts ((x multiple-arity-conjunction))
+  (conjuncts (items x)))
+
+(defmethod render-html ((con multiple-arity-conjunction) session)
+  (with-slots (items)
+      con
+    (with-html-output-to-string (dummy)
+      (let ((conjuncts (conjuncts items)))
+	(loop
+	   :with len = (length conjuncts)
+	   :initially (htm (fmt "("))
+	   :for i :from 1 :upto len
+	   :for conjunct :in conjuncts
+	   :do
+	   (htm (fmt "~a" (render-html conjunct session)))
+	   (when (< i len)
+	     (htm (str " &and; ")))
+	   :finally (htm (fmt ")")))))))
 
 (defmethod connective-unit ((mac multiple-arity-conjunction))
   (declare (ignore mac))
@@ -667,8 +868,11 @@ class ATOMIC-FORMULA.  This function expresses that disjointedness."
       (if (cdr conjuncts)
 	  (if (cddr conjuncts)
 	      (make-instance 'multiple-arity-conjunction
-			     :items conjuncts))
-	  (cadr conjuncts))
+			     :items conjuncts)
+	      (make-instance 'binary-conjunction
+			     :lhs (first conjuncts)
+			     :rhs (second conjuncts)))
+	  (first conjuncts))
       contradiction))
 
 (defun binary-conjunction->multiple-arity-conjunction (binary-conjunction)
@@ -914,5 +1118,81 @@ class ATOMIC-FORMULA.  This function expresses that disjointedness."
   (apply #'append
 	 (list (head tptp-atom))
 	 (mapcar #'flatten-tptp (arguments tptp-atom))))
+
+(defmethod flatten-tptp ((l general-list))
+  (flatten-tptp (terms l)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Kowalski form for clauses
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defgeneric kowalski (formula))
+
+(defmethod kowalski ((x generalization))
+  (make-instance (class-of x)
+		 :bindings (bindings x)
+		 :matrix (kowalski (matrix x))))
+
+(defmethod kowalski ((x binary-connective-formula))
+  (make-instance (class-of x)
+		 :lhs (kowalski (lhs x))
+		 :rhs (kowalski (rhs x))))
+
+(defmethod kowalski ((x atomic-formula))
+  x)
+
+(defmethod kowalski ((x negation))
+  (make-instance 'negation
+		 :argument (kowalski (argument x))))
+
+(defgeneric negative-formula-p (formula))
+
+(defmethod negative-formula-p ((formula t))
+  nil)
+
+(defmethod negative-formula-p ((neg negation))
+  t)
+
+(defmethod negative-formula-p ((eq disequation))
+  t)
+
+(defgeneric positivize (formula))
+
+(defmethod positivize ((formula t))
+  formula)
+
+(defmethod positivize ((formula negation))
+  (argument formula))
+
+(defmethod positivize ((eq disequation))
+  (make-instance 'equation
+		 :lhs (lhs eq)
+		 :rhs (rhs eq)))
+
+(defmethod kowalski ((x multiple-arity-disjunction))
+  (let ((disjuncts (disjuncts x)))
+    (let ((negated-disjuncts (remove-if-not #'negative-formula-p disjuncts))
+	  (non-negated-disjuncts (remove-if #'negative-formula-p disjuncts)))
+      (if negated-disjuncts
+	  (if non-negated-disjuncts
+	      (kowalski (make-implication (apply #'make-multiple-arity-conjunction negated-disjuncts)
+					  (apply #'make-multiple-arity-disjunction non-negated-disjuncts)))
+	      (kowalski (make-implication (apply #'make-multiple-arity-conjunction negated-disjuncts)
+					  *nullary-false*)))
+	  (apply #'make-multiple-arity-disjunction
+		 (mapcar #'kowalski non-negated-disjuncts))))))
+
+(defmethod kowalski ((x binary-disjunction))
+  (let ((disjuncts (disjuncts x)))
+    (let ((negated-disjuncts (remove-if-not #'negative-formula-p disjuncts))
+	  (non-negated-disjuncts (remove-if #'negative-formula-p disjuncts)))
+      (if negated-disjuncts
+	  (if non-negated-disjuncts
+	      (kowalski (make-implication (apply #'make-multiple-arity-conjunction (mapcar #'positivize negated-disjuncts))
+					  (apply #'make-multiple-arity-disjunction non-negated-disjuncts)))
+	      (kowalski (make-implication (apply #'make-multiple-arity-conjunction (mapcar #'positivize negated-disjuncts))
+					  *nullary-false*)))
+	  (apply #'make-multiple-arity-disjunction
+		 (mapcar #'kowalski non-negated-disjuncts))))))
 
 ;;; formulas.lisp ends here
