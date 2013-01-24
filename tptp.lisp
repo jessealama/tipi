@@ -802,3 +802,70 @@
 	    (make-instance 'tptp-db
 			   :path path
 			   :formulas new-formulas)))))))
+
+(defgeneric easily-equivalent (formula-1 formula-2)
+  (:documentation "Can we prove that FORMULA-1 and FORMULA-2 are
+  logically equivalent (in first-order classical logic with identity)
+  in one second with the E theorem prover?"))
+
+(defmethod easily-equivalent ((formula-1 tptp-formula) (formula-2 tptp-formula))
+  (easily-equivalent (formula formula-1)
+		     (formula formula-2)))
+
+(defmethod easily-equivalent ((formula-1 string) formula-2)
+  (easily-equivalent (parse-tptp formula-1)
+		     formula-2))
+
+(defmethod easily-equivalent (formula-1 (formula-2 string))
+  (easily-equivalent formula-1 (parse-tptp formula-2)))
+
+(defmethod easily-equivalent (formula-1 (formula-2 tptp-db))
+  (easily-equivalent formula-1
+		     (make-instance 'multiple-arity-conjunction
+				    :items (mapcar #'formula (formulas formula-2)))))
+
+(defmethod easily-equivalent ((formula-1 tptp-db) formula-2)
+  (easily-equivalent (make-instance 'multiple-arity-conjunction
+				    :items (mapcar #'formula (formulas formula-1)))
+		     formula-2))
+
+(defmethod easily-equivalent ((formula-1 formula) (formula-2 formula))
+  (let ((formula-1-closed (universally-close formula-1))
+	(formula-2-closed (universally-close formula-2)))
+    (let ((temp-problem (temporary-file :base "problem"))
+	  (temp-output (temporary-file :base "output")))
+      (write-string-into-file (format nil "fof(equivalent,conjecture,(~a <=> ~a)).~%" formula-1-closed formula-2-closed)
+			      temp-problem)
+      (run-program "eproof"
+		   (list "--auto"
+			 "--tstp-format"
+			 "--memory-limit=1024"
+			 "--cpu-limit=1"
+			 (native-namestring temp-problem))
+		   :search t
+		   :input nil
+		   :output temp-output
+		   :wait t)
+      (prog1
+	  (not (null (scan "SZS status Theorem" (file-contents temp-output))))
+	(when (file-exists-p temp-output)
+	  (delete-file temp-output))
+	(when (file-exists-p temp-problem)
+	  (delete-file temp-problem))))))
+
+(defgeneric fofify (tptp))
+
+(defmethod fofify ((db tptp-db))
+  (make-instance 'tptp-db
+		 :path (path db)
+		 :formulas (mapcar #'fofify (formulas db))))
+
+(defmethod fofify ((formula fof))
+  formula)
+
+(defmethod fofify ((formula cnf))
+  (make-instance 'fof
+		 :name (name formula)
+		 :role (role formula)
+		 :formula (universally-close (formula formula))
+		 :annotations (annotations formula)))
