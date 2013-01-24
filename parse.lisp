@@ -464,11 +464,13 @@
    (|[| |]|
 	#'(lambda (left-bracket right-bracket)
 	    (declare (ignore left-bracket right-bracket))
-	    nil))
+	    (make-instance 'general-list
+			   :terms nil)))
    (|[| general-terms |]|
 	#'(lambda (left-bracket stuff right-bracket)
 	    (declare (ignore left-bracket right-bracket))
-	    stuff)))
+	    (make-instance 'general-list
+			   :terms stuff))))
 
   (general-terms
    (general-term #'(lambda (x) (list x)))
