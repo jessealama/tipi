@@ -62,8 +62,8 @@
 (defgeneric render (tptp-thing)
   (:documentation "A plain text rendering of TPTP-THING."))
 
-(defgeneric render-html (tptp-thing)
-  (:documentation "An HTML rendering of TPTP-THING."))
+(defgeneric render-html (tptp-thing session)
+  (:documentation "An HTML rendering of TPTP-THING for the hunchentoot session SESSION."))
 
 (defmethod render ((formula fof))
   (format nil "fof(~a,~a,~a)."
@@ -71,18 +71,35 @@
 	  (role formula)
 	  (formula formula)))
 
-(defmethod render-html ((fof fof))
+(defmethod render-html ((fof fof) session)
   (with-slots (name role formula annotations)
       fof
-    (with-html-output-to-string (dummy)
-      ((:tr :id (format nil "~a" name)
-	    :class (format nil "fof ~a" role))
-       ((:td :class "formula-name")
-	(fmt "~a" name))
-       ((:td :class "formula-proper")
-	(fmt "~a" (render-html formula)))
-       ((:td :class "formula-annotation")
-	(fmt "~a" (render-html annotations)))))))
+    (let ((rendered-formula (render-html formula session)))
+      (register-groups-bind (sans-outer-parens)
+	  ("^[(](.+)[)]$" rendered-formula)
+	(setf rendered-formula sans-outer-parens))
+      (with-html-output-to-string (dummy)
+	((:tr :id (format nil "~a" name)
+	      :class "fof")
+	 ((:td :class "formula-name")
+	  (fmt "~a" name))
+	 ((:td :class (format nil "~a" role)))
+	 ((:td :class "formula-proper")
+	  (fmt "~a" rendered-formula))
+	 (if annotations
+	     (with-slots (source optional-info)
+		 annotations
+	       (if source
+		   (htm ((:td :class "formula-source")
+			 (fmt "~a" (render-html source session))))
+		   (htm ((:td :class "formula-source"))))
+	       (if optional-info
+		   (htm ((:td :class "formula-optional-info")
+			 (fmt "~a" (render-html optional-info session))))
+		   (htm ((:td :class "formula-optional-info")))))
+	     (progn
+	       (htm ((:td :class "formula-source")))
+	       (htm ((:td :class "formula-optional-info"))))))))))
 
 (defmethod render ((formula cnf))
   (format nil "cnf(~a,~a,~a)."
@@ -90,18 +107,35 @@
 	  (role formula)
 	  (formula formula)))
 
-(defmethod render-html ((cnf cnf))
+(defmethod render-html ((cnf cnf) session)
   (with-slots (name role formula annotations)
       cnf
-    (with-html-output-to-string (dummy)
+    (let ((rendered-formula (render-html formula session)))
+      (register-groups-bind (sans-outer-parens)
+	  ("^[(](.+)[)]$" rendered-formula)
+	(setf rendered-formula sans-outer-parens))
+      (with-html-output-to-string (dummy)
       ((:tr :id (format nil "~a" name)
-	    :class (format nil "cnf ~a" role))
+	    :class (format nil "cnf"))
        ((:td :class "formula-name")
 	(fmt "~a" name))
+       ((:td :class (format nil "~a" role)))
        ((:td :class "formula-proper")
-	(fmt "~a" (render-html formula)))
-       ((:td :class "formula-annotation")
-	(fmt "~a" (render-html annotations)))))))
+	(fmt "~a" rendered-formula))
+       (if annotations
+	   (with-slots (source optional-info)
+	       annotations
+	     (if source
+		 (htm ((:td :class "formula-source")
+		       (fmt "~a" (render-html source session))))
+		 (htm ((:td :class "formula-source"))))
+	     (if optional-info
+		 (htm ((:td :class "formula-optional-info")
+		       (fmt "~a" (render-html optional-info session))))
+		 (htm ((:td :class "formula-optional-info")))))
+	   (progn
+	     (htm ((:td :class "formula-source")))
+	     (htm ((:td :class "formula-optional-info"))))))))))
 
 (defgeneric make-tptp-formula (thing))
 
@@ -177,7 +211,7 @@
   (with-slots (formulas path)
       problem
     (print-unreadable-object
-	(problem stream :type t :identity nil)
+	(problem stream :type t :identity t)
       (if (pathnamep path)
 	  (format stream "~a" (namestring path))
 	  (format stream "(unknown path)"))
@@ -263,21 +297,23 @@
 (defmethod render ((problem tptp-db))
   (render (formulas problem)))
 
-(defmethod render-html ((formula-list null))
+(defmethod render-html ((formula-list null) session)
   "")
 
-(defmethod render-html ((formula-list list))
+(defmethod render-html ((formula-list list) session)
   (with-html-output-to-string (dummy)
     ((:table :class "tptp-db" :title "TPTP formulas")
      (:caption "TPTP formulas")
      (:thead
       (:tr
        (:th "Name")
+       (:th "Role")
        (:th "Formula")
-       (:th "Annotation")))
+       (:th "Source")
+       (:th "Optional Info")))
      (:tbody
       (dolist (formula formula-list)
-	(htm (fmt "~a" (render-html formula)))))
+	(htm (fmt "~a" (render-html formula session)))))
      (:tfoot
       (:tr
        ((:td :colspan 3)
@@ -289,9 +325,11 @@
 	    ", "
 	    ((:span :class "lemma") "Lemmas")
 	    ", "
-	    ((:span :class "hypothesis") "Hypotheses"))))))))
+	    ((:span :class "hypothesis") "Hypotheses")
+	    ", "
+	    ((:span :class "plain") "Plain"))))))))
 
-(defmethod render-html ((problem tptp-db))
+(defmethod render-html ((problem tptp-db) session)
   (with-slots (formulas)
       problem
     (with-html-output-to-string (dummy)
@@ -307,7 +345,7 @@
 	      (:th "Selection")))
 	    (dolist (include includes)
 	      (htm (:tbody
-		    (fmt "~a" (render-html include)))))
+		    (fmt "~a" (render-html include session)))))
 	    (:tfoot
 	     ((:form :method "post"
 		     :action "expand"
@@ -315,7 +353,40 @@
 	      ((:input :type "submit"
 		       :title "Expand these include statements"
 		       :value "Expand")))))))
-	(htm (fmt "~a" (render-html non-includes)))))))
+	(let ((session-problem (session-value :problem session))
+	      (session-solution (session-value :solution session)))
+	  (cond ((eq problem session-problem)
+		 (htm (fmt "~a" (render-html non-includes session))))
+		((eq problem session-solution)
+		 (let ((solution-properties (session-value :solution-properties session)))
+		   (let ((restrict-signature (gethash "restrict-signature" solution-properties))
+			 (kowalski (gethash "kowalski" solution-properties))
+			 (squeeze-quantifiers (gethash "squeeze-quantifiers" solution-properties)))
+		     (if (and restrict-signature
+			      (not (solution-restricted-p problem)))
+			 (let ((restricted (restrict-solution-to-problem-language problem)))
+			   (if kowalski
+			       (if squeeze-quantifiers
+				   (htm (fmt "~a" (render-html (squeeze-quantifiers (kowalski restricted)) session)))
+				   (htm (fmt "~a" (render-html (kowalski restricted) session))))
+			       (if squeeze-quantifiers
+				   (htm (fmt "~a" (render-html (squeeze-quantifiers restricted) session)))
+				   (htm (fmt "~a" (render-html restricted session))))))
+			 (if kowalski
+			     (if squeeze-quantifiers
+				 (htm (fmt "~a" (render-html (squeeze-quantifiers (kowalski non-includes)) session)))
+				 (htm (fmt "~a" (render-html (kowalski non-includes) session))))
+			     (if squeeze-quantifiers
+				 (htm (fmt "~a" (render-html (squeeze-quantifiers non-includes) session)))
+				 (htm (fmt "~a" (render-html non-includes session)))))))))
+		(t
+		 (htm (fmt "~a" (render-html non-includes session))))))))))
+
+(defmethod kowalski ((l null))
+  nil)
+
+(defmethod kowalski ((l list))
+  (mapcar #'kowalski l))
 
 (defmethod render ((problem derivability-problem))
   (with-output-to-string (s)
@@ -533,7 +604,7 @@
       include
     (format nil "include(~a,[~{~a~^,~}])." file selection)))
 
-(defmethod render-html ((include include-instruction))
+(defmethod render-html ((include include-instruction) session)
   (with-slots (file selection)
       include
     (with-html-output-to-string (dummy)
@@ -638,20 +709,47 @@
   (let ((new-formulas nil)
 	(path (path tptp-db))
 	(dir (problem-directory tptp-db)))
-    (loop
-       for formula in (formulas tptp-db)
-       do
-	 (if (eql (type-of formula) 'include-instruction)
-	     (let ((expanded (expand-include formula dir)))
-	       (dolist (x expanded)
-		 (push x new-formulas)))
-	     (push formula new-formulas)))
-    (make-instance 'tptp-db
-		   :formulas (reverse new-formulas)
-		   :path path)))
+    (if (null (include-instructions tptp-db))
+	tptp-db
+	(loop
+	   for formula in (formulas tptp-db)
+	   do
+	     (if (eql (type-of formula) 'include-instruction)
+		 (let ((expanded (expand-include formula dir)))
+		   (dolist (x expanded)
+		     (push x new-formulas)))
+		 (push formula new-formulas))
+	   finally
+	     (return (make-instance 'tptp-db
+				    :formulas (reverse new-formulas)
+				    :path path))))))
 
 (defun include-instructions (tptp-db)
   (remove-if-not #'(lambda (x) (eql (type-of x) 'include-instruction)) (formulas tptp-db)))
 
 (defun formulas-w/o-includes (tptp-db)
   (remove-if #'(lambda (x) (eql (type-of x) 'include-instruction)) (formulas tptp-db)))
+
+(defmethod kowalski ((formula tptp-formula))
+  (make-instance (class-of formula)
+		 :name (name formula)
+		 :role (role formula)
+		 :formula (kowalski (formula formula))
+		 :annotations (annotations formula)))
+
+(defmethod kowalski ((db tptp-db))
+  (make-instance 'tptp-db
+		 :path (path db)
+		 :formulas (mapcar #'kowalski (formulas db))))
+
+(defmethod squeeze-quantifiers ((db tptp-db))
+  (make-instance 'tptp-db
+		 :path (path db)
+		 :formulas (mapcar #'squeeze-quantifiers (formulas db))))
+
+(defmethod squeeze-quantifiers ((formula tptp-formula))
+  (make-instance (class-of formula)
+		 :name (name formula)
+		 :role (role formula)
+		 :formula (squeeze-quantifiers (formula formula))
+		 :annotations (annotations formula)))
