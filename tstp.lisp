@@ -135,3 +135,18 @@
 					     (formula-with-name tstp name))
 					 sorted-supporting)
 		       :problem (problem tstp))))))
+
+(defmethod kowalski ((db tstp-db))
+  (make-instance 'tstp-db
+		 :restricted (solution-restricted-p db)
+		 :path (path db)
+		 :problem (problem db)
+		 :formulas (mapcar #'kowalski
+				   (formulas db))))
+
+(defmethod squeeze-quantifiers ((db tstp-db))
+  (make-instance 'tstp-db
+		 :restricted (solution-restricted-p db)
+		 :path (path db)
+		 :problem (problem db)
+		 :formulas (mapcar #'squeeze-quantifiers (formulas db))))
