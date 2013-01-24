@@ -61,7 +61,8 @@
 					    atoms)))
 	(make-instance 'annotation
 		       :optional-info nil
-		       :source (select-sensible-formulas referring-atoms solution))))))
+		       :source (make-instance 'general-list
+					      :terms (select-sensible-formulas referring-atoms solution)))))))
 
 (defgeneric restrict-solution-to-problem-language (tstp)
   (:documentation "Restrict TSTP to the language employed by its underlying problem.  The main application is to eexclude Skolem functions and splitting predicates that are present in the solution but not in the problem."))
