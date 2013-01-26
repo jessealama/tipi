@@ -8,10 +8,12 @@
   ((head
     :initarg :head
     :accessor head
+    :initform (error "An atomic expression needs a head.")
     :type symbol)
    (arguments
     :initarg :arguments
     :accessor arguments
+    :initform nil
     :type list)))
 
 (defmethod print-object ((term atomic-expression) stream)
