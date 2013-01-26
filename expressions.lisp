@@ -47,6 +47,9 @@
     :initarg :terms
     :initform nil)))
 
+(defmethod print-object ((l general-list) stream)
+  (format stream "[~{~a~^,~}]" (terms l)))
+
 (defmethod render-html ((l general-list) session)
   (with-slots (terms)
       l
