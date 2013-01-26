@@ -18,10 +18,19 @@
     :initarg :formula
     :accessor formula
     :initform (error "An fof needs a formula."))
-   (annotations
-    :initarg :annotations
-    :initform nil
-    :accessor annotations)))
+   (source
+    :initarg :source
+    :accessor source)
+   (optional-info
+    :initarg :optional-info
+    :accessor optional-info)))
+
+(defmethod initialize-instance :after ((x tptp-formula) &rest initargs &key &allow-other-keys)
+  "Ensure that if X's optional-info slot is set, then its source slot is also set."
+  (declare (ignore initargs))
+  (when (slot-boundp x 'optional-info)
+    (unless (slot-boundp x 'source)
+      (error "A TPTP formula whose optional-info slot is bound must also have its source slot bound."))))
 
 (defclass fof (tptp-formula)
   nil)
@@ -29,35 +38,30 @@
 (defclass cnf (tptp-formula)
   nil)
 
-(defclass annotation ()
-  ((source
-    :initarg :source
-    :initform nil
-    :accessor source)
-   (optional-info
-    :initarg :optional-info
-    :initform nil
-    :accessor optional-info)))
+(defclass internal-source (tptp-source)
+  nil)
 
-(defmethod print-object ((x annotation) stream)
-  (with-slots (optional-info source)
-      x
-    (print-unreadable-object (x stream :type t :identity nil)
-      (if optional-info
-	  (if source
-	      (format stream "source: ~a ; optional-info: ~a" source optional-info)
-	      (format stream "optional info: ~a (no source)" optional-info))
-	  (if source
-	      (format stream "source: ~a ; (no optional info)" source)
-	      (format stream "(no source; no optional info)"))))))
+(defclass external-source (tptp-source)
+  nil)
 
 (defmethod print-object ((x tptp-formula) stream)
-  (with-slots (name role formula annotations)
+  (with-slots (name role formula)
       x
-    (print-unreadable-object (x stream :type t :identity nil)
-      (if annotations
-	  (format stream "~a (~a): ~a  [~a]" name role formula annotations)
-	  (format stream "~a (~a): ~a" name role formula)))))
+    (if (slot-boundp x 'source)
+	(let ((source (source x)))
+	  (if (slot-boundp x 'optional-info)
+	      (let ((optional-info (optional-info x)))
+		(format stream "(~a, ~a, ~a, ~a, ~a)." name role formula source optional-info))
+	      (format stream "(~a, ~a, ~a, ~a)." name role formula source)))
+	(format stream "(~a, ~a, ~a)." name role formula))))
+
+(defmethod print-object ((x fof) stream)
+  (format stream "fof")
+  (call-next-method))
+
+(defmethod print-object ((x cnf) stream)
+  (format stream "fof")
+  (call-next-method))
 
 (defgeneric render (tptp-thing)
   (:documentation "A plain text rendering of TPTP-THING."))
@@ -71,71 +75,47 @@
 	  (role formula)
 	  (formula formula)))
 
-(defmethod render-html ((fof fof) session)
-  (with-slots (name role formula annotations)
-      fof
+
+
+(defmethod render-html ((x tptp-formula) session)
+  (with-slots (name role formula)
+      x
     (let ((rendered-formula (render-html formula session)))
       (register-groups-bind (sans-outer-parens)
 	  ("^[(](.+)[)]$" rendered-formula)
 	(setf rendered-formula sans-outer-parens))
       (with-html-output-to-string (dummy)
-	((:tr :id (format nil "~a" name)
-	      :class "fof")
-	 ((:td :class "formula-name")
-	  (fmt "~a" name))
-	 ((:td :class (format nil "~a" role)))
-	 ((:td :class "formula-proper")
-	  (fmt "~a" rendered-formula))
-	 (if annotations
-	     (with-slots (source optional-info)
-		 annotations
-	       (if source
-		   (htm ((:td :class "formula-source")
-			 (fmt "~a" (render-html source session))))
-		   (htm ((:td :class "formula-source"))))
-	       (if optional-info
-		   (htm ((:td :class "formula-optional-info")
-			 (fmt "~a" (render-html optional-info session))))
-		   (htm ((:td :class "formula-optional-info")))))
-	     (progn
-	       (htm ((:td :class "formula-source")))
-	       (htm ((:td :class "formula-optional-info"))))))))))
+	((:td :class "formula-name")
+	 (fmt "~a" name))
+	((:td :class (format nil "~a" role)))
+	((:td :class "formula-proper")
+	 (fmt "~a" rendered-formula))
+	(if (slot-boundp x 'source)
+	    (htm ((:td :class "formula-source")
+		  (fmt "~a" (render-html (source x) session))))
+	    (htm ((:td :class "formula-source"))))
+	(if (slot-boundp x 'optional-info)
+	    (htm ((:td :class "formula-optional-info")
+		  (fmt "~a" (render-html (optional-info x) session))))
+	    (htm ((:td :class "formula-optional-info"))))))))
+
+(defmethod render-html ((fof fof) session)
+  (with-html-output-to-string (dummy)
+    ((:tr :id (format nil "~a" (name fof))
+	  :class "fof")
+     (call-next-method))))
+
+(defmethod render-html ((x cnf) session)
+  (with-html-output-to-string (dummy)
+    ((:tr :id (format nil "~a" (name x))
+	  :class "cnf")
+     (fmt "~a" (call-next-method)))))
 
 (defmethod render ((formula cnf))
   (format nil "cnf(~a,~a,~a)."
 	  (name formula)
 	  (role formula)
 	  (formula formula)))
-
-(defmethod render-html ((cnf cnf) session)
-  (with-slots (name role formula annotations)
-      cnf
-    (let ((rendered-formula (render-html formula session)))
-      (register-groups-bind (sans-outer-parens)
-	  ("^[(](.+)[)]$" rendered-formula)
-	(setf rendered-formula sans-outer-parens))
-      (with-html-output-to-string (dummy)
-      ((:tr :id (format nil "~a" name)
-	    :class (format nil "cnf"))
-       ((:td :class "formula-name")
-	(fmt "~a" name))
-       ((:td :class (format nil "~a" role)))
-       ((:td :class "formula-proper")
-	(fmt "~a" rendered-formula))
-       (if annotations
-	   (with-slots (source optional-info)
-	       annotations
-	     (if source
-		 (htm ((:td :class "formula-source")
-		       (fmt "~a" (render-html source session))))
-		 (htm ((:td :class "formula-source"))))
-	     (if optional-info
-		 (htm ((:td :class "formula-optional-info")
-		       (fmt "~a" (render-html optional-info session))))
-		 (htm ((:td :class "formula-optional-info")))))
-	   (progn
-	     (htm ((:td :class "formula-source")))
-	     (htm ((:td :class "formula-optional-info"))))))))))
 
 (defgeneric make-tptp-formula (thing))
 
@@ -362,7 +342,8 @@
 		   (let ((restrict-signature (gethash "restrict-signature" solution-properties))
 			 (kowalski (gethash "kowalski" solution-properties))
 			 (squeeze-quantifiers (gethash "squeeze-quantifiers" solution-properties))
-			 (supporting-axioms (gethash "supporting-axioms" solution-properties)))
+			 (supporting-axioms (gethash "supporting-axioms" solution-properties))
+			 (reduce-equivalences (gethash "reduce-equivalences" solution-properties)))
 		     (let ((reformulated non-includes))
 		       (when restrict-signature
 			 (when (not (solution-restricted-p problem))
@@ -375,6 +356,19 @@
 			 (setf reformulated (supporting-axioms (if (typep reformulated 'tptp-db)
 								   reformulated
 								   problem))))
+		       (when reduce-equivalences
+			 (setf reformulated (reduce-equivalences reformulated)))
+		       (setf (session-value :solution session)
+			     (if (typep reformulated 'tstp-db)
+				 reformulated
+				 (make-instance 'tstp-db
+						:problem session-problem
+						:restricted nil
+						:formulas (if (typep reformulated 'list)
+							      reformulated
+							      (if (typep reformulated 'tptp-db)
+								  (formulas reformulated)
+								  (error "huh?"))))))
 		       (htm (fmt "~a" (render-html reformulated session)))))))
 		(t
 		 (htm (fmt "~a" (render-html non-includes session))))))))))
@@ -458,13 +452,23 @@
 	     (formulas problem)
 	     :key #'role))
 
-(defun change-status (formula new-status)
-  (make-instance 'tptp-formula
+(defgeneric change-status (formula new-status))
+
+(defmethod change-status :around ((formula tptp-formula) status)
+  (let ((new-formula (call-next-method)))
+    (when (slot-boundp formula 'source)
+      (setf (source new-formula) (source formula)))
+    (when (slot-boundp formula 'optional-info)
+      (setf (optional-info new-formula)
+	    (optional-info formula)))
+    new-formula))
+
+(defmethod change-status ((formula tptp-formula) new-status)
+  (make-instance (class-of 'tptp-formula)
 		 :name (name formula)
 		 :syntax (role formula)
 		 :status new-status
-		 :formula (formula formula)
-		 :annotations (annotations formula)))
+		 :formula (formula formula)))
 
 (defgeneric change-status-of-formula-in (formula problem new-status)
   (:documentation "Change the TPTP status of FORMULA in PROBLEM to NEW-STATUS."))
@@ -635,22 +639,32 @@
     (dolist (name names)
       (setf (gethash name names-table) t))
     (dolist (formula formulas)
-      (let ((annotation (annotations formula)))
-	(let ((source (source annotation))
-	      (earlier-table (make-hash-table :test #'equal)))
-	  (let ((atoms (flatten-tptp source)))
+      (if (slot-boundp formula 'source)
+	  (let* ((source (source formula))
+		 (earlier-table (make-hash-table :test #'equal))
+		 (atoms (flatten-tptp source)))
 	    (dolist (atom atoms)
 	      (when (gethash atom names-table)
 		(unless (gethash atom earlier-table)
-		  (setf (gethash atom earlier-table) t)))))
-	  (let ((new-annotation (make-instance 'annotation
-					       :source (hash-table-keys earlier-table))))
-	    (let ((new-formula (make-instance (class-of formula)
-					      :name (name formula)
-					      :role (role formula)
-					      :formula (formula formula)
-					      :annotations new-annotation)))
-	      (push new-formula new-formulas))))))
+		  (setf (gethash atom earlier-table) t))))
+	    (let ((new-source (make-instance 'general-list
+					     :terms (hash-table-keys earlier-table))))
+	      (let ((new-formula (make-instance (class-of formula)
+						:name (name formula)
+						:role (role formula)
+						:formula (formula formula)
+						:source new-source)))
+		(when (slot-boundp formula 'optional-info)
+		  (setf (optional-info new-formula)
+			(optional-info formula)))
+		(push new-formula new-formulas))))
+	  (let ((new-formula (make-instance (class-of formula)
+					    :name (name formula)
+					    :role (role formula)
+					    :formula (formula formula))))
+	    (setf (source new-formula)
+		  (make-instance 'general-list :terms nil))
+	    (push new-formula new-formulas))))
     (make-instance 'tptp-db
 		   :formulas (reverse new-formulas))))
 
@@ -727,12 +741,21 @@
 (defun formulas-w/o-includes (tptp-db)
   (remove-if #'(lambda (x) (eql (type-of x) 'include-instruction)) (formulas tptp-db)))
 
+(defmethod kowalski :around ((formula tptp-formula))
+  (let ((new-formula (call-next-method)))
+    (when (slot-boundp formula 'source)
+      (setf (source new-formula)
+	    (source formula)))
+    (when (slot-boundp formula 'optional-info)
+      (setf (optional-info new-formula)
+	    (optional-info formula)))
+    new-formula))
+
 (defmethod kowalski ((formula tptp-formula))
   (make-instance (class-of formula)
 		 :name (name formula)
 		 :role (role formula)
-		 :formula (kowalski (formula formula))
-		 :annotations (annotations formula)))
+		 :formula (kowalski (formula formula))))
 
 (defmethod kowalski ((db tptp-db))
   (make-instance 'tptp-db
@@ -744,12 +767,21 @@
 		 :path (path db)
 		 :formulas (mapcar #'squeeze-quantifiers (formulas db))))
 
+(defmethod squeeze-quantifiers :around ((formula tptp-formula))
+  (let ((new-formula (call-next-method)))
+    (when (slot-boundp formula 'source)
+      (setf (source new-formula)
+	    (source formula)))
+    (when (slot-boundp formula 'optional-info)
+      (setf (optional-info new-formula)
+	    (optional-info formula)))
+    new-formula))
+
 (defmethod squeeze-quantifiers ((formula tptp-formula))
   (make-instance (class-of formula)
 		 :name (name formula)
 		 :role (role formula)
-		 :formula (squeeze-quantifiers (formula formula))
-		 :annotations (annotations formula)))
+		 :formula (squeeze-quantifiers (formula formula))))
 
 (defgeneric supporting-axioms (tptp))
 
@@ -760,48 +792,65 @@
 	(some #'(lambda (x) (exists-path x to table))
 	      predecessors))))
 
+(defmethod supporting-axioms ((x inference-record))
+  (supporting-axioms (parents x)))
+
+(defmethod supporting-axioms ((x general-list))
+  (reduce #'append (mapcar #'supporting-axioms (terms x))))
+
+(defmethod supporting-axioms ((x string))
+  (list x))
+
+(defmethod supporting-axioms ((x integer))
+  (list (format nil "~d" x)))
+
+(defgeneric axioms (tptp))
+
+(defmethod axioms ((db tptp-db))
+  (remove-if-not #'axiom-p (formulas db)))
+
+(defgeneric axiom-p (formula))
+
+(defmethod axiom-p ((formula tptp-formula))
+  (if (slot-boundp formula 'source)
+      (let ((source (source formula)))
+	(cond ((typep source 'internal-source)
+	       nil)
+	      ((typep source 'general-list)
+	       (null (terms source)))
+	      ((integerp source)
+	       nil)
+	      (t
+	       (error "Don't know how to determine whether '~a' is an axiom." formula))))
+      t))
+
 (defmethod supporting-axioms ((db tptp-db))
-  (with-slots (formulas path)
-      db
-    (let ((support-table (make-hash-table :test #'equal)))
-      (loop
-	 :for formula :in formulas
-	 :for annotation = (annotations formula)
-	 :for source = (source annotation)
-	 :for flattened-source = (flatten-tptp source)
-	 :for flattened-no-dups = (remove-duplicates flattened-source :test #'string= :key #'stringify)
-	 :for refs = (remove-if-not #'(lambda (x)
-					(member x formulas :test #'string= :key #'(lambda (x) (stringify (name x)))))
-				    (mapcar #'stringify flattened-no-dups))
-	 :do
-	 (setf (gethash (format nil "~a" (name formula)) support-table) refs))
-      (let ((axioms (remove-if-not #'(lambda (x) (null (gethash x support-table)))
-				   (hash-table-keys support-table)))
-	    (non-axioms (remove-if #'(lambda (x) (null (gethash x support-table)))
-				   (hash-table-keys support-table))))
-	(let ((full-table (make-hash-table :test #'equal)))
-	  (dolist (axiom axioms)
-	    (setf (gethash axiom full-table) nil))
-	  (dolist (non-axiom non-axioms)
-	    (let ((supporting (remove-if-not #'(lambda (axiom) (exists-path non-axiom axiom support-table))
-					     axioms)))
-	      (setf (gethash non-axiom full-table)
-		    supporting)))
-	  (let ((new-formulas (mapcar
-			       #'(lambda (formula)
-				   (make-instance (class-of formula)
-						  :name (name formula)
-						  :role (role formula)
-						  :formula (formula formula)
-						  :annotations (make-instance 'annotation
-									      :source (source (annotations formula))
-									      :optional-info (make-instance 'general-list
-													    :terms (gethash (stringify (name formula))
-															    full-table)))))
-				      formulas)))
-	    (make-instance 'tptp-db
-			   :path path
-			   :formulas new-formulas)))))))
+  (let ((support-table (make-hash-table :test #'equal)))
+    (dolist (formula (formulas db))
+      (let ((name (stringify (name formula))))
+	(if (slot-boundp formula 'source)
+	    (setf (gethash name support-table)
+		  (supporting-axioms (source formula)))
+	    (setf (gethash name support-table) nil))))
+    (flet ((axiom-p (name) (null (gethash name support-table))))
+      (let ((keys (hash-table-keys support-table)))
+	(let ((axioms (remove-if-not #'axiom-p keys))
+	      (non-axioms (remove-if #'axiom-p keys)))
+	  (let ((full-table (make-hash-table :test #'equal)))
+	    (dolist (axiom axioms)
+	      (setf (gethash axiom full-table) nil))
+	    (dolist (non-axiom non-axioms)
+	      (flet ((supports (axiom)
+		       (exists-path non-axiom axiom support-table)))
+		(setf (gethash non-axiom full-table)
+		      (remove-if-not #'supports axioms))))
+	    (flet ((update-formula (formula)
+		     (setf (optional-info formula)
+		     (make-instance 'general-list
+				    :terms (gethash (stringify (name formula))
+						    full-table)))))
+	      (dolist (formula (formulas db))
+		(update-formula formula)))))))))
 
 (defgeneric easily-equivalent (formula-1 formula-2)
   (:documentation "Can we prove that FORMULA-1 and FORMULA-2 are
@@ -829,6 +878,9 @@
 				    :items (mapcar #'formula (formulas formula-1)))
 		     formula-2))
 
+(defparameter *easily-equivalent-timeout* 5
+  "The maximum number of seconds we will spend trying to prove that two formulas are equivalent.")
+
 (defmethod easily-equivalent ((formula-1 formula) (formula-2 formula))
   (let ((formula-1-closed (universally-close formula-1))
 	(formula-2-closed (universally-close formula-2)))
@@ -840,7 +892,7 @@
 		   (list "--auto"
 			 "--tstp-format"
 			 "--memory-limit=1024"
-			 "--cpu-limit=1"
+			 (format nil "--cpu-limit=~d" *easily-equivalent-timeout*)
 			 (native-namestring temp-problem))
 		   :search t
 		   :input nil
@@ -863,9 +915,170 @@
 (defmethod fofify ((formula fof))
   formula)
 
+(defmethod fofify :around ((formula cnf))
+  (let ((new-formula (call-next-method)))
+    (when (slot-boundp formula 'source)
+      (setf (source new-formula) (source formula)))
+    (when (slot-boundp formula 'optional-info)
+      (setf (optional-info new-formula)
+	    (optional-info formula)))
+    new-formula))
+
 (defmethod fofify ((formula cnf))
   (make-instance 'fof
 		 :name (name formula)
 		 :role (role formula)
-		 :formula (universally-close (formula formula))
-		 :annotations (annotations formula)))
+		 :formula (universally-close (formula formula))))
+
+(defgeneric premises (thing))
+
+(defmethod premises ((x null))
+  nil)
+
+(defmethod premises ((x inference-record))
+  (premises (parents x)))
+
+(defmethod premises ((x null))
+  nil)
+
+(defmethod premises ((x general-list))
+  (reduce #'append (mapcar #'premises (terms x))))
+
+(defmethod premises ((x list))
+  (reduce #'append (mapcar #'premises x)))
+
+(defmethod premises ((x integer))
+  (list x))
+
+(defmethod premises ((x tptp-formula))
+  (when (slot-boundp x 'source)
+    (premises (source x))))
+
+(defmethod premises ((x atomic-expression))
+  nil)
+
+(defun replace-premises (formula new-premises)
+  (setf (source formula)
+	(make-instance 'atomic-expression
+		       :head (intern "inference" :tipi)
+		       :arguments (list (make-instance 'atomic-expression
+						       :head (intern "unknown" :tipi)
+						       :arguments nil)
+					(make-instance 'general-list)
+					(make-instance 'general-list
+						       :terms new-premises))))
+  formula)
+
+(defgeneric find-formula (formulas name))
+
+(defmethod find-formula ((formulas null) name)
+  nil)
+
+(defmethod find-formula ((formulas list) name)
+  (find (stringify name)
+	formulas
+	:key #'(lambda (x) (stringify (name x)))
+	:test #'string=))
+
+(defgeneric update-inference-parents (thing from to)
+  (:documentation "In THING, update any reference to FROM in an
+  inference record to TO."))
+
+(defmethod update-inference-parents ((thing null) from to)
+  nil)
+
+(defmethod update-inference-parents ((l general-list) from to)
+  (make-instance 'general-list
+		 :terms (mapcar #'(lambda (term)
+				    (update-inference-parents term from to))
+				(terms l))))
+
+(defmethod update-inference-parents ((formula-list list) from to)
+  (mapcar #'(lambda (x)
+	      (update-inference-parents x from to))
+	  formula-list))
+
+(defmethod update-inference-parents :around ((x tptp-formula) from to)
+  (let ((new-formula (call-next-method)))
+    (when (slot-boundp x 'optional-info)
+      (setf (optional-info new-formula)
+	    (optional-info x)))
+    new-formula))
+
+(defmethod update-inference-parents ((x tptp-formula) from to)
+  (if (slot-boundp x 'source)
+      (make-instance (class-of x)
+		     :name (name x)
+		     :role (role x)
+		     :formula (formula x)
+		     :source (update-inference-parents (source x) from to))
+      x))
+
+(defmethod update-inference-parents ((x atomic-expression) from to)
+  (make-instance (class-of x)
+		 :head (head x)
+		 :arguments (mapcar #'(lambda (arg)
+					(update-inference-parents arg from to))
+				    (arguments x))))
+
+(defmethod update-inference-parents ((record inference-record) from to)
+  (with-slots (rule useful-info parents)
+      record
+    (make-instance 'inference-record
+		   :rule rule
+		   :useful-info useful-info
+		   :parents (make-instance 'general-list
+					   :terms (mapcar #'(lambda (x)
+							      (update-inference-parents x from to))
+							  (terms parents))))))
+
+(defmethod update-inference-parents ((x string) from to)
+  (if (string= x (stringify from))
+      to
+      x))
+
+(defmethod update-inference-parents ((x integer) from to)
+  (if (string= (format nil "~d" x)
+	       (stringify from))
+      to
+      x))
+
+(defmethod update-inference-parents ((x symbol) from to)
+  (if (string= (symbol-name x)
+	       (stringify from))
+      to
+      x))
+
+(defgeneric reduce-equivalences (tptp))
+
+(defmethod reduce-equivalences ((l null))
+  nil)
+
+(defmethod reduce-equivalences ((l list))
+  (multiple-value-bind (index-to-keep index-to-remove)
+      (loop
+	 :for i :from 0
+	 :for formula :in l
+	 :for rest = (subseq l (1+ i))
+	 :for equivalent = (find-if #'(lambda (other-formula)
+					(let ((premises (premises other-formula)))
+					  (when (length= 1 premises)
+					    (let ((premise (first premises)))
+					      (when (string= (stringify premise)
+							     (stringify (name formula)))
+						(easily-equivalent formula other-formula))))))
+				    rest)
+	 :when equivalent :do (return (values i (position equivalent l)))
+	 :finally (return (values nil nil)))
+    (if (and index-to-keep index-to-remove)
+	(reduce-equivalences (append (subseq l 0 index-to-remove)
+				     (update-inference-parents (subseq l (1+ index-to-remove))
+							       index-to-remove
+							       index-to-keep)))
+	l)))
+
+(defmethod reduce-equivalences ((db tptp-db))
+  (let ((simplified (simplify-justification db)))
+    (make-instance 'tptp-db
+		   :path (path db)
+		   :formulas (reduce-equivalences (formulas simplified)))))
