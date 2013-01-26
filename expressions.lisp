@@ -1141,6 +1141,11 @@ class ATOMIC-FORMULA.  This function expresses that disjointedness."
 (defmethod flatten-tptp ((tptp-thing string))
   (list tptp-thing))
 
+(defmethod flatten-tptp ((ir inference-record))
+  (append (flatten-tptp (rule ir))
+	  (flatten-tptp (useful-info ir))
+	  (flatten-tptp (parents ir))))
+
 (defmethod flatten-tptp ((tptp-thing cons))
   (append (flatten-tptp (car tptp-thing))
 	  (flatten-tptp (cdr tptp-thing))))
