@@ -1108,6 +1108,25 @@ class ATOMIC-FORMULA.  This function expresses that disjointedness."
 (defmacro neg (argument)
   `(negate ,argument))
 
+(defclass tptp-source ()
+  nil)
+
+(defclass inference-record (tptp-source)
+  ((rule
+    :accessor rule
+    :initarg :rule
+    :initform (error "An inference record needs a rule of inference"))
+   (useful-info
+    :type general-list
+    :accessor useful-info
+    :initarg :useful-info
+    :initform (make-instance 'general-list))
+   (parents
+    :type general-list
+    :accessor parents
+    :initarg :parents
+    :initform (make-instance 'general-list))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Flatten
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
