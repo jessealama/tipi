@@ -158,3 +158,15 @@
 		   :path (path db)
 		   :problem (problem db)
 		   :formulas (formulas new-db))))
+
+(defmethod reduce-equivalences ((db tstp-db))
+  (let ((simplified (simplify-justification db)))
+    (make-instance 'tstp-db
+		   :path (path db)
+		   :restricted (solution-restricted-p db)
+		   :problem (problem db)
+		   :formulas (reduce-equivalences (formulas simplified)))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Verify deirvations
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
