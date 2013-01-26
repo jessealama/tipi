@@ -346,8 +346,8 @@
    cnf-annotated)
 
   (fof-annotated
-   (|fof| |(| name |,| formula-role |,| fof-formula annotations |)| |.|
-	  #'(lambda (fof-symbol left-paren name comma-1 role comma-2 formula annotations right-paren full-stop)
+   (|fof| |(| name |,| formula-role |,| fof-formula |)| |.|
+	  #'(lambda (fof-symbol left-paren name comma-1 role comma-2 formula right-paren full-stop)
 	      (declare (ignore fof-symbol
 			       left-paren
 			       comma-1
@@ -357,13 +357,42 @@
 	      (make-instance 'fof
 			     :name name
 			     :role role
+			     :formula formula)))
+   (|fof| |(| name |,| formula-role |,| fof-formula |,| source |)| |.|
+	  #'(lambda (fof-symbol left-paren name comma-1 role comma-2 formula comma-3 source right-paren full-stop)
+	      (declare (ignore fof-symbol
+			       left-paren
+			       comma-1
+			       comma-2
+			       comma-3
+			       right-paren
+			       full-stop))
+	      (make-instance 'fof
+			     :name name
+			     :role role
 			     :formula formula
-			     :annotations annotations))))
+			     :source source)))
+   (|fof| |(| name |,| formula-role |,| fof-formula |,| source |,| optional-info|)| |.|
+	  #'(lambda (fof-symbol left-paren name comma-1 role comma-2 formula comma-3 source comma-4 optional-info right-paren full-stop)
+	      (declare (ignore fof-symbol
+			       left-paren
+			       comma-1
+			       comma-2
+			       comma-3
+			       comma-4
+			       right-paren
+			       full-stop))
+	      (make-instance 'fof
+			     :name name
+			     :role role
+			     :formula formula
+			     :source source
+			     :optional-info optional-info))))
 
   (cnf-annotated
-   (|cnf| |(| name |,| formula-role |,| cnf-formula annotations |)| |.|
-	  #'(lambda (fof-symbol left-paren name comma-1 role comma-2 formula annotations right-paren full-stop)
-	      (declare (ignore fof-symbol
+   (|cnf| |(| name |,| formula-role |,| cnf-formula |)| |.|
+	  #'(lambda (cnf-symbol left-paren name comma-1 role comma-2 formula right-paren full-stop)
+	      (declare (ignore cnf-symbol
 			       left-paren
 			       comma-1
 			       comma-2
@@ -372,34 +401,57 @@
 	      (make-instance 'cnf
 			     :name name
 			     :role role
+			     :formula formula)))
+   (|cnf| |(| name |,| formula-role |,| cnf-formula |,| source |)| |.|
+	  #'(lambda (cnf-symbol left-paren name comma-1 role comma-2 formula comma-3 source right-paren full-stop)
+	      (declare (ignore cnf-symbol
+			       left-paren
+			       comma-1
+			       comma-2
+			       comma-3
+			       right-paren
+			       full-stop))
+	      (make-instance 'cnf
+			     :name name
+			     :role role
 			     :formula formula
-			     :annotations annotations))))
-
-  (annotations
-   (|,| source optional-info
-	#'(lambda (comma s o-i)
-	    (declare (ignore comma))
-	    (make-instance 'annotation
-			   :source s
-			   :optional-info o-i)))
-   ())
+			     :source source)))
+      (|cnf| |(| name |,| formula-role |,| cnf-formula |,| source |,| optional-info |)| |.|
+	     #'(lambda (cnf-symbol left-paren name comma-1 role comma-2 formula comma-3 source comma-4 optional-info right-paren full-stop)
+		 (declare (ignore cnf-symbol
+				  left-paren
+				  comma-1
+				  comma-2
+				  comma-3
+				  comma-4
+				  right-paren
+				  full-stop))
+		 (make-instance 'cnf
+				:name name
+				:role role
+				:formula formula
+				:source source
+				:optional-info optional-info))))
 
   (optional-info
-   (|,| useful-info
-	#'(lambda (comma x)
-	    (declare (ignore comma))
-	    x))
+   useful-info
    ())
 
-  ;; (source
-  ;;  dag-source
-  ;;  internal-source
-  ;;  external-source
-  ;;  |unknown|
-  ;;  (|[| sources |]|))
-
   (source
-   general-term)
+   (general-term
+    #'(lambda (x)
+	(if (typep x 'atomic-expression)
+	    (with-slots (head arguments)
+		x
+	      (if (and (string= (stringify head) "inference")
+		       (length= 3 arguments)
+		       (typep (third arguments) 'general-list))
+		  (make-instance 'inference-record
+				 :rule (first arguments)
+				 :useful-info (second arguments)
+				 :parents (third arguments))
+		  x))
+	    x))))
 
   (sources
    source
