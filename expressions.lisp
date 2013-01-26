@@ -1282,4 +1282,16 @@ class ATOMIC-FORMULA.  This function expresses that disjointedness."
 		       :bindings free
 		       :matrix formula))))
 
+(defmethod print-object ((ir inference-record) stream)
+  (format stream "inference(~a,~a,~a)" (rule ir) (useful-info ir) (parents ir)))
+
+(defmethod render-html ((ir inference-record) session)
+  (with-slots (rule useful-info parents)
+      ir
+    (with-html-output-to-string (dummy)
+      ((:span :class "tptp-keyword") "inference")
+      (str "(")
+      (fmt "~a,~a,~a" (render-html rule session) (render-html useful-info session) (render-html parents session))
+      (str ")"))))
+
 ;;; formulas.lisp ends here
