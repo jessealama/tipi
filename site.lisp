@@ -395,7 +395,8 @@
 	      (simplify-sources (assoc "simplify-sources" parameters :test #'string=))
 	      (restrict-signature (assoc "restrict-signature" parameters :test #'string=))
 	      (squeeze-quantifiers (assoc "squeeze-quantifiers" parameters :test #'string=))
-	      (supporting-axioms (assoc "supporting-axioms" parameters :test #'string=)))
+	      (supporting-axioms (assoc "supporting-axioms" parameters :test #'string=))
+	      (reduce-equivalences (assoc "reduce-equivalences" parameters :test #'string=)))
 	  (unless (hash-table-p (session-value :solution-properties session))
 	    (setf (session-value :solution-properties session)
 		  (make-hash-table :test #'equal)))
@@ -410,6 +411,8 @@
 		  (not (null squeeze-quantifiers)))
 	    (setf (gethash "supporting-axioms" solution-properties)
 		  (not (null supporting-axioms)))
+	    (setf (gethash "reduce-equivalences" solution-properties)
+		  (not (null reduce-equivalences)))
 	    (setf (session-value :solution-properties session) solution-properties))
 	  (redirect "/analyze" :add-session-id t)))))
 
@@ -432,7 +435,8 @@
 		      (restrict-signature (gethash "restrict-signature" solution-properties))
 		      (simplify-sources (gethash "simplify-sources" solution-properties))
 		      (squeeze-quantifiers (gethash "squeeze-quantifiers" solution-properties))
-		      (supporting-axioms (gethash "supporting-axioms" solution-properties)))
+		      (supporting-axioms (gethash "supporting-axioms" solution-properties))
+		      (reduce-equivalences (gethash "reduce-equivalences" solution-properties)))
 		  (return-message +http-ok+
 				  :message (emit-xhtml ("parseable!")
 					     ((:div :id "problem")
@@ -518,7 +522,21 @@
 							   :title "Show which axioms support which steps"
 							   :id "supporting-axioms"
 							   :name "supporting-axioms")))
-						 "Show axiomatic support")
+						 "Show axiomatic support"
+						 (:br)
+						 (if reduce-equivalences
+						     (htm (:input
+							   :type "checkbox"
+							   :checked "checked"
+							   :title "Compress trivially equivalent formulas"
+							   :id "reduce-equivalences"
+							   :name "reduce-equivalences"))
+						     (htm (:input
+							   :type "checkbox"
+							   :title "Compress trivially equivalent formulas"
+							   :id "reduce-equivalences"
+							   :name "reduce-equivalences")))
+						 "Compress trivially equivalent formulas into a single formula")
 						((:p :class "submit-button")
 						 ((:input :type "submit"
 							  :title "Reformulate solution as specified"
