@@ -248,8 +248,7 @@
 (defmethod initialize-instance :after ((x equation) &rest initargs &key &allow-other-keys)
   (declare (ignore initargs))
   (setf (predicate x) (intern "=" :tipi)
-	(lhs x) (first (arguments x))
-	(rhs x) (second (arguments x)))
+	(arguments x) (list (lhs x) (rhs x)))
   x)
 
 (defmethod render-html ((x equation) session)
