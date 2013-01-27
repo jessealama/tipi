@@ -1255,7 +1255,7 @@ class ATOMIC-FORMULA.  This function expresses that disjointedness."
 
 (defmethod free-variables :around ((expression t))
   (let ((free (call-next-method)))
-    (remove-duplicates free :test #'same-variable-name)))
+    (remove-duplicates free :test #'same-variable-name :from-end t)))
 
 (defmethod free-variables ((gen generalization))
   (with-slots (bindings matrix)
