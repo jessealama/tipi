@@ -1001,6 +1001,13 @@
 		     :source (update-inference-parents (source x) from to))
       x))
 
+(defmethod update-inference-parents ((db tptp-db) from to)
+  (make-instance (class-of db)
+		 :path (path db)
+		 :formulas (mapcar #'(lambda (x)
+				       (update-inference-parents x from to))
+				   (formulas db))))
+
 (defmethod update-inference-parents ((x atomic-expression) from to)
   (make-instance (class-of x)
 		 :head (head x)
