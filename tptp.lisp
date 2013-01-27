@@ -303,8 +303,8 @@
   (with-slots (formulas)
       problem
     (with-html-output-to-string (dummy)
-      (let ((includes (remove-if-not #'(lambda (x) (eql (type-of x) 'include-instruction)) formulas))
-	    (non-includes (remove-if #'(lambda (x) (eql (type-of x) 'include-instruction)) formulas)))
+      (let ((includes (remove-if-not #'(lambda (x) (typep x 'include-instruction)) formulas))
+	    (non-includes (remove-if #'(lambda (x) (typep x 'include-instruction)) formulas)))
 	(when includes
 	  (htm
 	   ((:table :title "Include statements" :class "include-table")
