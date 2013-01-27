@@ -902,10 +902,7 @@
 		 :path (path db)
 		 :formulas (mapcar #'fofify (formulas db))))
 
-(defmethod fofify ((formula fof))
-  formula)
-
-(defmethod fofify :around ((formula cnf))
+(defmethod fofify :around ((formula tptp-formula))
   (let ((new-formula (call-next-method)))
     (when (slot-boundp formula 'source)
       (setf (source new-formula) (source formula)))
@@ -914,7 +911,7 @@
 	    (optional-info formula)))
     new-formula))
 
-(defmethod fofify ((formula cnf))
+(defmethod fofify ((formula tptp-formula))
   (make-instance 'fof
 		 :name (name formula)
 		 :role (role formula)
