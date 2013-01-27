@@ -43,26 +43,23 @@
 	(when formula
 	  (if (belongs-to-signature formula problem-signature)
 	      (push atom sensible)
-	      (let ((annotation (annotations formula)))
-		(let ((source (source annotation)))
+	      (when (slot-boundp formula 'source)
+		(let ((source (source formula)))
 		  (let ((formula-atoms (flatten-tptp source)))
 		    (let ((referring-atoms (remove-if-not #'(lambda (atom)
-							     (formula-with-name solution atom))
+							      (formula-with-name solution atom))
 							  formula-atoms)))
 		      (setf sensible
 			    (append sensible (select-sensible-formulas referring-atoms solution)))))))))))
     (remove-duplicates sensible :test #'string= :key #'(lambda (x) (format nil "~a" x)))))
 
-(defun restrict-annotation-to-problem-language (annotation solution)
-  (let ((source (source annotation)))
-    (let ((atoms (flatten-tptp source)))
-      (let ((referring-atoms (remove-if-not #'(lambda (atom)
-						(formula-with-name solution atom))
-					    atoms)))
-	(make-instance 'annotation
-		       :optional-info nil
-		       :source (make-instance 'general-list
-					      :terms (select-sensible-formulas referring-atoms solution)))))))
+(defun restrict-source-to-problem-language (source solution)
+  (let ((atoms (flatten-tptp source)))
+    (let ((referring-atoms (remove-if-not #'(lambda (atom)
+					      (formula-with-name solution atom))
+					  atoms)))
+      (make-instance 'general-list
+		     :terms (select-sensible-formulas referring-atoms solution)))))
 
 (defgeneric restrict-solution-to-problem-language (tstp)
   (:documentation "Restrict TSTP to the language employed by its underlying problem.  The main application is to eexclude Skolem functions and splitting predicates that are present in the solution but not in the problem."))
@@ -78,14 +75,19 @@
      for x in (formulas tstp)
      do
        (when (belongs-to-signature x problem-signature)
-	 (with-slots (name role formula annotations)
+	 (with-slots (name role formula)
 	     x
 	   (let ((new-formula
 		  (make-instance (class-of x)
 				 :name name
 				 :role role
-				 :formula formula
-				 :annotations (restrict-annotation-to-problem-language annotations tstp))))
+				 :formula formula)))
+	     (when (slot-boundp x 'source)
+	       (setf (source new-formula)
+		     (restrict-source-to-problem-language (source x) tstp)))
+	     (when (slot-boundp x 'optional-info)
+	       (setf (optional-info new-formula)
+		     (optional-info x)))
 	   (push new-formula filtered-formulas))))
      finally
        (return (make-instance 'tstp-db
