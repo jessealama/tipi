@@ -103,7 +103,7 @@
   (with-html-output-to-string (dummy)
     ((:tr :id (format nil "~a" (name fof))
 	  :class "fof")
-     (call-next-method))))
+     (fmt "~a" (call-next-method)))))
 
 (defmethod render-html ((x cnf) session)
   (with-html-output-to-string (dummy)
