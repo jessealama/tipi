@@ -247,11 +247,10 @@
 
 (defmethod initialize-instance :after ((x equation) &rest initargs &key &allow-other-keys)
   (declare (ignore initargs))
-  (setf (predicate x) (intern "=" :tipi))
+  (setf (predicate x) (intern "=" :tipi)
+	(lhs x) (first (arguments x))
+	(rhs x) (second (arguments x)))
   x)
-
-(defmethod arguments :around ((x equation))
-  (list (lhs x) (rhs x)))
 
 (defmethod render-html ((x equation) session)
   (with-slots (lhs rhs)
