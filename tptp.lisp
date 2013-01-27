@@ -188,17 +188,7 @@
     :initarg :path)))
 
 (defmethod print-object ((problem tptp-db) stream)
-  (with-slots (formulas path)
-      problem
-    (print-unreadable-object
-	(problem stream :type t :identity t)
-      (if (pathnamep path)
-	  (format stream "~a" (namestring path))
-	  (format stream "(unknown path)"))
-      (format stream " ")
-      (if formulas
-	  (format stream "~{~a~%~}" formulas)
-	  (format stream "(empty list of formulas/clauses)")))))
+  (format stream "~{~a~%~}" (formulas problem)))
 
 (defun problem-directory (tptp-db)
   (with-slots (path)
