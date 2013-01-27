@@ -245,6 +245,11 @@
     :initarg :rhs
     :initform (error "An equation needs a right-hand side."))))
 
+(defmethod initialize-instance :after ((x equation) &rest initargs &key &allow-other-keys)
+  (declare (ignore initargs))
+  (setf (predicate x) (intern "=" :tipi))
+  x)
+
 (defmethod arguments :around ((x equation))
   (list (lhs x) (rhs x)))
 
