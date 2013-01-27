@@ -1052,23 +1052,28 @@
   (multiple-value-bind (index-to-keep index-to-remove)
       (loop
 	 :for i :from 0
-	 :for formula :in l
-	 :for rest = (subseq l (1+ i))
-	 :for equivalent = (find-if #'(lambda (other-formula)
-					(let ((premises (premises other-formula)))
-					  (when (length= 1 premises)
-					    (let ((premise (first premises)))
-					      (when (string= (stringify premise)
-							     (stringify (name formula)))
-						(easily-equivalent formula other-formula))))))
-				    rest)
-	 :when equivalent :do (return (values i (position equivalent l)))
+	 :for x :in l
+	 :for n = (position-if #'(lambda (y)
+				   (let ((premises (premises y)))
+				     (when (length= 1 premises)
+				       (let ((premise (first premises)))
+					 (when (string= (stringify premise)
+							(stringify (name x)))
+					   (easily-equivalent x y))))))
+			       l
+			       :from-end t
+			       :start (1+ i))
+	 :when n :do (return (values i n))
 	 :finally (return (values nil nil)))
     (if (and index-to-keep index-to-remove)
-	(reduce-equivalences (append (subseq l 0 index-to-remove)
-				     (update-inference-parents (subseq l (1+ index-to-remove))
-							       index-to-remove
-							       index-to-keep)))
+	(let ((formula-to-keep (nth index-to-keep l))
+	      (formula-to-remove (nth index-to-remove l)))
+	  (let ((name-to-keep (name formula-to-keep))
+		(name-to-remove (name formula-to-remove)))
+	    (reduce-equivalences (append (subseq l 0 index-to-remove)
+					 (update-inference-parents (subseq l (1+ index-to-remove))
+								   name-to-remove
+								   name-to-keep)))))
 	l)))
 
 (defmethod reduce-equivalences ((db tptp-db))
