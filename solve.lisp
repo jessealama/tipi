@@ -151,7 +151,7 @@
   :documentation "The number of slices into which 1 second should be divided.")
 
 (defun run-eprover (path timeout output-stream error-stream)
-  (run-program "eproof_ram"
+  (run-program "eproof"
 	       (list "--auto"
 		     "--tstp-format"
 		     (format nil "--cpu-limit=~d" timeout)
