@@ -195,6 +195,14 @@
     :accessor arguments
     :type list)))
 
+(defgeneric atomic-formula-p (x))
+
+(defmethod atomic-formula-p ((x t))
+  nil)
+
+(defmethod atomic-formula-p ((x atomic-formula))
+  t)
+
 (defun atomic-formula? (thing)
   (typep thing 'atomic-formula))
 
@@ -291,6 +299,17 @@
 (defclass negation (unary-connective-formula)
   nil)
 
+(defgeneric literal-p (x))
+
+(defmethod literal-p ((x t))
+  nil)
+
+(defmethod literal-p ((x negation))
+  (atomic-formula-p (argument x)))
+
+(defmethod literal-p ((x atomic-formula))
+  t)
+
 (defmethod render-html ((x negation) session)
   (with-html-output-to-string (dummy)
     (fmt "&not;~a" (render-html (argument x) session))))
@@ -345,17 +364,24 @@
 (defmethod print-object ((atom atomic-formula) stream)
   (let ((pred (predicate atom))
 	(args (arguments atom)))
-    (cond ((null args)
-	   (format stream "~a" pred))
-	  ((equation? atom)
-	   (format stream "(~a = ~a)" (first args) (second args)))
-	  (t
-	   (format stream "~a(~{~a~^,~})" pred args)))))
+    (if (null args)
+	(cond ((string= (stringify pred) "true")
+	       (format stream "$true"))
+	      ((string= (stringify pred) "false")
+	       (format stream "$false"))
+	      (t
+	       (format stream "~a" pred)))
+	(format stream "~a(~{~a~^,~})" pred args))))
 
 (defmethod print-object ((x disequation) stream)
   (with-slots (lhs rhs)
       x
-    (format stream "(~a != ~a)" lhs rhs)))
+    (format stream "~a != ~a" lhs rhs)))
+
+(defmethod print-object ((x equation) stream)
+  (with-slots (lhs rhs)
+      x
+    (format stream "~a = ~a" lhs rhs)))
 
 (defgeneric render-plainly (statement))
 
@@ -1162,9 +1188,14 @@ class ATOMIC-FORMULA.  This function expresses that disjointedness."
   (list tptp-thing))
 
 (defmethod flatten-tptp ((tptp-atom atomic-expression))
-  (apply #'append
-	 (list (head tptp-atom))
-	 (mapcar #'flatten-tptp (arguments tptp-atom))))
+  (with-slots (head arguments)
+      tptp-atom
+    (if (and (string= (stringify head) "file")
+	     (length= 2 arguments))
+	(list tptp-atom) ;; this looks like an external source
+	(apply #'append
+	       (list (head tptp-atom))
+	       (mapcar #'flatten-tptp (arguments tptp-atom))))))
 
 (defmethod flatten-tptp ((tptp-atom atomic-formula))
   (apply #'append
@@ -1226,6 +1257,11 @@ class ATOMIC-FORMULA.  This function expresses that disjointedness."
 
 (defmethod kowalski ((x multiple-arity-disjunction))
   (let ((disjuncts (disjuncts x)))
+    (setf disjuncts (remove-if #'(lambda (x) (and (typep x 'atomic-formula)
+						  (length= 0 (arguments x))
+						  (string= (stringify (predicate x))
+							   "false")))
+			       disjuncts))
     (let ((negated-disjuncts (remove-if-not #'negative-formula-p disjuncts))
 	  (non-negated-disjuncts (remove-if #'negative-formula-p disjuncts)))
       (if negated-disjuncts
@@ -1237,8 +1273,17 @@ class ATOMIC-FORMULA.  This function expresses that disjointedness."
 	  (apply #'make-multiple-arity-disjunction
 		 (mapcar #'kowalski non-negated-disjuncts))))))
 
+(defmethod kowalski ((x multiple-arity-conjunction))
+  (make-instance 'multiple-arity-conjunction
+		 :items (mapcar #'kowalski (items x))))
+
 (defmethod kowalski ((x binary-disjunction))
   (let ((disjuncts (disjuncts x)))
+    (setf disjuncts (remove-if #'(lambda (x) (and (typep x 'atomic-formula)
+						  (length= 0 (arguments x))
+						  (string= (stringify (predicate x))
+							   "false")))
+			       disjuncts))
     (let ((negated-disjuncts (remove-if-not #'negative-formula-p disjuncts))
 	  (non-negated-disjuncts (remove-if #'negative-formula-p disjuncts)))
       (if negated-disjuncts
@@ -1279,7 +1324,9 @@ class ATOMIC-FORMULA.  This function expresses that disjointedness."
 (defmethod free-variables ((x negation))
   (free-variables (argument x)))
 
-(defun universally-close (formula)
+(defgeneric universally-close (x))
+
+(defmethod universally-close ((formula formula))
   (let ((free (free-variables formula)))
     (if (null free)
 	formula
@@ -1298,5 +1345,269 @@ class ATOMIC-FORMULA.  This function expresses that disjointedness."
       (str "(")
       (fmt "~a,~a,~a" (render-html rule session) (render-html useful-info session) (render-html parents session))
       (str ")"))))
+
+(defgeneric flatten-conjunctions/disjunctions (tptp-thing))
+
+(defmethod flatten-conjunctions/disjunctions ((x atomic-formula))
+  x)
+
+(defmethod flatten-conjunctions/disjunctions ((x multiple-arity-conjunction))
+  (apply #'make-multiple-arity-conjunction
+	 (mapcar #'flatten-conjunctions/disjunctions (conjuncts x))))
+
+(defmethod flatten-conjunctions/disjunctions ((x multiple-arity-disjunction))
+  (apply #'make-multiple-arity-disjunction
+	 (mapcar #'flatten-conjunctions/disjunctions (disjuncts x))))
+
+(defmethod flatten-conjunctions/disjunctions ((x binary-disjunction))
+  (apply #'make-multiple-arity-disjunction
+	 (mapcar #'flatten-conjunctions/disjunctions (disjuncts x))))
+
+(defmethod flatten-conjunctions/disjunctions ((x binary-conjunction))
+  (apply #'make-multiple-arity-conjunction
+	 (mapcar #'flatten-conjunctions/disjunctions (conjuncts x))))
+
+(defmethod flatten-conjunctions/disjunctions ((x negation))
+  (make-instance 'negation
+		 :argument (flatten-conjunctions/disjunctions (argument x))))
+
+(defmethod flatten-conjunctions/disjunctions ((x binary-connective-formula))
+  (make-instance (class-of x)
+		 :lhs (flatten-conjunctions/disjunctions (lhs x))
+		 :rhs (flatten-conjunctions/disjunctions (rhs x))))
+
+(defmethod flatten-conjunctions/disjunctions ((gen generalization))
+  (make-instance (class-of gen)
+		 :bindings (bindings gen)
+		 :matrix (flatten-conjunctions/disjunctions (matrix gen))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; (Syntactic) equality of terms
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defgeneric equal-terms-p (term-1 term-2)
+  (:documentation "Are terms TERM-1 and TERM-2 equal?"))
+
+(defmethod equal-terms-p ((term-1 t) (term-2 t))
+  nil)
+
+(defmethod equal-terms-p ((term-1 atomic-expression) (term-2 atomic-expression))
+  (let ((head-1 (head term-1))
+	(head-2 (head term-2))
+	(arguments-1 (arguments term-1))
+	(arguments-2 (arguments term-2)))
+    (when (string= (stringify head-1) (stringify head-2))
+      (when (length= arguments-1 arguments-2)
+	(loop
+	   :for argument-1 :in arguments-1
+	   :for argument-2 :in arguments-2
+	   :unless (equal-terms-p argument-1 argument-2) :do (return nil)
+	   :finally (return t))))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Hunting for terms
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defgeneric terms-with-functor (functor-name tptp)
+  (:documentation "The (function) terms inside TPTP whose functor is FUNCTOR-NAME."))
+
+(defmethod terms-with-functor (functor-name (x null))
+  nil)
+
+(defmethod terms-with-functor (functor-name (l list))
+  (let ((terms (mapcar #'(lambda (x) (terms-with-functor functor-name x)) l)))
+    (remove-duplicates (reduce #'append terms) :test #'equal-terms-p)))
+
+(defmethod terms-with-functor (functor-name (atom atomic-formula))
+  (terms-with-functor functor-name (arguments atom)))
+
+(defmethod terms-with-functor (functor-name (neg negation))
+  (terms-with-functor functor-name (argument neg)))
+
+(defmethod terms-with-functor (functor-name (x binary-connective-formula))
+  (terms-with-functor functor-name (list (lhs x) (rhs x))))
+
+(defmethod terms-with-functor (functor-name (x multiple-arity-connective-formula))
+  (terms-with-functor functor-name (items x)))
+
+(defmethod terms-with-functor (functor-name (gen generalization))
+  (terms-with-functor functor-name (matrix gen)))
+
+(defmethod terms-with-functor (functor-name (var variable-term))
+  nil)
+
+(defmethod terms-with-functor (functor-name (term atomic-expression))
+  (if (string= (stringify functor-name)
+	       (stringify (head term)))
+      (cons term (terms-with-functor functor-name (arguments term)))
+      (terms-with-functor functor-name (arguments term))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Rewriting formula that contain $true and $false
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defgeneric eliminate-truth-values (thing)
+  (:documentation "Rewrite THING to get rid (as far as possible) of
+  any constant true or constant false expressions."))
+
+(defgeneric constant-true-p (thing))
+
+(defmethod constant-true-p ((x atomic-formula))
+  (unless (arguments x)
+    (string= (stringify (predicate x)) "true")))
+
+(defmethod constant-true-p ((x t))
+  nil)
+
+(defgeneric constant-false-p (thing))
+
+(defmethod constant-false-p ((x atomic-formula))
+  (unless (arguments x)
+    (string= (stringify (predicate x)) "false")))
+
+(defmethod constant-false-p ((x t))
+  nil)
+
+(defmethod eliminate-truth-values ((x atomic-formula))
+  x)
+
+(defmethod eliminate-truth-values ((x equation))
+  x)
+
+(defmethod eliminate-truth-values ((x disequation))
+  x)
+
+(defmethod eliminate-truth-values ((x binary-disjunction))
+  (with-slots (lhs rhs)
+      x
+    (cond ((constant-true-p lhs)
+	   *nullary-true*)
+	  ((constant-false-p lhs)
+	   (eliminate-truth-values rhs))
+	  ((constant-true-p rhs)
+	   *nullary-true*)
+	  ((constant-false-p rhs)
+	   (eliminate-truth-values lhs))
+	  (t
+	   (make-instance 'binary-disjunction
+			  :lhs (eliminate-truth-values lhs)
+			  :rhs (eliminate-truth-values rhs))))))
+
+(defmethod eliminate-truth-values ((x multiple-arity-disjunction))
+  (let ((items (items x)))
+    (if (find-if #'constant-true-p items)
+	*nullary-true*
+	(let ((no-false (remove-if #'constant-false-p items)))
+	  (apply #'make-multiple-arity-disjunction
+		 (mapcar #'eliminate-truth-values no-false))))))
+
+(defmethod eliminate-truth-values ((x binary-conjunction))
+  (with-slots (lhs rhs)
+      x
+    (cond ((constant-true-p lhs)
+	   (eliminate-truth-values rhs))
+	  ((constant-false-p lhs)
+	   *nullary-false*)
+	  ((constant-true-p rhs)
+	   (eliminate-truth-values lhs))
+	  ((constant-false-p rhs)
+	   *nullary-false*)
+	  (t
+	   (make-instance 'binary-conjunction
+			  :lhs (eliminate-truth-values lhs)
+			  :rhs (eliminate-truth-values rhs))))))
+
+(defmethod eliminate-truth-values ((x multiple-arity-conjunction))
+  (let ((items (items x)))
+    (if (find-if #'constant-false-p items)
+	*nullary-false*
+	(let ((no-true (remove-if #'constant-true-p items)))
+	  (apply #'make-multiple-arity-conjunction
+		 (mapcar #'eliminate-truth-values no-true))))))
+
+(defmethod eliminate-truth-values ((neg negation))
+  (let ((argument (argument neg)))
+    (cond ((constant-true-p argument)
+	   *nullary-false*)
+	  ((constant-false-p argument)
+	   *nullary-true*)
+	  (t
+	   (make-instance 'negation
+			  :argument (eliminate-truth-values argument))))))
+
+(defmethod eliminate-truth-values ((x implication))
+  (with-slots ((antecedent lhs) (consequent rhs))
+      x
+    (cond ((constant-true-p antecedent)
+	   (eliminate-truth-values consequent))
+	  ((constant-true-p consequent)
+	   *nullary-true*)
+	  ((constant-false-p antecedent)
+	   *nullary-true*)
+	  ((constant-false-p consequent)
+	   (eliminate-truth-values (make-instance 'negation
+						  :argument (eliminate-truth-values antecedent))))
+	  (t
+	   (make-instance 'implication
+			  :lhs (eliminate-truth-values antecedent)
+			  :rhs (eliminate-truth-values consequent))))))
+
+(defmethod eliminate-truth-values ((x equivalence))
+  (with-slots (lhs rhs)
+      x
+    (cond ((constant-true-p lhs)
+	   (eliminate-truth-values rhs))
+	  ((constant-true-p rhs)
+	   (eliminate-truth-values lhs))
+	  ((constant-false-p lhs)
+	   (eliminate-truth-values (make-instance 'negation
+						  :argument rhs)))
+	  ((constant-false-p rhs)
+	   (eliminate-truth-values (make-instance 'negation
+						  :argument lhs)))
+	  (t
+	   (make-instance 'equivalence
+			  :lhs (eliminate-truth-values lhs)
+			  :rhs (eliminate-truth-values rhs))))))
+
+(defmethod eliminate-truth-values ((gen generalization))
+  (make-instance (class-of gen)
+		 :bindings (bindings gen)
+		 :matrix (eliminate-truth-values (matrix gen))))
+
+(defmethod eliminate-truth-values ((x null))
+  nil)
+
+(defmethod eliminate-truth-values ((l list))
+  (mapcar #'eliminate-truth-values l))
+
+(defgeneric contains-predicate? (expression predicate)
+  (:documentation "Does EXPRESSION contain a subexpression with the predicate symbol PREDICATE?"))
+
+(defmethod contains-predicate? ((atom atomic-expression) predicate)
+  nil)
+
+(defmethod contains-predicate? ((term function-term) predicate)
+  nil)
+
+(defmethod contains-predicate? ((term variable-term) predicate)
+  nil)
+
+(defmethod contains-predicate? ((atom atomic-formula) predicate)
+  (string= (stringify (predicate atom)) (stringify predicate)))
+
+(defmethod contains-predicate? ((neg negation) predicate)
+  (contains-predicate? (argument neg) predicate))
+
+(defmethod contains-predicate? ((multi multiple-arity-connective-formula) predicate)
+  (some #'(lambda (x) (contains-predicate? x predicate))
+	(items multi)))
+
+(defmethod contains-predicate? ((x binary-connective-formula) predicate)
+  (or (contains-predicate? (lhs x) predicate)
+      (contains-predicate? (rhs x) predicate)))
+
+(defmethod contains-predicate? ((gen generalization) predicate)
+  (contains-predicate? (matrix gen) predicate))
 
 ;;; formulas.lisp ends here

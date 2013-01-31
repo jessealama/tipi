@@ -188,7 +188,7 @@
     :initarg :path)))
 
 (defmethod print-object ((problem tptp-db) stream)
-  (format stream "~{~a~%~}" (formulas problem)))
+  (format stream "~{~a~^~%~}" (formulas problem)))
 
 (defun problem-directory (tptp-db)
   (with-slots (path)
@@ -212,13 +212,12 @@
     :initform (error "To specify a derivability problem, a conjecture must be supplied."))))
 
 (defmethod print-object ((problem derivability-problem) stream)
-  (print-unreadable-object (problem stream :type t :identity nil)
-    (let ((conjecture (conjecture problem))
-	  (formulas (formulas problem)))
-      (format stream "Conjecture: ~a" conjecture)
-      (if formulas
-	  (format stream "Premises:~%~{~a~%~}" formulas)
-	  (format stream "Premises: (none)")))))
+  (let ((conjecture (conjecture problem))
+	(formulas (formulas problem)))
+    (format stream "~a" conjecture)
+    (when formulas
+      (terpri stream)
+      (format stream "~{~a~^~%~}" formulas))))
 
 (defmethod initialize-instance :after ((problem derivability-problem) &rest initargs &key &allow-other-keys)
   (declare (ignore initargs))
@@ -226,10 +225,12 @@
 		  (string= (role premise) "conjecture"))
 	      (formulas problem))
     (error "Some non-conjecture formula has the TPTP status 'conjecture'."))
-  (let ((conjecture (conjecture problem)))
-    (unless (string= (role conjecture) "conjecture")
-      (setf (conjecture problem) (change-status conjecture "conjecture"))))
-  problem)
+  (loop
+     :initially (setf (role (conjecture problem)) "conjecture")
+     :for formula in (formulas problem)
+     :for role = (role formula)
+     :unless (string= role "conjecture") :do (setf (role formula) "axiom")
+     :finally (return problem)))
 
 (defgeneric make-derivability-problem (formulas))
 
@@ -347,7 +348,7 @@
 								   reformulated
 								   problem))))
 		       (when reduce-equivalences
-			 (setf reformulated (reduce-equivalences reformulated)))
+			 (setf reformulated (reduce-equivalences reformulated nil)))
 		       (setf (session-value :solution session)
 			     (if (typep reformulated 'tstp-db)
 				 reformulated
@@ -454,10 +455,10 @@
     new-formula))
 
 (defmethod change-status ((formula tptp-formula) new-status)
-  (make-instance (class-of 'tptp-formula)
+  (make-instance (class-of formula)
 		 :name (name formula)
 		 :syntax (role formula)
-		 :status new-status
+		 :role new-status
 		 :formula (formula formula)))
 
 (defgeneric change-status-of-formula-in (formula problem new-status)
@@ -525,6 +526,9 @@
   (first (remove-if-not #'(lambda (x) (string= x name))
 			(formulas-w/o-includes tptp-db)
 			:key #'(lambda (x) (format nil "~a" (name x))))))
+
+(defmethod formula-with-name ((tptp-path pathname) name)
+  (formula-with-name (parse-tptp tptp-path) name))
 
 (defgeneric premises (problem))
 
@@ -773,17 +777,45 @@
 		 :role (role formula)
 		 :formula (squeeze-quantifiers (formula formula))))
 
+(defmethod squeeze-quantifiers ((l list))
+  (mapcar #'squeeze-quantifiers l))
+
+(defmethod squeeze-quantifiers ((x null))
+  nil)
+
 (defgeneric supporting-axioms (tptp))
 
-(defun exists-path (from to table)
+(defgeneric exists-path (from to thing))
+
+(defmethod exists-path (from to (db tptp-db))
+  (exists-path from to (dependency-table db)))
+
+(defmethod exists-path (from (to integer) thing)
+  (exists-path from (format nil "~a" to) thing))
+
+(defmethod exists-path ((from integer) to thing)
+  (exists-path (format nil "~a" from) to thing))
+
+(defmethod exists-path (from (to symbol) thing)
+  (exists-path from (symbol-name to) thing))
+
+(defmethod exists-path ((from symbol) to thing)
+  (exists-path (symbol-name from) to thing))
+
+(defmethod exists-path ((from string) (to string) (table hash-table))
   (if (string= from to)
-      t
-      (let ((predecessors (gethash from table)))
-	(some #'(lambda (x) (exists-path x to table))
-	      predecessors))))
+      (list from)
+      (loop
+	 :with predecessors = (gethash from table)
+	 :for pred :in predecessors
+	 :for path = (exists-path pred to table)
+	 :when path :do (return (cons from path))
+	 :finally (return nil))))
 
 (defmethod supporting-axioms ((x inference-record))
-  (supporting-axioms (parents x)))
+  (let ((parents (parents x)))
+    (when parents
+      (supporting-axioms parents))))
 
 (defmethod supporting-axioms ((x general-list))
   (reduce #'append (mapcar #'supporting-axioms (terms x))))
@@ -840,44 +872,57 @@
 				    :terms (gethash (stringify (name formula))
 						    full-table)))))
 	      (dolist (formula (formulas db))
-		(update-formula formula)))))))))
+		(update-formula formula))))))))
+  db)
 
-(defgeneric easily-equivalent (formula-1 formula-2)
-  (:documentation "Can we prove that FORMULA-1 and FORMULA-2 are
-  logically equivalent (in first-order classical logic with identity)
-  in one second with the E theorem prover?"))
+(defgeneric easily-equivalent (formula-1 formula-2 background-premises)
+  (:documentation "Can we quickly prove that FORMULA-1 and FORMULA-2
+  are logically equivalent (in first-order classical logic with
+  identity?  BACKGROUND-PREMISES is a list of formula objects relative to which FORMULA-1 and FORMULA-2 will be checked for equivalence."))
 
-(defmethod easily-equivalent ((formula-1 tptp-formula) (formula-2 tptp-formula))
+(defmethod easily-equivalent ((formula-1 tptp-formula) (formula-2 tptp-formula) background-premises)
   (easily-equivalent (formula formula-1)
-		     (formula formula-2)))
+		     (formula formula-2)
+		     background-premises))
 
-(defmethod easily-equivalent ((formula-1 string) formula-2)
+(defmethod easily-equivalent ((formula-1 string) formula-2 background-premises)
   (easily-equivalent (parse-tptp formula-1)
-		     formula-2))
+		     formula-2
+		     background-premises))
 
-(defmethod easily-equivalent (formula-1 (formula-2 string))
-  (easily-equivalent formula-1 (parse-tptp formula-2)))
+(defmethod easily-equivalent (formula-1 (formula-2 string) background-premises)
+  (easily-equivalent formula-1 (parse-tptp formula-2) background-premises))
 
-(defmethod easily-equivalent (formula-1 (formula-2 tptp-db))
+(defmethod easily-equivalent (formula-1 (formula-2 tptp-db) background-premises)
   (easily-equivalent formula-1
 		     (make-instance 'multiple-arity-conjunction
-				    :items (mapcar #'formula (formulas formula-2)))))
+				    :items (mapcar #'formula (formulas formula-2)))
+		     background-premises))
 
-(defmethod easily-equivalent ((formula-1 tptp-db) formula-2)
+(defmethod easily-equivalent ((formula-1 tptp-db) formula-2 background-premises)
   (easily-equivalent (make-instance 'multiple-arity-conjunction
 				    :items (mapcar #'formula (formulas formula-1)))
-		     formula-2))
+		     formula-2
+		     background-premises))
 
 (defparameter *easily-equivalent-timeout* 5
   "The maximum number of seconds we will spend trying to prove that two formulas are equivalent.")
 
-(defmethod easily-equivalent ((formula-1 formula) (formula-2 formula))
+(defmethod easily-equivalent ((formula-1 formula) (formula-2 formula) background-premises)
   (let ((formula-1-closed (universally-close formula-1))
 	(formula-2-closed (universally-close formula-2)))
     (let ((temp-problem (temporary-file :base "problem"))
 	  (temp-output (temporary-file :base "output")))
-      (write-string-into-file (format nil "fof(equivalent,conjecture,(~a <=> ~a)).~%" formula-1-closed formula-2-closed)
-			      temp-problem)
+      (let ((premises-string (if background-premises
+				 (with-output-to-string (s)
+				   (dolist (x background-premises)
+				     (format s "~a~%" (strip-source (universally-close x)))))
+				 "")))
+	(let ((problem (format nil "~a~%fof(equivalent,conjecture,(~a <=> ~a)).~%"
+			       premises-string
+			       formula-1-closed
+			       formula-2-closed)))
+	  (write-string-into-file problem temp-problem)))
       (run-program "eproof"
 		   (list "--auto"
 			 "--tstp-format"
@@ -911,11 +956,14 @@
 	    (optional-info formula)))
     new-formula))
 
+(defmethod fofify ((x formula))
+  (universally-close x))
+
 (defmethod fofify ((formula tptp-formula))
   (make-instance 'fof
 		 :name (name formula)
 		 :role (role formula)
-		 :formula (universally-close (formula formula))))
+		 :formula (fofify (formula formula))))
 
 (defgeneric premises (thing))
 
@@ -935,6 +983,9 @@
   (reduce #'append (mapcar #'premises x)))
 
 (defmethod premises ((x integer))
+  (list x))
+
+(defmethod premises ((x string))
   (list x))
 
 (defmethod premises ((x tptp-formula))
@@ -967,55 +1018,83 @@
 	:key #'(lambda (x) (stringify (name x)))
 	:test #'string=))
 
-(defgeneric update-inference-parents (thing from to)
+(defgeneric update-inference-parents (thing from to additional-premises)
   (:documentation "In THING, update any reference to FROM in an
-  inference record to TO."))
+  inference record to TO, as well as inserting ADDITIONAL-PREMISES (if present) that were possibly used to show that FROM and TO are equivalent."))
 
-(defmethod update-inference-parents ((thing null) from to)
+(defmethod update-inference-parents ((thing null) from to additional-premises)
   nil)
 
-(defmethod update-inference-parents ((l general-list) from to)
+(defmethod update-inference-parents ((l general-list) from to additional-premises)
   (make-instance 'general-list
 		 :terms (mapcar #'(lambda (term)
-				    (update-inference-parents term from to))
+				    (update-inference-parents term
+							      from
+							      to
+							      additional-premises))
 				(terms l))))
 
-(defmethod update-inference-parents ((formula-list list) from to)
+(defmethod update-inference-parents ((formula-list list) from to additional-premises)
   (mapcar #'(lambda (x)
-	      (update-inference-parents x from to))
+	      (update-inference-parents x from to additional-premises))
 	  formula-list))
 
-(defmethod update-inference-parents :around ((x tptp-formula) from to)
+(defmethod update-inference-parents :around ((x tptp-formula) from to additional-premises)
   (let ((new-formula (call-next-method)))
     (when (slot-boundp x 'optional-info)
       (setf (optional-info new-formula)
 	    (optional-info x)))
     new-formula))
 
-(defmethod update-inference-parents ((x tptp-formula) from to)
+(defmethod update-inference-parents ((x tptp-formula) from to additional-premises)
   (if (slot-boundp x 'source)
       (make-instance (class-of x)
 		     :name (name x)
 		     :role (role x)
 		     :formula (formula x)
-		     :source (update-inference-parents (source x) from to))
+		     :source (update-inference-parents (source x)
+						       from
+						       to
+						       additional-premises))
       x))
 
-(defmethod update-inference-parents ((db tptp-db) from to)
+(defmethod update-inference-parents ((db tptp-db) from to additional-premises)
   (make-instance (class-of db)
 		 :path (path db)
 		 :formulas (mapcar #'(lambda (x)
-				       (update-inference-parents x from to))
+				       (update-inference-parents x
+								 from
+								 to
+								 additional-premises))
 				   (formulas db))))
 
-(defmethod update-inference-parents ((x atomic-expression) from to)
-  (make-instance (class-of x)
-		 :head (head x)
-		 :arguments (mapcar #'(lambda (arg)
-					(update-inference-parents arg from to))
-				    (arguments x))))
+(defmethod update-inference-parents ((x atomic-expression) from to additional-premises)
+  (with-slots (head arguments)
+      x
+    (if (and (string= (stringify head) "file")
+	     (length= 2 arguments))
+	x ;; this looks like an external source
+	(make-instance (class-of x)
+		       :head head
+		       :arguments (mapcar #'(lambda (arg)
+					      (update-inference-parents arg
+									from
+									to
+									additional-premises))
+					  arguments)))))
 
-(defmethod update-inference-parents ((record inference-record) from to)
+(defmethod update-inference-parents :around ((record inference-record) from to additional-premises)
+  (let ((new-record (call-next-method)))
+    (make-instance 'inference-record
+		   :rule (rule new-record)
+		   :useful-info (useful-info new-record)
+		   :parents (make-instance 'general-list
+					   :terms (remove-duplicates (append (terms (parents new-record))
+									     (mapcar #'name additional-premises))
+								     :test #'string=
+								     :key #'stringify)))))
+
+(defmethod update-inference-parents ((record inference-record) from to additional-premises)
   (with-slots (rule useful-info parents)
       record
     (make-instance 'inference-record
@@ -1023,61 +1102,478 @@
 		   :useful-info useful-info
 		   :parents (make-instance 'general-list
 					   :terms (mapcar #'(lambda (x)
-							      (update-inference-parents x from to))
-							  (terms parents))))))
+								      (update-inference-parents x from to nil))
+								  (terms parents))))))
 
-(defmethod update-inference-parents ((x string) from to)
+(defmethod update-inference-parents ((x string) from to additional-premises)
   (if (string= x (stringify from))
       to
       x))
 
-(defmethod update-inference-parents ((x integer) from to)
+(defmethod update-inference-parents ((x integer) from to additional-premises)
   (if (string= (format nil "~d" x)
 	       (stringify from))
       to
       x))
 
-(defmethod update-inference-parents ((x symbol) from to)
+(defmethod update-inference-parents ((x symbol) from to additional-premises)
   (if (string= (symbol-name x)
 	       (stringify from))
       to
       x))
 
-(defgeneric reduce-equivalences (tptp))
+(defgeneric reduce-equivalences (tptp premises &key predicate))
 
-(defmethod reduce-equivalences ((l null))
+(defmethod reduce-equivalences ((l null) premises &key predicate)
+  (declare (ignore premises predicate))
   nil)
 
-(defmethod reduce-equivalences ((l list))
-  (multiple-value-bind (index-to-keep index-to-remove)
-      (loop
-	 :for i :from 0
-	 :for x :in l
-	 :for n = (position-if #'(lambda (y)
-				   (let ((premises (premises y)))
-				     (when (length= 1 premises)
-				       (let ((premise (first premises)))
-					 (when (string= (stringify premise)
-							(stringify (name x)))
-					   (easily-equivalent x y))))))
-			       l
-			       :from-end t
-			       :start (1+ i))
-	 :when n :do (return (values i n))
-	 :finally (return (values nil nil)))
+(defmethod reduce-equivalences (x (premise tptp-formula) &key predicate)
+  (reduce-equivalences x (formula premise) :predicate predicate))
+
+(defmethod reduce-equivalences (x (premise formula) &key predicate)
+  (reduce-equivalences x (list premise) :predicate predicate))
+
+(defmethod reduce-equivalences (x (db tptp-db) &key predicate)
+  (reduce-equivalences x (formulas db) :predicate predicate))
+
+(defun first-trivially-equivalent-pair (formula-list)
+  (loop
+     :for i :from 0
+     :for x :in formula-list
+     :for n = (position-if #'(lambda (y)
+			       (let ((premises (premises y)))
+				 (when (and (length= 1 premises)
+					    (find (stringify (name x))
+						  premises
+						  :key #'stringify
+						  :test #'string=))
+				   (easily-equivalent x
+						      y
+						      nil))))
+			   formula-list
+			   :start (1+ i)
+			   :from-end t)
+     :when n :do (return (cons i n))
+     :finally (return (cons nil nil))))
+
+(defun first-equivalent-pair (formula-list background-premises &key predicate)
+  (unless predicate
+    (setf predicate (constantly t)))
+  (loop
+     :for i :from 0
+     :for x :in formula-list
+     :do
+     (when (funcall predicate x)
+       (let ((n (position-if #'(lambda (y)
+				 (when (find (stringify (name x))
+					     (premises y)
+					     :key #'stringify
+					     :test #'string=)
+				   (when (funcall predicate y)
+				     (easily-equivalent x
+							y
+							background-premises))))
+			     formula-list
+			     :start (1+ i)
+			     :from-end t)))
+	 (when n
+	   (return (cons i n)))))
+     :finally (return (cons nil nil))))
+
+(defmethod reduce-trivial-equivalences ((l list))
+  (format t "Reducing trivial equivalences in a proof having ~a steps~%" (length l))
+  (destructuring-bind (index-to-keep . index-to-remove)
+      (first-trivially-equivalent-pair l)
     (if (and index-to-keep index-to-remove)
 	(let ((formula-to-keep (nth index-to-keep l))
-	      (formula-to-remove (nth index-to-remove l)))
+	      (formula-to-remove (nth index-to-remove l))
+	      (before (subseq l 0 index-to-remove))
+	      (after (subseq l (1+ index-to-remove))))
 	  (let ((name-to-keep (name formula-to-keep))
 		(name-to-remove (name formula-to-remove)))
-	    (reduce-equivalences (append (subseq l 0 index-to-remove)
-					 (update-inference-parents (subseq l (1+ index-to-remove))
-								   name-to-remove
-								   name-to-keep)))))
+	    (let ((updated-after (update-inference-parents after
+							   name-to-remove
+							   name-to-keep
+							   nil)))
+	      (reduce-trivial-equivalences (append before updated-after)))))
 	l)))
 
-(defmethod reduce-equivalences ((db tptp-db))
-  (let ((simplified (simplify-justification db)))
-    (make-instance 'tptp-db
-		   :path (path db)
-		   :formulas (reduce-equivalences (formulas simplified)))))
+(defmethod reduce-trivial-equivalences ((db tptp-db))
+  (reduce-trivial-equivalences (formulas db)))
+
+(defmethod reduce-equivalences ((l list) (background-premises list) &key predicate)
+  (format t "Reducing a proof having ~a steps using ~d extra premises ~%" (length l) (length background-premises))
+  (unless predicate
+    (setf predicate (constantly t)))
+  (destructuring-bind (index-to-keep . index-to-remove)
+      (first-equivalent-pair l background-premises :predicate predicate)
+    (if (and index-to-keep index-to-remove)
+	(let ((formula-to-keep (nth index-to-keep l))
+	      (formula-to-remove (nth index-to-remove l))
+	      (before (subseq l 0 index-to-remove))
+	      (after (subseq l (1+ index-to-remove))))
+	  (let ((name-to-keep (name formula-to-keep))
+		(name-to-remove (name formula-to-remove)))
+	    (let ((updated-after (update-inference-parents after
+							   name-to-remove
+							   name-to-keep
+							   background-premises)))
+	      (reduce-equivalences (append before updated-after)
+				   background-premises
+				   :predicate predicate))))
+	l)))
+
+(defmethod reduce-equivalences ((db tptp-db) background-premises &key predicate)
+  (reduce-equivalences (formulas db) background-premises :predicate predicate))
+
+(defgeneric confirm-premise-minimality (tptp-thing background)
+  (:documentation "Confirm that the premises of TPTP-THING are
+  minimized.  BACKGROUND specifies the ambient set of all available
+  premises."))
+
+(defmethod confirm-premise-minimality ((db tptp-db) dummy)
+  (declare (ignore dummy))
+  (with-slots (formulas)
+      db
+    (loop
+       :for i :from 0
+       :for formula :in formulas
+       :for name = (name formula)
+       :do
+       (format t "Checking minimality of ~a...~%" name)
+       (multiple-value-bind (minimized index-of-removable-premise)
+	   (confirm-premise-minimality formula db)
+	 (declare (ignore index-of-removable-premise))
+	 (unless minimized
+	   (return (values nil i))))
+       :finally
+       (return (values t nil)))))
+
+(defmethod confirm-premise-minimality ((x tptp-formula) (db tptp-db))
+  (if (slot-boundp x 'source)
+      (with-slots (source name formula)
+	  x
+	(let ((premises (premises x)))
+	  (let ((premise-formulas (mapcar #'(lambda (x) (formula-with-name db x))
+					  premises))
+		(conjecture (make-instance 'fof
+					   :name name
+					   :role "conjecture"
+					   :formula (fofify formula)
+					   :source source)))
+	    (loop
+	       :for i :from 0
+	       :for premise in premise-formulas
+	       :for other-formulas = (append (subseq premise-formulas 0 i)
+					     (subseq premise-formulas (1+ i)))
+	       :for problem = (make-instance 'derivability-problem
+					     :conjecture conjecture
+					     :formulas (mapcar #'fofify other-formulas))
+	       :for solution = (solve-problem problem :timeout 10)
+	       :when (szs-implies? solution "Theorem") :do (return (values nil i))
+	       :finally (return (values t nil))))))
+      (values t nil)))
+
+(defun extract-problem (formula db)
+  (if (slot-boundp formula 'source)
+      (let ((premises (premises formula)))
+	(let ((premise-formulas (mapcar #'(lambda (x) (formula-with-name db x))
+					premises))
+	      (conjecture (make-instance 'fof
+					 :name (name formula)
+					 :role "conjecture"
+					 :formula (fofify (formula formula)))))
+	  (make-instance 'derivability-problem
+			 :conjecture conjecture
+			 :formulas (mapcar #'strip-source
+					   (mapcar #'fofify premise-formulas)))))
+      (make-instance 'derivability-problem
+		     :conjecture (make-instance 'fof
+						:name (name formula)
+						:role "conjecture"
+						:formula (fofify (formula formula)))
+		     :formulas nil)))
+
+(defgeneric strip-optional-info (tptp-thing))
+
+(defmethod strip-optional-info ((x null))
+  nil)
+
+(defmethod strip-optional-info ((l list))
+  (mapcar #'strip-optional-info l))
+
+(defmethod strip-optional-info ((db tptp-db))
+  (make-instance 'tptp-db
+		 :formulas (mapcar #'strip-optional-info (formulas db))))
+
+(defmethod strip-optional-info :around ((x tptp-formula))
+  (let ((new-formula (call-next-method)))
+    (when (slot-boundp x 'source)
+      (setf (source new-formula)
+	    (source x)))
+    new-formula))
+
+(defmethod strip-optional-info ((x tptp-formula))
+  (make-instance (class-of x)
+		 :name (name x)
+		 :role (role x)
+		 :formula (formula x)))
+
+
+(defgeneric strip-source (tptp-thing))
+
+(defmethod strip-source ((x null))
+  nil)
+
+(defmethod strip-source ((l list))
+  (mapcar #'strip-source l))
+
+(defmethod strip-source ((db tptp-db))
+  (make-instance 'tptp-db
+		 :formulas (mapcar #'strip-source (formulas db))))
+
+(defmethod strip-source ((x tptp-formula))
+  (make-instance (class-of x)
+		 :name (name x)
+		 :role (role x)
+		 :formula (formula x)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Renaming predicate and function symbols
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defgeneric rename-symbol (tptp old-name new-name)
+  (:documentation "In TPTP, rename the function/predicate symbol whose name is OLD-NAME by NEW-NAME."))
+
+(defmethod rename-symbol ((db tptp-db) old-name new-name)
+  (make-instance 'tptp-db
+		 :formulas (mapcar #'(lambda (x)
+				       (rename-symbol x old-name new-name))
+				   (formulas db))))
+
+(defmethod rename-symbol :around ((x tptp-formula) old-name new-name)
+  (let ((new-formula (call-next-method)))
+    (when (slot-boundp x 'source)
+      (setf (source new-formula)
+	    (source x)))
+    (when (slot-boundp x 'optional-info)
+      (setf (optional-info new-formula)
+	    (optional-info x)))
+    new-formula))
+
+(defmethod rename-symbol ((x tptp-formula) old-name new-name)
+  (make-instance (class-of x)
+		 :name (name x)
+		 :role (role x)
+		 :formula (rename-symbol (formula x) old-name new-name)))
+
+(defmethod rename-symbol ((atom atomic-formula) old-name new-name)
+  (with-slots (predicate arguments)
+      atom
+    (make-instance (class-of atom)
+		   :predicate (if (string= (stringify predicate)
+					   (stringify old-name))
+				  (intern (stringify new-name) :tipi)
+				  predicate)
+		   :arguments (mapcar #'(lambda (x)
+					  (rename-symbol x old-name new-name))
+				      arguments))))
+
+(defmethod rename-symbol ((atom atomic-expression) old-name new-name)
+  (with-slots (head arguments)
+      atom
+    (make-instance (class-of atom)
+		   :head (if (string= (stringify head)
+				      (stringify old-name))
+			     (intern (stringify new-name) :tipi)
+			     head)
+		   :arguments (mapcar #'(lambda (x)
+					  (rename-symbol x old-name new-name))
+				      arguments))))
+
+(defmethod rename-symbol ((neg negation) old-name new-name)
+  (make-instance 'negation
+		 :argument (rename-symbol (argument neg) old-name new-name)))
+
+(defmethod rename-symbol ((x binary-connective-formula) old-name new-name)
+  (make-instance (class-of x)
+		 :lhs (rename-symbol (lhs x) old-name new-name)
+		 :rhs (rename-symbol (rhs x) old-name new-name)))
+
+(defmethod rename-symbol ((x multiple-arity-connective-formula) old-name new-name)
+  (make-instance (class-of x)
+		 :items (mapcar #'(lambda (x) (rename-symbol x old-name new-name))
+				(items x))))
+
+(defmethod rename-symbol ((gen generalization) old-name new-name)
+  (make-instance (class-of gen)
+		 :bindings (bindings gen)
+		 :matrix (rename-symbol (matrix gen) old-name new-name)))
+
+(defmethod rename-symbol ((eq equation) old-name new-name)
+  (make-instance 'equation
+		 :lhs (rename-symbol (lhs eq) old-name new-name)
+		 :rhs (rename-symbol (rhs eq) old-name new-name)))
+
+
+(defmethod rename-symbol ((eq disequation) old-name new-name)
+  (make-instance 'disequation
+		 :lhs (rename-symbol (lhs eq) old-name new-name)
+		 :rhs (rename-symbol (rhs eq) old-name new-name)))
+
+(defmethod rename-symbol ((var variable-term) old-name new-name)
+  var)
+
+(defmethod flatten-conjunctions/disjunctions ((x null))
+  nil)
+
+(defmethod flatten-conjunctions/disjunctions ((l list))
+  (mapcar #'flatten-conjunctions/disjunctions l))
+
+(defmethod flatten-conjunctions/disjunctions ((db tptp-db))
+  (make-instance 'tptp-db
+		 :formulas (mapcar #'flatten-conjunctions/disjunctions (formulas db))))
+
+(defmethod flatten-conjunctions/disjunctions :around ((x tptp-formula))
+  (let ((new-formula (call-next-method)))
+    (when (slot-boundp x 'source)
+      (setf (source new-formula)
+	    (source x)))
+    (when (slot-boundp x 'optional-info)
+      (setf (optional-info new-formula)
+	    (optional-info x)))
+    new-formula))
+
+(defmethod flatten-conjunctions/disjunctions ((x tptp-formula))
+  (make-instance (class-of x)
+		 :name (name x)
+		 :role (role x)
+		 :formula (flatten-conjunctions/disjunctions (formula x))))
+
+(defmethod terms-with-functor (functor-name (db tptp-db))
+  (terms-with-functor functor-name (formulas db)))
+
+(defmethod terms-with-functor (functor-name (x tptp-formula))
+  (terms-with-functor functor-name (formula x)))
+
+(defmethod eliminate-truth-values ((db tptp-db))
+  (make-instance 'tptp-db
+		 :formulas (mapcar #'eliminate-truth-values (formulas db))))
+
+(defmethod eliminate-truth-values :around ((x tptp-formula))
+  (let ((new-formula (call-next-method)))
+    (when (slot-boundp x 'source)
+      (setf (source new-formula)
+	    (source x)))
+    (when (slot-boundp x 'optional-info)
+      (setf (optional-info new-formula)
+	    (optional-info x)))
+    new-formula))
+
+(defmethod eliminate-truth-values ((x tptp-formula))
+  (make-instance (class-of x)
+		 :name (name x)
+		 :role (role x)
+		 :formula (eliminate-truth-values (formula x))))
+
+(defgeneric dependency-table (tptp)
+  (:documentation "A hash table whose keys are strings naming formulas of TPTP and whose values for a key X is the list of one-step dependencies of X."))
+
+(defmethod dependency-table ((db tptp-db))
+  (loop
+     :with dep-table = (make-hash-table :test #'equal)
+     :for formula :in (formulas db)
+     :for name = (stringify (name formula))
+     :for premises = (premises formula)
+     :do (setf (gethash name dep-table) (mapcar #'stringify premises))
+     :finally (return dep-table)))
+
+(defgeneric subproof-terminating-at (tptp step)
+  (:documentation "The subproof of TPTP that terminates at STEP."))
+
+(defmethod subproof-terminating-at (tptp (step integer))
+  (subproof-terminating-at tptp (format nil "~d" step)))
+
+(defmethod subproof-terminating-at :around ((tptp tptp-db) (step string))
+  (if (formula-with-name tptp step)
+      (call-next-method)
+      (error "No such formula '~a' in the given TPTP database." step)))
+
+(defmethod subproof-terminating-at ((tptp tptp-db) (step string))
+  (let ((formulas (formulas tptp))
+	(q (make-instance 'q))
+	(supporting-formula-table (make-hash-table :test #'equal)))
+    (enqueue-at-front q (list (formula-with-name tptp step)))
+    (loop
+       :until (empty-queue? q)
+       :do
+       (let ((formula (remove-front q)))
+	 (let ((formula-name (name formula)))
+	   (unless (gethash formula-name supporting-formula-table)
+	     (when (slot-boundp formula 'source)
+	       (let ((source (source formula)))
+		 (let ((atoms (flatten-tptp source)))
+		   (loop
+		      :for atom in atoms
+		      :for atom-string = (format nil "~a" atom)
+		      :when (formula-with-name tptp atom-string)
+		      :do
+		      (enqueue-at-end q (list (formula-with-name tptp
+								 atom-string))))))))
+	   (setf (gethash formula-name supporting-formula-table) t))))
+    (let ((supporting-formulas (hash-table-keys supporting-formula-table)))
+      (let ((sorted-supporting (sort supporting-formulas
+				     #'(lambda (formula-1 formula-2)
+					 (< (position (stringify formula-1) formulas :key #'(lambda (x) (stringify (name x))) :test #'string=)
+					    (position (stringify formula-2) formulas :key #'(lambda (x) (stringify (name x))) :test #'string=))))))
+	(make-instance 'tptp-db
+		       :formulas (mapcar #'(lambda (name)
+					     (formula-with-name tptp name))
+					 sorted-supporting))))))
+
+(defgeneric formulas-independent-of (db formula)
+  (:documentation "The formulas of DB that cannot be traced back to
+  FORMULA as a premise."))
+
+(defmethod formulas-independent-of ((db tptp-db) (formula tptp-formula))
+  (formulas-independent-of db (stringify (name formula))))
+
+(defmethod formulas-independent-of ((db tptp-db) (formula symbol))
+  (formulas-independent-of db (symbol-name formula)))
+
+(defmethod formulas-independent-of ((db tptp-db) (formula integer))
+  (formulas-independent-of db (format nil "~d" formula)))
+
+(defmethod formulas-independent-of ((db tptp-db) (formula string))
+  (let ((dep-table (dependency-table db)))
+    (remove-if-not #'(lambda (x)
+		       (not (exists-path (stringify (name x))
+					 formula
+					 dep-table)))
+		   (formulas db))))
+
+(defmethod universally-close :around ((x tptp-formula))
+  (let ((new-formula (call-next-method)))
+    (when (slot-boundp x 'source)
+      (setf (source new-formula)
+	    (source x)))
+    (when (slot-boundp x 'optional-info)
+      (setf (optional-info new-formula)
+	    (optional-info x)))
+    new-formula))
+
+(defmethod universally-close ((x tptp-formula))
+  (make-instance (class-of x)
+		 :name (name x)
+		 :role (role x)
+		 :formula (universally-close (formula x))))
+
+(defmethod contains-predicate? ((x tptp-formula) predicate)
+  (contains-predicate? (formula x) predicate))
+
+(defmethod atomic-formula-p ((x tptp-formula))
+  (atomic-formula-p (formula x)))
+
+(defmethod literal-p ((x tptp-formula))
+  (literal-p (formula x)))

@@ -54,10 +54,10 @@
     (remove-duplicates sensible :test #'string= :key #'(lambda (x) (format nil "~a" x)))))
 
 (defun restrict-source-to-problem-language (source solution)
-  (let ((atoms (flatten-tptp source)))
+  (let ((premises (premises source)))
     (let ((referring-atoms (remove-if-not #'(lambda (atom)
 					      (formula-with-name solution atom))
-					  atoms)))
+					  premises)))
       (make-instance 'general-list
 		     :terms (select-sensible-formulas referring-atoms solution)))))
 
@@ -95,48 +95,14 @@
 			      :problem problem
 			      :restricted t))))
 
-(defgeneric subproof-terminating-at (tstp step)
-  (:documentation "The subproof of TSTP that terminates at STEP."))
-
-(defmethod subproof-terminating-at (tstp (step integer))
-  (subproof-terminating-at tstp (format nil "~d" step)))
-
-(defmethod subproof-terminating-at :around ((tstp tstp-db) (step string))
-  (if (formula-with-name tstp step)
-      (call-next-method)
-      (error "No such formula '~a' in the given TSTP database." step)))
-
-(defmethod subproof-terminating-at ((tstp tstp-db) (step string))
-  (let ((formulas (formulas tstp))
-	(q (make-instance 'q))
-	(supporting-formula-table (make-hash-table :test #'equal)))
-    (enqueue-at-front q (list (formula-with-name tstp step)))
-    (loop
-       :until (empty-queue? q)
-       :do
-       (let ((formula (remove-front q)))
-	 (let ((formula-name (name formula)))
-	   (unless (gethash formula-name supporting-formula-table)
-	     (when (slot-boundp formula 'source)
-	       (let ((source (source formula)))
-		 (let ((atoms (flatten source)))
-		   (loop
-		      :for atom in atoms
-		      :for atom-string = (format nil "~a" atom)
-		      :when (formula-with-name tstp atom-string)
-		      :do
-		      (enqueue-at-end q (list (formula-with-name tstp atom-string))))))))
-	   (setf (gethash formula-name supporting-formula-table) t))))
-    (let ((supporting-formulas (hash-table-keys supporting-formula-table)))
-      (let ((sorted-supporting (sort supporting-formulas
-				     #'(lambda (formula-1 formula-2)
-					 (< (position formula-1 formulas :key #'name :test #'string=)
-					    (position formula-2 formulas :key #'name :test #'string=))))))
-	(make-instance 'tstp-db
-		       :formulas (mapcar #'(lambda (name)
-					     (formula-with-name tstp name))
-					 sorted-supporting)
-		       :problem (problem tstp))))))
+(defmethod subproof-terminating-at ((tstp tstp-db) step)
+  (make-instance 'tstp-db
+		 :restricted (solution-restricted-p tstp)
+		 :path (path tstp)
+		 :problem (problem tstp)
+		 :formulas (formulas (subproof-terminating-at (make-instance 'tptp-db
+									     :formulas (formulas tstp))
+							      step))))
 
 (defmethod kowalski ((db tstp-db))
   (make-instance 'tstp-db
@@ -161,14 +127,59 @@
 		   :problem (problem db)
 		   :formulas (formulas new-db))))
 
-(defmethod reduce-equivalences ((db tstp-db))
-  (let ((simplified (simplify-justification db)))
-    (make-instance 'tstp-db
-		   :path (path db)
-		   :restricted (solution-restricted-p db)
-		   :problem (problem db)
-		   :formulas (reduce-equivalences (formulas simplified)))))
+(defmethod reduce-trivial-equivalences ((db tstp-db))
+  (make-instance 'tstp-db
+		 :path (path db)
+		 :restricted (solution-restricted-p db)
+		 :problem (problem db)
+		 :formulas (reduce-trivial-equivalences (formulas db))))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; Verify deirvations
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defmethod reduce-equivalences ((db tstp-db) premises &key predicate)
+  (make-instance 'tstp-db
+		 :path (path db)
+		 :restricted (solution-restricted-p db)
+		 :problem (problem db)
+		 :formulas (reduce-equivalences (formulas db)
+						premises
+						:predicate predicate)))
+
+(defmethod rename-symbol ((db tstp-db) old-name new-name)
+  (make-instance 'tstp-db
+		 :formulas (mapcar #'(lambda (x)
+				       (rename-symbol x old-name new-name))
+				   (formulas db))
+		 :restricted (solution-restricted-p db)
+		 :problem (rename-symbol (problem db) old-name new-name)
+		 :path (path db)))
+
+(defmethod fofify ((db tstp-db))
+  (make-instance 'tstp-db
+		 :path (path db)
+		 :formulas (mapcar #'fofify (formulas db))
+		 :restricted (solution-restricted-p db)
+		 :problem (problem db)))
+
+(defun topological-sort (tstp)
+  (let ((dep-table (dependency-table tstp)))
+    (flet ((less-than (formula-1 formula-2)
+	     (or (string= (role formula-1) "axiom")
+		 (exists-path (stringify (name formula-2))
+			      (stringify (name formula-1))
+			      dep-table))))
+      (let ((sorted (sort (formulas tstp) #'less-than)))
+	(make-instance 'tstp-db
+		       :path (path tstp)
+		       :problem (problem tstp)
+		       :formulas sorted
+		       :restricted (solution-restricted-p tstp))))))
+
+(defmethod eliminate-truth-values ((db tstp-db))
+  (make-instance 'tstp-db
+		 :formulas (mapcar #'eliminate-truth-values (formulas db))
+		 :problem (problem db)
+		 :restricted (solution-restricted-p db)
+		 :path (path db)))
+
+(defmethod dependency-table ((db tstp-db))
+  (dependency-table (make-instance 'tptp-db
+				   :formulas (formulas db))))
