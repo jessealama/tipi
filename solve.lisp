@@ -138,8 +138,7 @@
     (write-string-into-file (render problem) temp)
     (prog1
         (solve-problem temp :timeout timeout)
-      (delete-file temp)
-      )))
+      (delete-file temp))))
 
 (defmethod solve-problem ((db tptp-db) &key (timeout +default-timeout+))
   (if (has-conjecture-formula? db)
