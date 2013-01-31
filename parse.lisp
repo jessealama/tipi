@@ -608,8 +608,12 @@
    (|~| atomic-formula
 	#'(lambda (neg formula)
 	    (declare (ignore neg))
-	    (make-instance 'negation
-			   :argument formula)))
+	    (if (typep formula 'equation)
+		(make-instance 'disequation
+			       :lhs (lhs formula)
+			       :rhs (rhs formula))
+		(make-instance 'negation
+			       :argument formula))))
    fol-infix-unary)
 
   (fof-logic-formula
@@ -780,8 +784,12 @@
 		     #'(lambda (connective argument)
 			 (unless (string= connective "~")
 			   (error "Unknown unary connective '~a'." connective))
-			 (make-instance 'negation
-					:argument argument)))
+			 (if (typep argument 'equation)
+			     (make-instance 'disequation
+					    :lhs (lhs argument)
+					    :rhs (rhs argument))
+			     (make-instance 'negation
+					    :argument argument))))
    fol-infix-unary)
 
   (unary-connective
