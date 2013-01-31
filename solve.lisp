@@ -34,26 +34,27 @@
        (let* ((path (native-namestring (path problem)))
 	      (eprover-out (make-string-output-stream))
 	      (eprover-err (make-string-output-stream))
-              (eprover-process (run-program "eproof_ram"
+              (eprover-process (run-program "eproof"
 					    (list "--auto"
 						  (format nil "--cpu-limit=~d" timeout)
 						  "--tstp-format"
 						  path)
 					    :search t
 					    :input nil
-					    :output :stream
-					    :error :stream
+					    :output eprover-out
+					    :error eprover-err
 					    :wait t))
               (eprover-exit-code (process-exit-code eprover-process)))
-         (close eprover-out)
-	 (close eprover-err)
-         (if (zerop eprover-exit-code)
-	     (make-instance 'eprover-result
-			    :text (get-output-stream-string eprover-out))
-	     (make-instance 'eprover-result
-                            :text ""
-                            :szs-status (lookup-szs-status
-                                         (if (= eprover-exit-code 6) "Timeout" "Error")))))))))
+         (unwind-protect
+	      (if (zerop eprover-exit-code)
+		  (make-instance 'eprover-result
+				 :text (get-output-stream-string eprover-out))
+		  (make-instance 'eprover-result
+				 :text ""
+				 :szs-status (lookup-szs-status
+					      (if (= eprover-exit-code 6) "Timeout" "Error"))))
+	   (close eprover-out)
+	   (close eprover-err)))))))
 
 (defparameter *paradox*
   (make-instance
