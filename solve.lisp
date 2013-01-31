@@ -77,14 +77,15 @@
                                             :error paradox-err
                                             :wait t))
               (paradox-exit-code (process-exit-code paradox-process)))
-         (close paradox-out)
-	 (close paradox-err)
-         (if (zerop paradox-exit-code)
-             (make-instance 'paradox-result
-                            :text (get-output-stream-string paradox-out))
-             (make-instance 'paradox-result
-                            :text ""
-                            :szs-status (lookup-szs-status "Error"))))))))
+         (unwind-protect
+	      (if (zerop paradox-exit-code)
+		  (make-instance 'paradox-result
+				 :text (get-output-stream-string paradox-out))
+		  (make-instance 'paradox-result
+				 :text ""
+				 :szs-status (lookup-szs-status "Error")))
+	   (close paradox-out)
+	   (close paradox-err)))))))
 
 (defmethod solve :before (prover problem &key timeout)
   (declare (ignore prover problem))
