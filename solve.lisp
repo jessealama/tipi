@@ -112,8 +112,7 @@
   (values nil (lookup-szs-status "Unknown")))
 
 (defmethod solve ((solver-list list) problem &key timeout)
-  (when (null timeout)
-    (setf timeout +default-timeout+))
+  (setf timeout (or timeout +default-timeout+))
   (loop
      with solutions = (make-hash-table :test #'equal)
      initially
