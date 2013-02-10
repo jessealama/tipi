@@ -591,8 +591,11 @@
     :initform nil)))
 
 (defmethod print-object ((include include-instruction) stream)
-  (print-unreadable-object (include stream :type t :identity nil)
-    (format stream "~a : (~{~a~^ ~})" (file include) (selection include))))
+  (with-slots (file selection)
+      include
+    (if selection
+	(format stream "include(~a,[~{~a~^,~}])." file selection)
+	(format stream "include(~a)." file))))
 
 (defmethod render ((include include-instruction))
   (with-slots (file selection)
