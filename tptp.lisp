@@ -942,6 +942,12 @@
 
 (defgeneric fofify (tptp))
 
+(defmethod fofify ((l list))
+  (mapcar #'fofify l))
+
+(defmethod fofify ((x null))
+  nil)
+
 (defmethod fofify ((db tptp-db))
   (make-instance 'tptp-db
 		 :path (path db)
