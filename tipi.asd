@@ -20,7 +20,8 @@
 	       :cl-who
 	       :alexandria
 	       :trivial-timeout
-	       :fiveam)
+	       :fiveam
+	       :cl-parallel)
   :serial t
   :components ((:file "packages")
 	       (:file "utils")
