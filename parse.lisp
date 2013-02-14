@@ -105,7 +105,7 @@
     (setf within-include nil)
     t)
 
-  (defun lexer (&optional (stream *standard-input*))
+  (defun lexer (stream)
     (loop
        for c = (read-char stream nil nil)
        do
