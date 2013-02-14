@@ -174,10 +174,10 @@
 	       :wait nil))
 
 (defmethod solve-problem ((problem pathname) &key (timeout +default-timeout+))
-  (let ((eprover-result (solve *eprover* problem :timeout timeout))
-	(paradox-result (solve *paradox* problem :timeout timeout)))
-    (aggregate-szs-statuses (list (szs-status eprover-result)
-				  (szs-status paradox-result)))))
+  (let ((tptp (parse-tptp problem)))
+    (par-map #'(lambda (x)
+		 (solve x tptp :timeout timeout))
+	     (list *eprover* *paradox*))))
 
 (defmethod solve ((solver solver) (problem derivability-problem) &key (timeout +default-timeout+))
   (let ((db (make-instance 'tptp-db
