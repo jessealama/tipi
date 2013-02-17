@@ -221,9 +221,7 @@
 
 (defmethod initialize-instance :after ((problem derivability-problem) &rest initargs &key &allow-other-keys)
   (declare (ignore initargs))
-  (when (some #'(lambda (premise)
-		  (string= (role premise) "conjecture"))
-	      (formulas problem))
+  (when (conjecture-formula (premises problem))
     (error "Some non-conjecture formula has the TPTP status 'conjecture'."))
   (loop
      :initially (setf (role (conjecture problem)) "conjecture")
