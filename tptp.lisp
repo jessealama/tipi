@@ -383,14 +383,20 @@
 (defmethod proper-formulas ((problem tptp-db))
   (mapcar #'formula (formulas problem)))
 
-(defun conjecture-formula (problem)
-  (find "conjecture" (formulas problem) :test #'string= :key #'role))
+(defgeneric conjecture-formula (thing)
+  (:documentation "The conjecture formula in THING."))
+
+(defmethod conjecture-formula ((x null))
+  nil)
+
+(defmethod conjecture-formula ((l list))
+  (find "conjecture" l :test #'string= :key #'role))
+
+(defmethod conjecture-formula ((db tptp-db))
+  (conjecture-formula (formulas db)))
 
 (defun has-conjecture-p (problem)
   (not (null (conjecture-formula problem))))
-
-(defun conjecture-string? (string)
-  (string= string "conjecture"))
 
 (defun remove-conjecture (problem)
   (make-instance 'tptp-db
