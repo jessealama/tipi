@@ -386,7 +386,7 @@
 (defun conjecture-formula (problem)
   (find "conjecture" (formulas problem) :test #'string= :key #'role))
 
-(defun has-conjecture-formula? (problem)
+(defun has-conjecture-p (problem)
   (not (null (conjecture-formula problem))))
 
 (defun conjecture-string? (string)
