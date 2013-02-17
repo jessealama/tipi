@@ -384,13 +384,10 @@
   (mapcar #'formula (formulas problem)))
 
 (defun conjecture-formula (problem)
-  (has-conjecture-formula? problem))
+  (find "conjecture" (formulas problem) :test #'string= :key #'role))
 
 (defun has-conjecture-formula? (problem)
-  (first (member "conjecture"
-		 (formulas problem)
-		 :key #'role
-		 :test #'string=)))
+  (not (null (conjecture-formula problem))))
 
 (defun conjecture-string? (string)
   (string= string "conjecture"))
