@@ -394,9 +394,8 @@
 
 (defun remove-conjecture (problem)
   (make-instance 'tptp-db
-		 :formulas (remove-if #'conjecture-string?
-				      (formulas problem)
-				      :key #'role)))
+		 :formulas (remove (conjecture-formula problem)
+				   (formulas problem))))
 
 (defgeneric remove-formula (formulas formula))
 
