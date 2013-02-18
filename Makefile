@@ -27,30 +27,13 @@ CCL_LOAD   := --load
 CCL_EVAL   := --eval
 CCL_DUMP   := --no-init $(CCL_LOAD)
 
-lisp-files = consequence \
-             formulas    \
-             independent \
-             minimal     \
-             model       \
-             needed      \
-             packages    \
-             parse       \
-             result      \
-             run         \
-             solve       \
-             szs         \
-             terms       \
-             tipi        \
-             tptp        \
-             utils       \
-             xslt
-
-lisps = $(addsuffix .lisp,$(lisp-files))
+lisps = $(shell *.lisp)
+lisp-files = $(basename $(lisps))
 asdfs = $(ASDF_FILE)
 makefiles = Makefile
 
 editable-files = $(lisps) $(asdfs) .gitignore $(makefiles) README.mkdn
-emacs-backups = $(addsuffix ~,$(editable-files))
+emacs-backups = $(wildcard *~)
 ccl-fasls = $(addsuffix .dx64fsl,$(lisp-files))
 fasls = $(addsuffix .fasl,$(lisp-files))
 
