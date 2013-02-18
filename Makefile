@@ -27,7 +27,7 @@ CCL_LOAD   := --load
 CCL_EVAL   := --eval
 CCL_DUMP   := --no-init $(CCL_LOAD)
 
-lisps = $(shell *.lisp)
+lisps = $(wildcard *.lisp)
 lisp-files = $(basename $(lisps))
 asdfs = $(ASDF_FILE)
 makefiles = Makefile
