@@ -388,7 +388,7 @@
   nil)
 
 (defmethod conjecture-formula ((l list))
-  (find "conjecture" l :test #'string= :key #'role))
+  (member "conjecture" l :test #'string= :key #'role))
 
 (defmethod conjecture-formula ((db tptp-db))
   (conjecture-formula (formulas db)))
