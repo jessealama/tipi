@@ -169,9 +169,9 @@
 
 (defmethod solve-problem ((problem pathname) &key (timeout +default-timeout+))
   (let ((tptp (parse-tptp problem)))
-    (par-map #'(lambda (x)
-		 (solve x tptp :timeout timeout))
-	     (list *eprover* *paradox*))))
+    (let ((results (par-map #'(lambda (x) (solve x tptp :timeout timeout))
+			    (list *eprover* *paradox*))))
+      (aggregate-szs-statuses (mapcar #'szs-status results)))))
 
 (defmethod solve ((solver solver) (problem derivability-problem) &key (timeout +default-timeout+))
   (let ((db (make-instance 'tptp-db
