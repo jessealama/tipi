@@ -1586,3 +1586,23 @@
 
 (defmethod literal-p ((x tptp-formula))
   (literal-p (formula x)))
+
+(defmethod negate :around ((x tptp-formula))
+  (let ((new-formula (call-next-method)))
+    (when (slot-boundp x 'source)
+      (setf (source new-formula) (source x)))
+    (when (slot-boundp x 'optional-info)
+      (setf (optional-info new-formula) (optional-info x)))
+    new-formula))
+
+(defmethod negate ((x tptp-formula))
+  (make-instance (class-of x)
+		 :name (name x)
+		 :role (role x)
+		 :formula (negate (formula x))))
+
+(defgeneric definition-p (x)
+  (:documentation "Is X a definition?"))
+
+(defmethod definition-p ((x tptp-formula))
+  (string= (role x) "definition"))
