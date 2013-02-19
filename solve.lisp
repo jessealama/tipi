@@ -131,18 +131,12 @@
 
 (defgeneric solve-problem (problem &key timeout))
 
-(defmethod solve-problem ((problem derivability-problem)
-                          &key (timeout +default-timeout+))
+(defmethod solve-problem ((db tptp-db) &key (timeout +default-timeout+))
   (let ((temp (temporary-file)))
-    (write-string-into-file (render problem) temp)
+    (write-string-into-file (render db) temp)
     (prog1
         (solve-problem temp :timeout timeout)
       (delete-file temp))))
-
-(defmethod solve-problem ((db tptp-db) &key (timeout +default-timeout+))
-  (if (has-conjecture-formula? db)
-      (solve-problem (make-derivability-problem (formulas db)) :timeout timeout)
-      (error "The given TPTP database lacks a conjecture formula; we cannot solve it.")))
 
 (define-constant +granularity+ 5
   :test #'=
