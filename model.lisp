@@ -8,13 +8,13 @@
   (satisfiable-p (parse-tptp path) :timeout timeout))
 
 (defmethod satisfiable-p ((db tptp-db) &key timeout)
-  (unless timeout
-    (setf timeout +default-timeout+))
+  (setf timeout (or timeout +default-timeout+))
   (let ((conjecture (conjecture-formula db)))
     (if conjecture
 	(satisfiable-p (promote-conjecture-to-axiom db) :timeout timeout)
 	(let ((szs (solve-problem db :timeout timeout)))
-	  (szs-implies? szs (lookup-szs-status "Satisfiable"))))))
+	  (and (is-szs-success? szs)
+	       (szs-implies? szs (lookup-szs-status "Satisfiable")))))))
 
 (defun consistent-premises? (problem &optional (solver *paradox*))
   (satisfiable? (remove-conjecture problem) solver))
