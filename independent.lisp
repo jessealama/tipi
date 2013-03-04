@@ -106,16 +106,14 @@ decision."))
       (flet ((test-combination (in)
 	       (loop
 		  :initially (format t "[")
+		  :with unnegated = (append in definitions)
 		  :for formula :in formulas
-		  :do (format t "~c" (if (or (member formula in)
-					     (member formula definitions)) #\+ #\-))
+		  :do (format t "~:[-~;+~]" (member formula unnegated))
 		  :finally (format t "]: "))
 	       (let ((out (remove-if #'(lambda (x) (member x in)) non-definitions)))
-		 (let ((subproblem (make-instance 'tptp-db
-						  :formulas (append definitions
-								    in
-								    (negate out)))))
-		   (let ((sat (satisfiable-p subproblem :timeout timeout)))
-		     (format t "~a~%" (if sat "yes" "no"))
-		     sat)))))
+		 (let ((new-formulas (append definitions in (negate out))))
+		   (let ((subproblem (make-instance 'tptp-db :formulas new-formulas)))
+		     (let ((sat (satisfiable-p subproblem :timeout timeout)))
+		       (format t "~:[no~;yes~]~%" sat)
+		       sat))))))
 	(map-all-combinations #'test-combination non-definitions)))))
