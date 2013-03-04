@@ -171,22 +171,11 @@
 
 (defmethod solve ((solver solver) (problem tptp-db) &key (timeout +default-timeout+))
   (handler-case
-      (with-timeout (timeout)
-        (handler-case
-            (funcall (solve-function solver) problem timeout)
-          (error (c)
-            (make-instance 'eprover-result
-                           :text (format nil "Internal Common Lisp error:~%~a" c)
-                           :szs-status (lookup-szs-status "Error")))))
-    (timeout-error (c)
-      (declare (ignore c))
-      (make-instance 'eprover-result
-                     :text ""
-                     :szs-status (lookup-szs-status "Timeout")))
+      (funcall (solve-function solver) problem timeout)
     (error (c)
       (make-instance 'eprover-result
-                     :text (format nil "Internal Common Lisp error:~%~a" c)
-                     :szs-status (lookup-szs-status "Error")))))
+		     :text (format nil "Internal Common Lisp error:~%~a" c)
+		     :szs-status (lookup-szs-status "Error")))))
 
 (defmethod solve (solver (problem pathname) &key (timeout +default-timeout+))
   (solve solver (parse-tptp problem) :timeout timeout))
