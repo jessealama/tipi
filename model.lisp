@@ -22,7 +22,7 @@
   (satisfiable-p (remove-conjecture problem)))
 
 (defun find-model (problem &optional (model-finder *paradox*))
-  (let ((conjecture (has-conjecture-formula? problem)))
+  (let ((conjecture (has-conjecture-p problem)))
     (if conjecture
 	(find-model (promote-conjecture-to-axiom problem) model-finder)
 	(let ((result (solve model-finder problem)))
