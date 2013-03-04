@@ -110,7 +110,7 @@ decision."))
 		  :do (format t "~c" (if (or (member formula in)
 					     (member formula definitions)) #\+ #\-))
 		  :finally (format t "]: "))
-	       (let ((out (remove-if #'(lambda (x) (member x in)) formulas)))
+	       (let ((out (remove-if #'(lambda (x) (member x in)) non-definitions)))
 		 (let ((subproblem (make-instance 'tptp-db
 						  :formulas (append definitions
 								    in
