@@ -504,7 +504,7 @@
 					   other-formulas))))))))
 
 (defun promote-conjecture-to-axiom (problem)
-  (let ((conjecture (has-conjecture-formula? problem)))
+  (let ((conjecture (has-conjecture-p problem)))
     (if conjecture
 	(make-instance 'tptp-db
 		       :formulas (cons (change-status conjecture "axiom")
