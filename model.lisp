@@ -18,8 +18,8 @@
     (values (szs-implies? szs (lookup-szs-status "Satisfiable"))
 	    szs)))
 
-(defun consistent-premises? (problem &optional (solver *paradox*))
-  (satisfiable? (remove-conjecture problem) solver))
+(defun consistent-premises? (problem)
+  (satisfiable-p (remove-conjecture problem)))
 
 (defun find-model (problem &optional (model-finder *paradox*))
   (let ((conjecture (has-conjecture-formula? problem)))
