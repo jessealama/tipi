@@ -735,6 +735,15 @@
 (defun include-instructions (tptp-db)
   (remove-if-not #'(lambda (x) (eql (type-of x) 'include-instruction)) (formulas tptp-db)))
 
+(defgeneric has-include-instruction-p (problem)
+  (:documentation "Does PROBLEM contain at least one include instruction?"))
+
+(defmethod has-include-instruction-p ((problem pathname))
+  (has-include-instruction-p (parse-tptp problem)))
+
+(defmethod has-include-instruction-p ((problem tptp-db))
+  (some #'(lambda (x) (typep x 'include-instruction)) (formulas problem)))
+
 (defun formulas-w/o-includes (tptp-db)
   (remove-if #'(lambda (x) (eql (type-of x) 'include-instruction)) (formulas tptp-db)))
 
