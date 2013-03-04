@@ -31,29 +31,27 @@
    :solve-function
    (lambda (problem timeout)
      (let* ((path (native-namestring (path problem)))
-	    (eprover-out (make-string-output-stream))
-	    (eprover-err (make-string-output-stream))
-	    (eprover-process (run-program "eproof"
-					  (list "--auto"
-						(format nil "--cpu-limit=~d" timeout)
-						"--tstp-format"
-						path)
-					  :search t
-					  :input nil
-					  :output eprover-out
-					  :error eprover-err
-					  :wait t))
-	    (eprover-exit-code (process-exit-code eprover-process)))
+	    (eprover-out (make-string-output-stream)))
        (unwind-protect
-	    (if (zerop eprover-exit-code)
-		(make-instance 'eprover-result
-			       :text (get-output-stream-string eprover-out))
-		(make-instance 'eprover-result
-			       :text ""
-			       :szs-status (lookup-szs-status
-					    (if (= eprover-exit-code 6) "Timeout" "Error"))))
-	 (close eprover-out)
-	 (close eprover-err))))))
+	    (let* ((eprover-process (run-program "eproof"
+						 (list "--auto"
+						       (format nil "--cpu-limit=~d" timeout)
+						       "--tstp-format"
+						       path)
+						 :search t
+						 :input nil
+						 :output eprover-out
+						 :error nil
+						 :wait t))
+		   (eprover-exit-code (process-exit-code eprover-process)))
+	      (if (zerop eprover-exit-code)
+		  (make-instance 'eprover-result
+				 :text (get-output-stream-string eprover-out))
+		  (make-instance 'eprover-result
+				 :text ""
+				 :szs-status (lookup-szs-status
+					      (if (= eprover-exit-code 6) "Timeout" "Error")))))
+	 (close eprover-out))))))
 
 (defparameter *paradox*
   (make-instance
@@ -62,28 +60,26 @@
    :solve-function
    (lambda (problem timeout)
      (let* ((path (native-namestring (path problem)))
-	    (paradox-out (make-string-output-stream))
-	    (paradox-err (make-string-output-stream))
-	    (paradox-process (run-program "paradox"
-					  (list "--tstp"
-						"--no-progress"
-						"--time" (format nil "~d" timeout)
-						path)
-					  :search t
-					  :input nil
-					  :output paradox-out
-					  :error paradox-err
-					  :wait t))
-	    (paradox-exit-code (process-exit-code paradox-process)))
+	    (paradox-out (make-string-output-stream)))
        (unwind-protect
-	    (if (zerop paradox-exit-code)
-		(make-instance 'paradox-result
-			       :text (get-output-stream-string paradox-out))
-		(make-instance 'paradox-result
-			       :text ""
-			       :szs-status (lookup-szs-status "Error")))
-	 (close paradox-out)
-	 (close paradox-err))))))
+	    (let* ((paradox-process (run-program "paradox"
+						 (list "--tstp"
+						       "--no-progress"
+						       "--time" (format nil "~d" timeout)
+						       path)
+						 :search t
+						 :input nil
+						 :output paradox-out
+						 :error nil
+						 :wait t))
+		   (paradox-exit-code (process-exit-code paradox-process)))
+	      (if (zerop paradox-exit-code)
+		  (make-instance 'paradox-result
+				 :text (get-output-stream-string paradox-out))
+		  (make-instance 'paradox-result
+				 :text ""
+				 :szs-status (lookup-szs-status "Error"))))
+	 (close paradox-out))))))
 
 (defmethod solve :before (prover problem &key timeout)
   (declare (ignore prover problem))
