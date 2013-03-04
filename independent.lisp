@@ -94,6 +94,8 @@ decision."))
 
 (defmethod completely-independent-p :before ((problem tptp-db) &key timeout)
   (declare (ignore timeout))
+  (when (has-include-instruction-p problem)
+    (error "The given problem has an include statement."))
   (when (has-conjecture-p problem)
     (error "The given problem has a conjecture formula, but we require that no conjecture formulas are present.")))
 
