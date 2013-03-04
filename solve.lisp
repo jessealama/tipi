@@ -138,10 +138,6 @@
         (solve-problem temp :timeout timeout)
       (delete-file temp))))
 
-(define-constant +granularity+ 5
-  :test #'=
-  :documentation "The number of slices into which 1 second should be divided.")
-
 (defun run-eprover (path timeout output-stream error-stream)
   (run-program "eproof"
 	       (list "--auto"
