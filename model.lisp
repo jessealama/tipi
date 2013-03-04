@@ -13,8 +13,8 @@
     (if conjecture
 	(satisfiable-p (promote-conjecture-to-axiom db) :timeout timeout)
 	(let ((szs (solve-problem db :timeout timeout)))
-	  (and (is-szs-success? szs)
-	       (szs-implies? szs (lookup-szs-status "Satisfiable")))))))
+	  (values (szs-implies? szs (lookup-szs-status "Satisfiable"))
+		  szs)))))
 
 (defun consistent-premises? (problem &optional (solver *paradox*))
   (satisfiable? (remove-conjecture problem) solver))
