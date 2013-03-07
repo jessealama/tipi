@@ -30,31 +30,28 @@
    :name "The E theorem prover"
    :solve-function
    (lambda (problem timeout)
-     (block eprover
-       (let* ((path (native-namestring (path problem)))
-	      (eprover-out (make-string-output-stream))
-	      (eprover-err (make-string-output-stream))
-              (eprover-process (run-program "eproof"
-					    (list "--auto"
-						  (format nil "--cpu-limit=~d" timeout)
-						  "--tstp-format"
-						  path)
-					    :search t
-					    :input nil
-					    :output eprover-out
-					    :error eprover-err
-					    :wait t))
-              (eprover-exit-code (process-exit-code eprover-process)))
-         (unwind-protect
+     (let* ((path (native-namestring (path problem)))
+	    (eprover-out (make-string-output-stream)))
+       (unwind-protect
+	    (let* ((eprover-process (run-program "eproof"
+						 (list "--auto"
+						       (format nil "--cpu-limit=~d" timeout)
+						       "--tstp-format"
+						       path)
+						 :search t
+						 :input nil
+						 :output eprover-out
+						 :error nil
+						 :wait t))
+		   (eprover-exit-code (process-exit-code eprover-process)))
 	      (if (zerop eprover-exit-code)
 		  (make-instance 'eprover-result
 				 :text (get-output-stream-string eprover-out))
 		  (make-instance 'eprover-result
 				 :text ""
 				 :szs-status (lookup-szs-status
-					      (if (= eprover-exit-code 6) "Timeout" "Error"))))
-	   (close eprover-out)
-	   (close eprover-err)))))))
+					      (if (= eprover-exit-code 6) "Timeout" "Error")))))
+	 (close eprover-out))))))
 
 (defparameter *paradox*
   (make-instance
@@ -62,30 +59,27 @@
    :name "Paradox"
    :solve-function
    (lambda (problem timeout)
-     (block paradox
-       (let* ((path (native-namestring (path problem)))
-	      (paradox-out (make-string-output-stream))
-	      (paradox-err (make-string-output-stream))
-              (paradox-process (run-program "paradox"
-                                            (list "--tstp"
-                                                  "--no-progress"
-                                                  "--time" (format nil "~d" timeout)
-                                                  path)
-                                            :search t
-                                            :input nil
-                                            :output paradox-out
-                                            :error paradox-err
-                                            :wait t))
-              (paradox-exit-code (process-exit-code paradox-process)))
-         (unwind-protect
+     (let* ((path (native-namestring (path problem)))
+	    (paradox-out (make-string-output-stream)))
+       (unwind-protect
+	    (let* ((paradox-process (run-program "paradox"
+						 (list "--tstp"
+						       "--no-progress"
+						       "--time" (format nil "~d" timeout)
+						       path)
+						 :search t
+						 :input nil
+						 :output paradox-out
+						 :error nil
+						 :wait t))
+		   (paradox-exit-code (process-exit-code paradox-process)))
 	      (if (zerop paradox-exit-code)
 		  (make-instance 'paradox-result
 				 :text (get-output-stream-string paradox-out))
 		  (make-instance 'paradox-result
 				 :text ""
-				 :szs-status (lookup-szs-status "Error")))
-	   (close paradox-out)
-	   (close paradox-err)))))))
+				 :szs-status (lookup-szs-status "Error"))))
+	 (close paradox-out))))))
 
 (defmethod solve :before (prover problem &key timeout)
   (declare (ignore prover problem))
@@ -112,8 +106,7 @@
   (values nil (lookup-szs-status "Unknown")))
 
 (defmethod solve ((solver-list list) problem &key timeout)
-  (when (null timeout)
-    (setf timeout +default-timeout+))
+  (setf timeout (or timeout +default-timeout+))
   (loop
      with solutions = (make-hash-table :test #'equal)
      initially
@@ -132,22 +125,12 @@
 
 (defgeneric solve-problem (problem &key timeout))
 
-(defmethod solve-problem ((problem derivability-problem)
-                          &key (timeout +default-timeout+))
+(defmethod solve-problem ((db tptp-db) &key (timeout +default-timeout+))
   (let ((temp (temporary-file)))
-    (write-string-into-file (render problem) temp)
+    (write-string-into-file (render db) temp)
     (prog1
         (solve-problem temp :timeout timeout)
       (delete-file temp))))
-
-(defmethod solve-problem ((db tptp-db) &key (timeout +default-timeout+))
-  (if (has-conjecture-formula? db)
-      (solve-problem (make-derivability-problem (formulas db)) :timeout timeout)
-      (error "The given TPTP database lacks a conjecture formula; we cannot solve it.")))
-
-(define-constant +granularity+ 5
-  :test #'=
-  :documentation "The number of slices into which 1 second should be divided.")
 
 (defun run-eprover (path timeout output-stream error-stream)
   (run-program "eproof"
@@ -175,10 +158,10 @@
 	       :wait nil))
 
 (defmethod solve-problem ((problem pathname) &key (timeout +default-timeout+))
-  (let ((eprover-result (solve *eprover* problem :timeout timeout))
-	(paradox-result (solve *paradox* problem :timeout timeout)))
-    (aggregate-szs-statuses (list (szs-status eprover-result)
-				  (szs-status paradox-result)))))
+  (let ((tptp (parse-tptp problem)))
+    (let ((results (par-map #'(lambda (x) (solve x tptp :timeout timeout))
+			    (list *eprover* *paradox*))))
+      (aggregate-szs-statuses (mapcar #'szs-status results)))))
 
 (defmethod solve ((solver solver) (problem derivability-problem) &key (timeout +default-timeout+))
   (let ((db (make-instance 'tptp-db
@@ -188,22 +171,11 @@
 
 (defmethod solve ((solver solver) (problem tptp-db) &key (timeout +default-timeout+))
   (handler-case
-      (with-timeout (timeout)
-        (handler-case
-            (funcall (solve-function solver) problem timeout)
-          (error (c)
-            (make-instance 'eprover-result
-                           :text (format nil "Internal Common Lisp error:~%~a" c)
-                           :szs-status (lookup-szs-status "Error")))))
-    (timeout-error (c)
-      (declare (ignore c))
-      (make-instance 'eprover-result
-                     :text ""
-                     :szs-status (lookup-szs-status "Timeout")))
+      (funcall (solve-function solver) problem timeout)
     (error (c)
       (make-instance 'eprover-result
-                     :text (format nil "Internal Common Lisp error:~%~a" c)
-                     :szs-status (lookup-szs-status "Error")))))
+		     :text (format nil "Internal Common Lisp error:~%~a" c)
+		     :szs-status (lookup-szs-status "Error")))))
 
 (defmethod solve (solver (problem pathname) &key (timeout +default-timeout+))
   (solve solver (parse-tptp problem) :timeout timeout))

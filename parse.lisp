@@ -105,7 +105,7 @@
     (setf within-include nil)
     t)
 
-  (defun lexer (&optional (stream *standard-input*))
+  (defun lexer (stream)
     (loop
        for c = (read-char stream nil nil)
        do
@@ -885,21 +885,21 @@
 
 (defmethod parse-tptp ((tptp-string string))
   (with-input-from-string (string tptp-string)
-    (let ((*standard-input* string))
-      (initialize-lexer)
-      (parse-with-lexer #'lexer
-			*tptp-v5.4.0.0-parser*))))
+    (initialize-lexer)
+    (parse-with-lexer #'(lambda ()
+			  (lexer string))
+		      *tptp-v5.4.0.0-parser*)))
 
 (defmethod parse-tptp ((tptp-path pathname))
   (with-open-file (tptp-stream tptp-path
 			       :direction :input
 			       :if-does-not-exist :error)
-    (let ((*standard-input* tptp-stream))
-      (initialize-lexer)
-      (let ((db (parse-with-lexer #'lexer
-				  *tptp-v5.4.0.0-parser*)))
-	(setf (path db) tptp-path)
-	db))))
+    (initialize-lexer)
+    (let ((db (parse-with-lexer #'(lambda ()
+				    (lexer tptp-stream))
+				*tptp-v5.4.0.0-parser*)))
+      (setf (path db) tptp-path)
+      db)))
 
 (defmethod parse-tptp ((tptp tptp-db))
   tptp)

@@ -636,6 +636,12 @@ class ATOMIC-FORMULA.  This function expresses that disjointedness."
 (defmethod negate ((formula formula))
   (make-instance 'negation :argument formula))
 
+(defmethod negate ((x null))
+  nil)
+
+(defmethod negate ((l list))
+  (mapcar #'negate l))
+
 (defclass multiple-arity-connective-formula (composite-formula)
   ((items :initarg :items
 	  :accessor items

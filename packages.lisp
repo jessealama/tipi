@@ -6,6 +6,7 @@
   (:use :yacc)
   (:import-from :cl-who
 		#:with-html-output-to-string)
+  (:use :parallel)
   (:use :hunchentoot)
   (:use :hunchentoot-utils)
   (:use :cl-who)

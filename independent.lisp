@@ -73,3 +73,56 @@ decision."))
       (independent? (if conjecture (remove-conjecture db) db)
 		    :timeout timeout
 		    :quick quick))))
+
+(defgeneric completely-independent-p (problem &key timeout)
+  (:documentation "Are the premises of PROBLEM completely independent?"))
+
+(defmethod completely-independent-p :around (problem &key timeout)
+  (cond ((null timeout)
+	 (completely-independent-p problem
+				   :timeout +default-timeout+))
+	((integerp timeout)
+	 (if (> timeout 0)
+	     (call-next-method)
+	     (error "Inappropriate non-positive value '~d' for the timeout argument." timeout)))
+	(t
+	 (error "Inappropriate argument '~a' for the timeout parameter." timeout))))
+
+(defmethod completely-independent-p ((problem pathname) &key timeout)
+  (completely-independent-p (parse-tptp problem)
+			    :timeout timeout))
+
+(defmethod completely-independent-p :before ((problem tptp-db) &key timeout)
+  (declare (ignore timeout))
+  (when (has-include-instruction-p problem)
+    (error "The given problem has an include statement.")))
+
+(defmethod completely-independent-p :around ((problem tptp-db) &key timeout)
+  (if (has-conjecture-p problem)
+      (completely-independent-p (remove-conjecture problem) :timeout timeout)
+      (call-next-method)))
+
+(defmethod completely-independent-p ((problem tptp-db) &key timeout)
+  (let* ((formulas (formulas problem))
+	 (definitions (remove-if-not #'definition-p formulas))
+	 (non-definitions (remove-if #'definition-p formulas)))
+    (flet ((test-combination (in)
+	     (loop
+		:initially (format t "[")
+		:with unnegated = (append in definitions)
+		:for formula :in formulas
+		:do (format t "~:[-~;+~]" (member formula unnegated))
+		:finally (format t "]: "))
+	     (let* ((out (remove-if #'(lambda (x) (member x in)) non-definitions))
+		    (new-formulas (append definitions in (negate out)))
+		    (subproblem (make-instance 'tptp-db :formulas new-formulas)))
+	       (multiple-value-bind (sat szs)
+		   (satisfiable-p subproblem :timeout timeout)
+		 (cond (sat
+			(format t "yes"))
+		       ((is-szs-success? szs)
+			(format t "no"))
+		       (t
+			(format t "unknown (~a)" (long-name szs))))
+		 (terpri)))))
+      (map-all-combinations #'test-combination non-definitions))))

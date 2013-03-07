@@ -221,9 +221,7 @@
 
 (defmethod initialize-instance :after ((problem derivability-problem) &rest initargs &key &allow-other-keys)
   (declare (ignore initargs))
-  (when (some #'(lambda (premise)
-		  (string= (role premise) "conjecture"))
-	      (formulas problem))
+  (when (conjecture-formula (premises problem))
     (error "Some non-conjecture formula has the TPTP status 'conjecture'."))
   (loop
      :initially (setf (role (conjecture problem)) "conjecture")
@@ -383,23 +381,19 @@
 (defmethod proper-formulas ((problem tptp-db))
   (mapcar #'formula (formulas problem)))
 
-(defun conjecture-formula (problem)
-  (has-conjecture-formula? problem))
+(defgeneric conjecture-formula (thing)
+  (:documentation "The conjecture formula in THING."))
 
-(defun has-conjecture-formula? (problem)
-  (first (member "conjecture"
-		 (formulas problem)
-		 :key #'role
-		 :test #'string=)))
+(defmethod conjecture-formula ((db tptp-db))
+  (find "conjecture" (formulas db) :test #'string= :key #'role))
 
-(defun conjecture-string? (string)
-  (string= string "conjecture"))
+(defun has-conjecture-p (problem)
+  (not (null (conjecture-formula problem))))
 
 (defun remove-conjecture (problem)
   (make-instance 'tptp-db
-		 :formulas (remove-if #'conjecture-string?
-				      (formulas problem)
-				      :key #'role)))
+		 :formulas (remove (conjecture-formula problem)
+				   (formulas problem))))
 
 (defgeneric remove-formula (formulas formula))
 
@@ -504,7 +498,7 @@
 					   other-formulas))))))))
 
 (defun promote-conjecture-to-axiom (problem)
-  (let ((conjecture (has-conjecture-formula? problem)))
+  (let ((conjecture (has-conjecture-p problem)))
     (if conjecture
 	(make-instance 'tptp-db
 		       :formulas (cons (change-status conjecture "axiom")
@@ -591,8 +585,11 @@
     :initform nil)))
 
 (defmethod print-object ((include include-instruction) stream)
-  (print-unreadable-object (include stream :type t :identity nil)
-    (format stream "~a : (~{~a~^ ~})" (file include) (selection include))))
+  (with-slots (file selection)
+      include
+    (if selection
+	(format stream "include(~a,[~{~a~^,~}])." file selection)
+	(format stream "include(~a)." file))))
 
 (defmethod render ((include include-instruction))
   (with-slots (file selection)
@@ -731,6 +728,15 @@
 
 (defun include-instructions (tptp-db)
   (remove-if-not #'(lambda (x) (eql (type-of x) 'include-instruction)) (formulas tptp-db)))
+
+(defgeneric has-include-instruction-p (problem)
+  (:documentation "Does PROBLEM contain at least one include instruction?"))
+
+(defmethod has-include-instruction-p ((problem pathname))
+  (has-include-instruction-p (parse-tptp problem)))
+
+(defmethod has-include-instruction-p ((problem tptp-db))
+  (some #'(lambda (x) (typep x 'include-instruction)) (formulas problem)))
 
 (defun formulas-w/o-includes (tptp-db)
   (remove-if #'(lambda (x) (eql (type-of x) 'include-instruction)) (formulas tptp-db)))
@@ -1583,3 +1589,23 @@
 
 (defmethod literal-p ((x tptp-formula))
   (literal-p (formula x)))
+
+(defmethod negate :around ((x tptp-formula))
+  (let ((new-formula (call-next-method)))
+    (when (slot-boundp x 'source)
+      (setf (source new-formula) (source x)))
+    (when (slot-boundp x 'optional-info)
+      (setf (optional-info new-formula) (optional-info x)))
+    new-formula))
+
+(defmethod negate ((x tptp-formula))
+  (make-instance (class-of x)
+		 :name (name x)
+		 :role (role x)
+		 :formula (negate (formula x))))
+
+(defgeneric definition-p (x)
+  (:documentation "Is X a definition?"))
+
+(defmethod definition-p ((x tptp-formula))
+  (string= (role x) "definition"))
