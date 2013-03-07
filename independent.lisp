@@ -123,6 +123,6 @@ decision."))
 		       ((is-szs-success? szs)
 			(format t "no"))
 		       (t
-			(format t "unknown (~a)" (short-name szs))))
+			(format t "unknown (~a)" (long-name szs))))
 		 (terpri)))))
       (map-all-combinations #'test-combination non-definitions))))
