@@ -10,9 +10,6 @@
   (:use :hunchentoot)
   (:use :hunchentoot-utils)
   (:use :cl-who)
-  (:import-from :trivial-timeout
-		#:with-timeout
-		#:timeout-error)
   (:import-from :named-readtables
 		#:find-readtable
 		#:defreadtable

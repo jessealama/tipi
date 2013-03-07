@@ -19,7 +19,6 @@
 	       :hunchentoot
 	       :cl-who
 	       :alexandria
-	       :trivial-timeout
 	       :fiveam
 	       :cl-parallel)
   :serial t
