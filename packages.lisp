@@ -11,8 +11,6 @@
   (:use :hunchentoot-utils)
   (:use :cl-who)
   (:import-from :named-readtables
-		#:find-readtable
-		#:defreadtable
 		#:in-readtable)
   (:import-from :cl-fad
 		#:file-exists-p
