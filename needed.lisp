@@ -34,8 +34,10 @@
 (defmethod needed-premise? ((formula-name string)
 			   (premises tptp-db)
 			    &key timeout)
-  (needed-premise? (formula-with-name premises formula-name) premises
-		   :timeout timeout))
+  (let ((formula (formula-with-name premises formula-name)))
+    (if formula
+	(needed-premise? formula premises :timeout timeout)
+	(error "No such formula by the name '~a'." formula-name))))
 
 (defmethod needed-premise? ((formula symbol) premises &key timeout)
   (needed-premise? (symbol-name formula) premises :timeout timeout))
