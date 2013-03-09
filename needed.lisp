@@ -57,14 +57,16 @@
      finally
        (return (list needed-premises unneeded-premises unknown-premises))))
 
+(defmethod needed-premises :before ((db tptp-db) &key timeout)
+  (declare (ignore timeout))
+  (when (has-include-instruction-p db)
+    (error "The given problem has an include instruction; please supply a fully expanded problem.")))
+
 (defmethod needed-premises ((db tptp-db) &key (timeout +default-timeout+))
-  (let ((conjecture (conjecture-formula db)))
-    (if conjecture
-	(let ((problem (make-instance 'derivability-problem
-				      :conjecture conjecture
-				      :formulas (non-conjecture-formulas db))))
-	  (needed-premises problem :timeout timeout))
-	(error "There is no conjecture formula in the given problem."))))
+  (needed-premises (make-instance 'derivability-problem
+				  :conjecture (conjecture-formula db)
+				  :formulas (non-conjecture-formulas db))
+		   :timeout timeout))
 
 (defmethod needed-premises ((path pathname) &key (timeout +default-timeout+))
   (let ((db (parse-tptp path)))
