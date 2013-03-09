@@ -522,9 +522,9 @@
   (formula-with-name tptp-db (symbol-name name)))
 
 (defmethod formula-with-name ((tptp-db tptp-db) (name string))
-  (first (remove-if-not #'(lambda (x) (string= x name))
-			(formulas-w/o-includes tptp-db)
-			:key #'(lambda (x) (format nil "~a" (name x))))))
+  (find name (formulas-w/o-includes tptp-db)
+	:test #'string=
+	:key #'name))
 
 (defmethod formula-with-name ((tptp-path pathname) name)
   (formula-with-name (parse-tptp tptp-path) name))
