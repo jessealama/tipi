@@ -143,8 +143,7 @@
 		   :formula (form->formula formula)))))
 
 (defun sort-formula-list (formula-list)
-  (let ((sorted (sort formula-list #'string< :key #'name)))
-    (mapcar #'name sorted)))
+  (sort formula-list #'string< :key #'name))
 
 (defparameter *tptp-to-lisp-stylesheet*
   #p"/Users/alama/sources/xsl4tptp/tptp-to-lisp.xsl")
