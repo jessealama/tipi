@@ -387,6 +387,12 @@
 (defmethod conjecture-formula ((db tptp-db))
   (find "conjecture" (formulas db) :test #'string= :key #'role))
 
+(defmethod conjecture-formula ((x null))
+  nil)
+
+(defmethod conjecture-formula ((l list))
+  (find "conjecture" l :test #'string= :key #'role))
+
 (defun has-conjecture-p (problem)
   (not (null (conjecture-formula problem))))
 
