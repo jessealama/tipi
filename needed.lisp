@@ -40,6 +40,9 @@
 (defmethod needed-premise? ((formula symbol) premises &key timeout)
   (needed-premise? (symbol-name formula) premises :timeout timeout))
 
+(defmethod needed-premise? ((formula string) (premises pathname) &key timeout)
+  (needed-premise? formula (parse-tptp premises) :timeout timeout))
+
 (defgeneric needed-premises (problem &key timeout))
 
 (defmethod needed-premises ((problem derivability-problem) &key (timeout +default-timeout+))
