@@ -148,34 +148,34 @@
 
 (defun native-namestring (path)
   #+ccl
-  (ccl:native-translated-namestring xml-path-1)
+  (ccl:native-translated-namestring path)
   #+sbcl
   (sb-ext:native-namestring path)
   #-(or ccl sbcl)
   (namestring path))
 
+(defun current-directory ()
+  #+sbcl (sb-posix:getcwd)
+  #+ccl (ccl:current-directory)
+  #-(or sbcl ccl) (error "We support only SBCL and CCL.")
+  )
+
+(defun chdir (dir)
+  #+sbcl
+  (sb-posix:chdir dir)
+  #+ccl
+  (ccl:cwd dir)
+  #-(or sbcl ccl)
+  (error "We support only SBCL and CCL.")
+  )
+
 (defmacro with-current-directory ((new-cwd) &body body)
   (let ((cwd (gensym)))
-    `(let ((,cwd #+sbcl (sb-posix:getcwd)
-		 #+ccl (ccl:current-directory)
-		 #-(or sbcl ccl) (error "We support only SBCL and CCL.")
-		 ))
-
-       #+sbcl
-       (sb-posix:chdir ,new-cwd)
-       #+ccl
-       (ccl:cwd ,new-cwd)
-       #-(or sbcl ccl)
-       (error "We support only SBCL and CCL.")
-
+    `(let ((,cwd (current-directory)))
+       (chdir ,new-cwd)
        (unwind-protect
 	    (progn ,@body)
-	 #+sbcl
-	 (sb-posix:chdir ,cwd)
-	 #+ccl
-	 (ccl:cwd ,cwd)
-	 #-(or sbcl ccl)
-	 (error "We support only SBCL and CCL.")))))
+	 (chdir ,cwd)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Numbers
