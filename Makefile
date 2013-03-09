@@ -41,7 +41,7 @@ subdirs = bin examples lib reference t xsl
 
 tipi: $(lisps)
 	which $($(LISP)_PATH)
-	$($(LISP)_PATH) $(EVAL_CONFIG) $($(LISP)_DUMP) $<
+	$($(LISP)_PATH) $(EVAL_CONFIG) $($(LISP)_DUMP) tipi.lisp
 
 all:
 	+for dir in $(subdirs); do make -C $$dir all; done
