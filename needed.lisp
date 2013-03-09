@@ -24,7 +24,7 @@
 			    (problem derivability-problem)
 			    &key timeout)
   (let* ((problem (remove-formula problem premise))
-	 (szs-status (solve (list *eprover* *paradox*) problem :timeout timeout))
+	 (szs-status (solve-problem problem :timeout timeout))
 	 (implies-theorem (szs-implies? szs-status
 					(lookup-szs-status "Theorem"))))
     (values (not implies-theorem) szs-status)))
