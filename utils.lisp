@@ -155,15 +155,27 @@
   (namestring path))
 
 (defmacro with-current-directory ((new-cwd) &body body)
-  #+sbcl
   (let ((cwd (gensym)))
-    `(let ((,cwd (sb-posix:getcwd)))
+    `(let ((,cwd #+sbcl (sb-posix:getcwd)
+		 #+ccl (ccl:current-directory)
+		 #-(or sbcl ccl) (error "We support only SBCL and CCL.")
+		 ))
+
+       #+sbcl
        (sb-posix:chdir ,new-cwd)
+       #+ccl
+       (ccl:cwd ,new-cwd)
+       #-(or sbcl ccl)
+       (error "We support only SBCL and CCL.")
+
        (unwind-protect
 	    (progn ,@body)
-	 (sb-posix:chdir ,cwd))))
-  #-sbcl
-  (error "We support only SBCL at the moment."))
+	 #+sbcl
+	 (sb-posix:chdir ,cwd)
+	 #+ccl
+	 (ccl:cwd ,cwd)
+	 #-(or sbcl ccl)
+	 (error "We support only SBCL and CCL.")))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Numbers
