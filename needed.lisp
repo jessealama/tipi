@@ -21,13 +21,15 @@
   (:documentation "Can PROBLEM be solved without PREMISE?"))
 
 (defmethod needed-premise? ((premise tptp-formula)
-			    (problem derivability-problem)
+			    (problem tptp-db)
 			    &key timeout)
-  (let* ((problem (remove-formula problem premise))
-	 (szs-status (solve-problem problem :timeout timeout))
+  (let* ((new-problem (remove-formula problem premise))
+	 (szs-status (solve-problem new-problem :timeout timeout))
 	 (implies-theorem (szs-implies? szs-status
 					(lookup-szs-status "Theorem"))))
-    (values (not implies-theorem) szs-status)))
+    (values (and (is-szs-success? szs-status)
+		 (not implies-theorem))
+	    szs-status)))
 
 (defmethod needed-premise? ((formula-name string)
 			   (premises tptp-db)
