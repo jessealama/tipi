@@ -123,31 +123,6 @@
         (solve-problem temp :timeout timeout)
       (delete-file temp))))
 
-(defun run-eprover (path timeout output-stream error-stream)
-  (run-program "eproof"
-	       (list "--auto"
-		     "--tstp-format"
-		     (format nil "--cpu-limit=~d" timeout)
-		     (native-namestring path))
-	       :search t
-	       :input nil
-	       :output output-stream
-	       :error error-stream
-	       :wait nil))
-
-(defun run-paradox (path timeout output-stream error-stream)
-  (run-program "paradox"
-	       (list "--model"
-		     "--tstp"
-		     "--no-progress"
-		     "--time" (format nil "~d" timeout)
-		     (native-namestring path))
-	       :search t
-	       :input nil
-	       :output output-stream
-	       :error error-stream
-	       :wait nil))
-
 (defmethod solve-problem ((problem pathname) &key timeout)
   (let ((tptp (parse-tptp problem)))
     (let ((results (par-map #'(lambda (x) (solve x tptp :timeout timeout))
