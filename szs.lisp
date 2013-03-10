@@ -1,41 +1,7 @@
 
 (in-package :tipi)
 
-(defparameter *szs-short-names* (make-hash-table :test #'equal))
-
-(defparameter *szs-long-names* (make-hash-table :test #'equal))
-
-(defparameter *szs-success-statuses* (list))
-
-(defparameter *szs-no-success-statuses* (list))
-
-(defparameter *szs-statuses* (make-hash-table :test #'equal))
-
-(defmacro define-szs-success-status (short-name long-name)
-  (let ((status (gensym)))
-    `(let ((,status (make-instance 'szs-success-status
-			    :short-name ,short-name
-			    :long-name ,long-name)))
-       (setf (gethash ,short-name *szs-statuses*) ,status
-	     (gethash ,short-name *szs-long-names*) ,long-name
-	     (gethash ,long-name *szs-short-names*) ,short-name)
-       (pushnew ,status *szs-success-statuses*
-		:test #'string=
-		:key #'short-name)
-       ,status)))
-
-(defmacro define-szs-non-success-status (short-name long-name)
-  (let ((status (gensym)))
-    `(let ((,status (make-instance 'szs-no-success-status
-			      :short-name ,short-name
-			      :long-name ,long-name)))
-       (setf (gethash ,short-name *szs-statuses*) ,status
-	     (gethash ,short-name *szs-long-names*) ,long-name
-	     (gethash ,long-name *szs-short-names*) ,short-name)
-       (pushnew ,status *szs-no-success-statuses*
-		:test #'string=
-		:key #'short-name)
-       ,status)))
+(defparameter *szs-statuses* nil)
 
 (defclass szs-status ()
   ((short-name
@@ -67,11 +33,41 @@
   (print-unreadable-object (status stream :type t :identity nil)
     (format stream "~a (~a)" (short-name status) (long-name status))))
 
+(defmethod initialize-instance :after ((status szs-status) &rest initargs &key &allow-other-keys)
+  (declare (ignore initargs))
+  (pushnew status *szs-statuses*
+	   :test #'string=
+	   :key #'short-name))
+
 (defclass szs-success-status (szs-status)
   nil)
 
+(defparameter *szs-success-statuses* nil)
+
+(defmethod initialize-instance :after ((status szs-success-status) &rest initargs &key &allow-other-keys)
+  (declare (ignore initargs))
+  (pushnew status *szs-success-statuses*
+	   :test #'string=
+	   :key #'short-name))
+
 (defclass szs-no-success-status (szs-status)
   nil)
+
+(defparameter *szs-statuses* nil)
+
+(defparameter *szs-success-statuses* nil)
+
+(defparameter *szs-no-success-statuses* nil)
+
+(defmacro def-szs-success-status (symbol short-name long-name)
+  `(defparameter ,symbol (make-instance 'szs-success-status
+					:short-name ,short-name
+					:long-name ,long-name)))
+
+(defmacro def-szs-no-success-status (symbol short-name long-name)
+  `(defparameter ,symbol (make-instance 'szs-no-success-status
+					:short-name ,short-name
+					:long-name ,long-name)))
 
 (defgeneric szs-isa (szs-status-1 szs-status-2))
 
@@ -107,61 +103,61 @@
       (szs-isa szs-status-1 szs-status-2)))
 
 ;; Success
-(defparameter *szs-suc* (define-szs-success-status "SUC" "Success"))
-(defparameter *szs-unp* (define-szs-success-status "UNP" "UnsatisfiabilityPreserving"))
-(defparameter *szs-sap* (define-szs-success-status "SAP" "SatisfiabilityPreserving"))
-(defparameter *szs-esa* (define-szs-success-status "ESA" "EquiSatisfiable"))
-(defparameter *szs-sat* (define-szs-success-status "SAT" "Satisfiable"))
-(defparameter *szs-fsa* (define-szs-success-status "FSA" "FinitelySatisfiable"))
-(defparameter *szs-thm* (define-szs-success-status "THM" "Theorem"))
-(defparameter *szs-eqv* (define-szs-success-status "EQV" "Equivalent"))
-(defparameter *szs-tac* (define-szs-success-status "TAC" "TautologousConclusion"))
-(defparameter *szs-wec* (define-szs-success-status "WEC" "WeakerConclusion"))
-(defparameter *szs-eth* (define-szs-success-status "ETH" "EquivalentTheorem"))
-(defparameter *szs-tau* (define-szs-success-status "TAU" "Tautology"))
-(defparameter *szs-wtc* (define-szs-success-status "WTC" "WeakerTautologousConclusion"))
-(defparameter *szs-wth* (define-szs-success-status "WTH" "WeakerTheorem"))
-(defparameter *szs-cax* (define-szs-success-status "CAX" "ContradictoryAxioms"))
-(defparameter *szs-sca* (define-szs-success-status "SCA" "SatisfiableConclusionContradictoryAxioms"))
-(defparameter *szs-tca* (define-szs-success-status "TCA" "TautologousConclusionContradictoryAxioms"))
-(defparameter *szs-wca* (define-szs-success-status "WCA" "WeakerConclusionContradictoryAxioms"))
-(defparameter *szs-cup* (define-szs-success-status "CUP" "CounterUnsatisfiabilityPreserving"))
-(defparameter *szs-csp* (define-szs-success-status "CSP" "CounterSatisfiabilityPreserving"))
-(defparameter *szs-ecs* (define-szs-success-status "ECS" "EquiCounterSatisfiable"))
-(defparameter *szs-csa* (define-szs-success-status "CSA" "CounterSatisfiable"))
-(defparameter *szs-cth* (define-szs-success-status "CTH" "CounterTheorem"))
-(defparameter *szs-ceq* (define-szs-success-status "CEQ" "CounterEquivalent"))
-(defparameter *szs-unc* (define-szs-success-status "UNC" "UnsatisfiableConclusion"))
-(defparameter *szs-wcc* (define-szs-success-status "WCC" "WeakerCounterConclusion"))
-(defparameter *szs-ect* (define-szs-success-status "ECT" "EquivalentCounterTheorem"))
-(defparameter *szs-fun* (define-szs-success-status "FUN" "FinitelyUnsatisfiable"))
-(defparameter *szs-uns* (define-szs-success-status "UNS" "Unsatisfiable"))
-(defparameter *szs-wuc* (define-szs-success-status "WUC" "WeakerUnsatisfiableConclusion"))
-(defparameter *szs-wct* (define-szs-success-status "WCT" "WeakerCounterTheorem"))
-(defparameter *szs-noc* (define-szs-success-status "NOC" "NoConsequence"))
+(def-szs-success-status *szs-suc* "SUC" "Success")
+(def-szs-success-status *szs-unp* "UNP" "UnsatisfiabilityPreserving")
+(def-szs-success-status *szs-sap* "SAP" "SatisfiabilityPreserving")
+(def-szs-success-status *szs-esa* "ESA" "EquiSatisfiable")
+(def-szs-success-status *szs-sat* "SAT" "Satisfiable")
+(def-szs-success-status *szs-fsa* "FSA" "FinitelySatisfiable")
+(def-szs-success-status *szs-thm* "THM" "Theorem")
+(def-szs-success-status *szs-eqv* "EQV" "Equivalent")
+(def-szs-success-status *szs-tac* "TAC" "TautologousConclusion")
+(def-szs-success-status *szs-wec* "WEC" "WeakerConclusion")
+(def-szs-success-status *szs-eth* "ETH" "EquivalentTheorem")
+(def-szs-success-status *szs-tau* "TAU" "Tautology")
+(def-szs-success-status *szs-wtc* "WTC" "WeakerTautologousConclusion")
+(def-szs-success-status *szs-wth* "WTH" "WeakerTheorem")
+(def-szs-success-status *szs-cax* "CAX" "ContradictoryAxioms")
+(def-szs-success-status *szs-sca* "SCA" "SatisfiableConclusionContradictoryAxioms")
+(def-szs-success-status *szs-tca* "TCA" "TautologousConclusionContradictoryAxioms")
+(def-szs-success-status *szs-wca* "WCA" "WeakerConclusionContradictoryAxioms")
+(def-szs-success-status *szs-cup* "CUP" "CounterUnsatisfiabilityPreserving")
+(def-szs-success-status *szs-csp* "CSP" "CounterSatisfiabilityPreserving")
+(def-szs-success-status *szs-ecs* "ECS" "EquiCounterSatisfiable")
+(def-szs-success-status *szs-csa* "CSA" "CounterSatisfiable")
+(def-szs-success-status *szs-cth* "CTH" "CounterTheorem")
+(def-szs-success-status *szs-ceq* "CEQ" "CounterEquivalent")
+(def-szs-success-status *szs-unc* "UNC" "UnsatisfiableConclusion")
+(def-szs-success-status *szs-wcc* "WCC" "WeakerCounterConclusion")
+(def-szs-success-status *szs-ect* "ECT" "EquivalentCounterTheorem")
+(def-szs-success-status *szs-fun* "FUN" "FinitelyUnsatisfiable")
+(def-szs-success-status *szs-uns* "UNS" "Unsatisfiable")
+(def-szs-success-status *szs-wuc* "WUC" "WeakerUnsatisfiableConclusion")
+(def-szs-success-status *szs-wct* "WCT" "WeakerCounterTheorem")
+(def-szs-success-status *szs-noc* "NOC" "NoConsequence")
 
 ;; No-success
-(defparameter *szs-nos* (define-szs-non-success-status "NOS" "NoSuccess"))
-(defparameter *szs-opn* (define-szs-non-success-status "OPN" "Open"))
-(defparameter *szs-unk* (define-szs-non-success-status "UNK" "Unknown"))
-(defparameter *szs-stp* (define-szs-non-success-status "STP" "Stopped"))
-(defparameter *szs-err* (define-szs-non-success-status "ERR" "Error"))
-(defparameter *szs-ose* (define-szs-non-success-status "OSE" "OSError"))
-(defparameter *szs-ine* (define-szs-non-success-status "INE" "InputError"))
-(defparameter *szs-sye* (define-szs-non-success-status "SYE" "SyntaxError"))
-(defparameter *szs-see* (define-szs-non-success-status "SEE" "SemanticError"))
-(defparameter *szs-tye* (define-szs-non-success-status "TYE" "TypeError"))
-(defparameter *szs-for* (define-szs-non-success-status "FOR" "Forced"))
-(defparameter *szs-usr* (define-szs-non-success-status "USR" "User"))
-(defparameter *szs-rso* (define-szs-non-success-status "RSO" "ResourceOut"))
-(defparameter *szs-tmo* (define-szs-non-success-status "TMO" "Timeout"))
-(defparameter *szs-mmo* (define-szs-non-success-status "MMO" "MemoryOut"))
-(defparameter *szs-gup* (define-szs-non-success-status "GUP" "GaveUp"))
-(defparameter *szs-inc* (define-szs-non-success-status "INC" "Incomplete"))
-(defparameter *szs-iap* (define-szs-non-success-status "IAP" "Inappropriate"))
-(defparameter *szs-inp* (define-szs-non-success-status "INP" "InProgress"))
-(defparameter *szs-ntt* (define-szs-non-success-status "NTT" "NotTried"))
-(defparameter *szs-nty* (define-szs-non-success-status "NTY" "NotTriedYet"))
+(def-szs-no-success-status *szs-nos* "NOS" "NoSuccess")
+(def-szs-no-success-status *szs-opn* "OPN" "Open")
+(def-szs-no-success-status *szs-unk* "UNK" "Unknown")
+(def-szs-no-success-status *szs-stp* "STP" "Stopped")
+(def-szs-no-success-status *szs-err* "ERR" "Error")
+(def-szs-no-success-status *szs-ose* "OSE" "OSError")
+(def-szs-no-success-status *szs-ine* "INE" "InputError")
+(def-szs-no-success-status *szs-sye* "SYE" "SyntaxError")
+(def-szs-no-success-status *szs-see* "SEE" "SemanticError")
+(def-szs-no-success-status *szs-tye* "TYE" "TypeError")
+(def-szs-no-success-status *szs-for* "FOR" "Forced")
+(def-szs-no-success-status *szs-usr* "USR" "User")
+(def-szs-no-success-status *szs-rso* "RSO" "ResourceOut")
+(def-szs-no-success-status *szs-tmo* "TMO" "Timeout")
+(def-szs-no-success-status *szs-mmo* "MMO" "MemoryOut")
+(def-szs-no-success-status *szs-gup* "GUP" "GaveUp")
+(def-szs-no-success-status *szs-inc* "INC" "Incomplete")
+(def-szs-no-success-status *szs-iap* "IAP" "Inappropriate")
+(def-szs-no-success-status *szs-inp* "INP" "InProgress")
+(def-szs-no-success-status *szs-ntt* "NTT" "NotTried")
+(def-szs-no-success-status *szs-nty* "NTY" "NotTriedYet")
 
 (defgeneric lookup-szs-status (szs-thing))
 
@@ -169,15 +165,8 @@
   status)
 
 (defmethod lookup-szs-status ((szs-string string))
-  (multiple-value-bind (status found?)
-      (gethash szs-string *szs-statuses*)
-    (if found?
-	status
-	(multiple-value-bind (short-name short-name-known?)
-	    (gethash szs-string *szs-short-names*)
-	  (if short-name-known?
-	      (lookup-szs-status short-name)
-	      (error "Unknown SZS status '~a'." szs-string))))))
+  (or (find szs-string *szs-statuses* :test #'string= :key #'short-name)
+      (find szs-string *szs-statuses* :test #'string= :key #'long-name)))
 
 (defmethod lookup-szs-status ((szs-symbol symbol))
   (lookup-szs-status (symbol-name szs-symbol)))
@@ -185,10 +174,8 @@
 (defgeneric is-szs-success? (szs-thing))
 
 (defmethod is-szs-success? ((szs-string string))
-  (multiple-value-bind (ok ok?)
-      (gethash (lookup-szs-status szs-string) *szs-success-statuses*)
-    (declare (ignore ok))
-    ok?))
+  (or (find szs-string *szs-success-statuses* :test #'string= :key #'short-name)
+      (find szs-string *szs-success-statuses* :test #'string= :key #'long-name)))
 
 (defmethod is-szs-success? ((status szs-status))
   (not (null (find status *szs-success-statuses*))))
