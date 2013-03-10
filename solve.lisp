@@ -148,7 +148,7 @@
 	       :error error-stream
 	       :wait nil))
 
-(defmethod solve-problem ((problem pathname) &key (timeout +default-timeout+))
+(defmethod solve-problem ((problem pathname) &key timeout)
   (let ((tptp (parse-tptp problem)))
     (let ((results (par-map #'(lambda (x) (solve x tptp :timeout timeout))
 			    (list *eprover* *paradox*))))
