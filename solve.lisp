@@ -160,7 +160,13 @@
                                            (formulas problem)))))
     (solve solver db :timeout timeout)))
 
-(defmethod solve ((solver solver) (problem tptp-db) &key (timeout +default-timeout+))
+(defmethod solve ((solver solver) (problem tptp-db) &key timeout)
+  (when (null timeout)
+    (setf timeout +default-timeout+))
+  (unless (integerp timeout)
+    (error "Invalid value ~a for the timeout parameter." timeout))
+  (when (< timeout 1)
+    (error "Invalid value ~a for the timeout parameter." timeout))
   (handler-case
       (funcall (solve-function solver) problem timeout)
     (error (c)
