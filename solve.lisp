@@ -81,15 +81,6 @@
 				 :szs-status (lookup-szs-status "Error"))))
 	 (close paradox-out))))))
 
-(defmethod solve :before (prover problem &key timeout)
-  (declare (ignore prover problem))
-  (when (null timeout)
-    (setf timeout +default-timeout+))
-  (unless (integerp timeout)
-    (error "Invalid value ~a for the timeout parameter." timeout))
-  (when (< timeout 1)
-    (error "Invalid value ~a for the timeout parameter." timeout)))
-
 (defmethod solve :around (prover (problem tptp-db) &key timeout)
   (declare (ignore prover timeout))
   (if (slot-boundp problem 'path)
