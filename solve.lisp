@@ -154,7 +154,7 @@
 			    (list *eprover* *paradox*))))
       (aggregate-szs-statuses (mapcar #'szs-status results)))))
 
-(defmethod solve ((solver solver) (problem derivability-problem) &key (timeout +default-timeout+))
+(defmethod solve ((solver solver) (problem derivability-problem) &key timeout)
   (let ((db (make-instance 'tptp-db
                            :formulas (cons (conjecture problem)
                                            (formulas problem)))))
