@@ -170,7 +170,7 @@
   (handler-case
       (funcall (solve-function solver) problem timeout)
     (error (c)
-      (make-instance 'eprover-result
+      (make-instance 'result
 		     :text (format nil "Internal Common Lisp error:~%~a" c)
 		     :szs-status (lookup-szs-status "Error")))))
 
