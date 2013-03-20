@@ -53,11 +53,15 @@
 (defclass szs-no-success-status (szs-status)
   nil)
 
-(defparameter *szs-statuses* nil)
-
-(defparameter *szs-success-statuses* nil)
-
 (defparameter *szs-no-success-statuses* nil)
+
+(defmethod initialize-instance :after ((status szs-no-success-status) &rest initargs &key &allow-other-keys)
+  (declare (ignore initargs))
+  (pushnew status *szs-no-success-statuses*
+	   :test #'string=
+	   :key #'short-name))
+
+(defparameter *szs-statuses* nil)
 
 (defmacro def-szs-success-status (symbol short-name long-name)
   `(defparameter ,symbol (make-instance 'szs-success-status
