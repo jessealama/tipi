@@ -39,6 +39,12 @@
 (defun red (str)
   (format nil "~C[;31m~a~C[0;m" #\Escape str #\Escape))
 
+(defun cyan (str)
+  (format nil "~C[;36m~a~C[0;m" #\Escape str #\Escape))
+
+(defun yellow (str)
+  (format nil "~C[;33m~a~C[0;m" #\Escape str #\Escape))
+
 (defun error-message (format-string &rest format-args)
   (format *error-output* (red "Error"))
   (format *error-output* "~a" #\Space)
@@ -69,31 +75,35 @@
 
 (defmethod needed :around ((problem pathname) timeout)
   (declare (ignore timeout))
-  (cond ((file-readable? problem)
-	 (handler-case (call-next-method)
-	   (error (err)
-	     (error-message "Something went wrong while computing needed premises:~%~%~a~%~%Please inform the maintainers.  Sorry." err)
-	     (clon:exit 1))))
-	(t
-	 (error-message "There is no file at~%~%  ~a~%~%or it is unreadable.~%" (namestring problem))
-	 (clon:exit 1))))
+  (unless (file-readable? problem)
+    (error-message "There is no file at~%~%  ~a~%~%or it is unreadable.~%" (namestring problem))
+    (clon:exit 1))
+  (handler-case (call-next-method)
+    (error (err)
+      (error-message "Something went wrong while computing needed premises:~%~%~a~%~%Please inform the maintainers.  Sorry." err)
+      (clon:exit 1))))
+
+(defmethod needed ((problem tipi::tptp-db) timeout)
+  (let ((premises (tipi::formulas problem)))
+    (format t "~d premises (~a / ~a / ~a)" (length premises) (red "needed") (cyan "unneeded") (yellow "unknown"))
+    (terpri)
+    (flet ((display-needed (x)
+	     (let ((name (tipi::name x)))
+	       (multiple-value-bind (needed? szs-status)
+		   (tipi::needed-premise? x problem :timeout timeout)
+		 (cond ((and needed? (tipi::is-szs-success? szs-status))
+			(format t "~a (~a)" (red name) (tipi::long-name szs-status)))
+		       ((tipi::is-szs-success? szs-status)
+			(format t "~a (~a)" (cyan name) (tipi::long-name szs-status)))
+		       (t
+			(format t "~a (~a)" (yellow name) (tipi::long-name szs-status))))
+		 (terpri)))))
+      (loop
+	 :for premise :in premises
+	 :do (display-needed premise)))))
 
 (defmethod needed ((problem pathname) timeout)
-  (destructuring-bind (needed unneeded unknown)
-      (tipi::needed-premises problem :timeout timeout)
-    (let ((needed-sorted (tipi::sort-formula-list needed))
-	  (needed-sorted (tipi::sort-formula-list unneeded))
-	  (unknown-sorted (tipi::sort-formula-list unknown)))
-      (if needed-sorted
-	  (format t "The following premises are needed:~%~%~{~a~%~}" needed-sorted)
-	  (format t "No premise was shown to be needed."))
-      (terpri)
-      (if unneeded-sorted
-	  (format t "The following premises are not needed:~%~%~{~a~%~}" unneeded-sorted)
-	  (format t "No premise was shown to be unneeded."))
-      (if unknown-sorted
-	  (format t "We were unable to determine whether the following premises are needed:~%~%~{~a~%~}" unknown-sorted)
-	  (format t "We were able to make a decision about every premise.")))))
+  (needed (tipi::parse-tptp problem) timeout))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Minimize
