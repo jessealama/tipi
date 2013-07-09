@@ -526,7 +526,7 @@
 (defmethod formula-with-name ((tptp-db tptp-db) (name string))
   (find name (formulas-w/o-includes tptp-db)
 	:test #'string=
-	:key #'name))
+	:key #'(lambda (x) (stringify (name x)))))
 
 (defmethod formula-with-name ((tptp-path pathname) name)
   (formula-with-name (parse-tptp tptp-path) name))
