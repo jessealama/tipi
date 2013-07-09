@@ -9,6 +9,8 @@
     (load quicklisp-init)))
 (quicklisp:quickload "alexandria")
 
+(push (truename (current-directory)) asdf:*central-registry*)
+(push (truename #p"/Users/alama/sources/hunchentoot-utils/") asdf:*central-registry*)
 (asdf:load-system "tipi")
 
 ;; Load CLON

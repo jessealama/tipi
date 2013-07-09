@@ -1221,6 +1221,9 @@
 	      (reduce-trivial-equivalences (append before updated-after)))))
 	l)))
 
+(defmethod reduce-trivial-equivalences ((db pathname))
+  (reduce-trivial-equivalences (parse-tptp db)))
+
 (defmethod reduce-trivial-equivalences ((db tptp-db))
   (reduce-trivial-equivalences (formulas db)))
 
