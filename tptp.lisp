@@ -623,6 +623,9 @@
 
 (defgeneric simplify-justification (tptp))
 
+(defmethod simplify-justification ((l list))
+  (simplify-justification (make-instance 'tptp-db :formulas l)))
+
 (defmethod simplify-justification ((tptp-string string))
   (simplify-justification (parse-tptp tptp-string)))
 
