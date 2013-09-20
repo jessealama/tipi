@@ -33,7 +33,7 @@ asdfs = $(ASDF_FILE)
 makefiles = Makefile
 
 editable-files = $(lisps) $(asdfs) .gitignore $(makefiles) README.mkdn
-emacs-backups = $(wildcard *~)
+emacs-backups = $(strip $(wildcard *~) $(wildcard .*~))
 ccl-fasls = $(addsuffix .dx64fsl,$(lisp-files))
 fasls = $(addsuffix .fasl,$(lisp-files))
 
