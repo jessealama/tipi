@@ -8,7 +8,12 @@ use FindBin qw($RealBin);
 use Readonly;
 use Test::More qw(no_plan);
 
-use_ok ('Formula', qw(parse_tptp_formula parse_fof_formula parse_tptp_file));
+my @needed_Formula_symbols = qw(parse_tptp_formula parse_fof_formula parse_tptp_file);
+
+foreach my $symbol (@needed_Formula_symbols) {
+    use_ok ('Formula', $symbol)
+        or BAIL_OUT ("Cannot load symbol '${symbol}' from the Formula module");
+}
 use_ok ('Data::Dumper');
 use_ok ('Utils', qw(files_in_directory))
     or BAIL_OUT ('Cannot load Utils module');
