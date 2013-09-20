@@ -78,9 +78,9 @@ Readonly my $TPTP_GRAMMAR_AUTOTREE =>
           tptp_file: tptp_input(s?)
           tptp_input: annotated_formula | include
           annotated_formula: fof_annotated
-          fof_annotated: 'fof' '(' name ',' formula_role ',' fof_formula annotations ')' '.'
           fof_annotated: 'fof' '(' name ',' formula_role ',' fof_formula ')' '.'
-          annotations: ',' source optional_info
+          fof_annotated: 'fof' '(' name ',' formula_role ',' fof_formula ',' source ')' '.'
+          fof_annotated: 'fof' '(' name ',' formula_role ',' fof_formula ',' source ',' optional_info ')' '.'
           source: dag_source | internal_source | external_source | 'unknown'
           source: '[' sources ']'
           sources: source ',' sources
