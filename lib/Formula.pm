@@ -10,13 +10,17 @@ use Readonly;
 use Term::ANSIColor qw(colored);
 use File::Temp qw(tempfile);
 use FindBin qw($RealBin);
-
+use Parse::RecDescent;
+use base qw(Exporter);
 use Utils qw(tptp_xmlize
 	     apply_stylesheet);
+
+our @EXPORT_OK = qw(parse_tptp_formula parse_fof_formula);
 
 # Strings
 Readonly my $TWO_SPACES => q{  };
 Readonly my $EMPTY_STRING => q{};
+Readonly my $LF => "\N{LF}";
 
 # Stylesheets
 Readonly my $XSL_HOME => "$RealBin/../xsl";
@@ -46,63 +50,225 @@ has 'formula' => (
     reader => 'get_formula',
 );
 
-sub make_formula {
-    my $formula_string = shift;
+sub BUILD {
+    my $self = shift;
+    # Ensure that everything is defined
+    my $kind = $self->get_kind ();
+    my $name = $self->get_name ();
+    my $status = $self->get_status ();
+    my $formula = $self->get_formula ();
 
-    (my $tmp_fh, my $tmp_path) = tempfile ();
-
-    print {$tmp_fh} $formula_string
-	or confess 'Error: unable to print \'', $formula_string, '\' to a temporary filehandle: ', $!;
-    close $tmp_fh
-	or confess 'Error: unable to close a temporary output filehandle: ', $!;
-
-    tptp_xmlize ($tmp_path, $tmp_path);
-
-    my $kind = apply_stylesheet ($TPTP_INFO_STYLESHEET,
-				 $tmp_path,
-				 undef,
-				 {
-				     'field' => 'syntax',
-				 });
-
-    my $name = apply_stylesheet ($TPTP_INFO_STYLESHEET,
-				 $tmp_path,
-				 undef,
-				 {
-				     'field' => 'name',
-				 });
-
-    # carp 'name = ', $name;
-
-    my $status = apply_stylesheet ($TPTP_INFO_STYLESHEET,
-				   $tmp_path,
-				   undef,
-				   {
-				     'field' => 'status',
-				 });
-
-    my $content = apply_stylesheet ($TPTP_INFO_STYLESHEET,
-				    $tmp_path,
-				    undef,
-				    {
-					'field' => 'formula',
-				    });
-
-    # carp 'content = ', $content;
-
-    if ($kind eq 'formula') {
-	$kind = 'fof';
-    } elsif ($kind eq 'clause') {
-	$kind = 'cnf';
-    } else {
-	confess 'Error: unknown formula kind \'', $kind, '\'.';
+    if (! defined $kind) {
+        confess 'Cannot make a Formula without a kind.';
     }
 
-    return Formula->new (kind => $kind,
-			 name => $name,
-			 status => $status,
-			 formula => $content);
+    if (! defined $name) {
+        confess 'Cannot make a Formula without a name.';
+    }
 
+    if (! defined $status) {
+        confess 'Cannot make a Formula without a status.';
+    }
+
+    if (! defined $formula) {
+        confess 'Cannot make a Formula without a formula.';
+    }
+
+    return $self;
+}
+
+Readonly my $TPTP_GRAMMAR_AUTOTREE =>
+    q {<autotree>
+          tptp_file: tptp_input(s?)
+          tptp_input: annotated_formula | include
+          annotated_formula: fof_annotated
+          fof_annotated: 'fof' '(' name ',' formula_role ',' fof_formula annotations ')' '.'
+          fof_annotated: 'fof' '(' name ',' formula_role ',' fof_formula ')' '.'
+          annotations: ',' source optional_info
+          source: dag_source | internal_source | external_source | 'unknown'
+          source: '[' sources ']'
+          sources: source ',' sources
+          sources: source
+          dag_source: name | inference_record
+          inference_record: 'inference' '(' inference_rule ',' useful_info ',' inference_parents  ')'
+          inference_parents: '[' parent_list ']'
+          parent_list: parent_info ',' parent_list
+          parent_list: parent_info
+          parent_info: source parent_details
+          parent_details: ':' general_list
+          parent_details: ''
+          inference_parents: '[' ']'
+          inference_rule: atomic_word
+          useful_info: general_list
+          general_list: '[' ']'
+          general_list: '[' general_terms ']'
+          general_terms: general_term ',' general_terms
+          general_terms: general_term
+          general_term: general_data
+          general_term: general_data ':' general_term
+          general_term: general_list
+          general_data: atomic_word | general_function | variable | number | distinct_object | formula_data
+          general_function: atomic_word '(' general_terms ')'
+          optional_info: ',' useful_info
+          optional_info: ''
+          internal_source: 'introduced' '(' intro_type optional_info ')'
+          intro_type: 'definition' | 'axiom_of_choice' | 'tautology' | 'assumption'
+          external_source: file_source | theory | creator_source
+          file_source: 'file' '(' file_name file_info ')'
+          file_info: ',' name
+          file_info: ''
+          theory: 'theory' '(' theory_name optional_info ')'
+          theory_name: 'equality' | 'ac'
+          creator_source: 'creator' '(' creator_name optional_info ')'
+          creator_name: atomic_word
+          name: atomic_word
+          name: integer
+          atomic_word: lower_word
+          lower_word: /[a-z][a-zA-Z0-9_]*/
+          lower_alpha: /[a-z]/
+          upper_alpha: /[A-Z]/
+          numeric: /[0-9]/
+          alpha_numeric: /[a-z]/
+          alpha_numeric: /[A-Z]/
+          alpha_numeric: /[0-9]/
+          alpha_numeric: '_'
+          integer: signed_integer | unsigned_integer
+          signed_integer: sign unsigned_integer
+          sign: /[+-]/
+          unsigned_integer: decimal
+          decimal: zero_numeric | positive_decimal
+          zero_numeric: '0'
+          rational: signed_rational | unsigned_rational
+          signed_rational: sign unsigned_rational
+          unsigned_rational: decimal slash positive_decimal
+          slash: '/'
+          positive_decimal: non_zero_numeric numeric(s?)
+          non_zero_numeric: /[1-9]/
+          real: signed_real | unsigned_real
+          signed_real: sign unsigned_real
+          unsigned_real: '(' decimal_fraction ')'
+          unsigned_real: '(' decimal_exponent ')'
+          decimal_fraction: decimal dot_decimal
+          dot_decimal: dot numeric(s)
+          dot: '.'
+          decimal_exponent: '(' decimal ')' exponent integer
+          decimal_exponent: '(' decimal_fraction ')' exponent integer
+          exponent: /[Ee]/
+          positive_decimal: /[1-9]/ numeric(s?)
+          formula_role: 'axiom' | 'hypothesis' | 'definition' | 'assumption' | 'lemma' | 'theorem' | 'conjecture' | 'negated_conjecture' | 'plain' | 'fi_domain' | 'fi_functors' | 'fi_predicates' | 'type' | 'unknown'
+          fof_formula: fof_logic_formula # | fof_sequent
+          fof_sequent: fof_tuple gentzen_arrow fof_tuple
+          fof_sequent: '(' fof_sequent ')'
+          fof_tuple: '[' fof_tuple_list ']'
+          fof_tuple: '[' ']'
+          fof_tuple_list: fof_logic_formula ',' fof_tuple_list
+          fof_tuple_list: fof_logic_formula
+          gentzen_arrow: '-->'
+          fof_logic_formula: fof_binary_formula | fof_unitary_formula
+          fof_binary_formula: fof_binary_nonassoc | fof_binary_assoc
+          fof_binary_assoc: fof_or_formula | fof_and_formula
+          fof_or_formula: fof_unitary_formula '|' fof_unitary_formula
+          fof_or_formula: fof_unitary_formula '|' fof_or_formula
+          fof_and_formula: fof_unitary_formula '&' fof_unitary_formula
+          fof_and_formula: fof_unitary_formula '&' fof_and_formula
+          fof_binary_nonassoc: fof_equivalence | fof_implication | fof_reverse_implication | fof_disequivalence | fof_nor | fof_nand
+          fof_equivalence: fof_unitary_formula equivalence_connective fof_unitary_formula
+          fof_implication: fof_unitary_formula implication_connective fof_unitary_formula
+          fof_reverse_implication: fof_unitary_formula reverse_implication_connective fof_unitary_formula
+          fof_disequivalence: fof_unitary_formula disequivalence_connective fof_unitary_formula
+          fof_nor: fof_unitary_formula nor_connective fof_unitary_formula
+          fof_nand: fof_unitary_formula nand_connective fof_unitary_formula
+          equivalence_connective: '<=>'
+          disequivalence_connective: '<~>'
+          implication_connective: '=>'
+          reverse_implication_connective: '<='
+          nor_connective: '~|'
+          nand_connective: '~&'
+          fof_unitary_formula: '(' fof_logic_formula ')'
+          fof_unitary_formula: atomic_formula | fof_quantified_formula | fof_unary_formula
+          fof_quantified_formula: fol_quantifer '[' fof_variable_list ']' ':' fof_unitary_formula
+          fol_quantifer: '!' | '?'
+          fof_variable_list: variable ',' fof_variable_list | variable
+          variable: upper_word
+          upper_word: /[A-Z][a-zA-Z0-9_]*/
+          single_quoted: "'" sq_char(s) "'"
+          sq_char: /[a-z]/
+          sq_char: /[A-Z]/
+          sq_char: /[0-9]/
+          sq_char: '/'
+          sq_char: '.'
+          sq_char: '\''
+          do_char: /[a-zA-Z0-9]/
+          do_char: /[\]["]/
+          fof_unary_formula: unary_connective fof_unitary_formula | fol_infix_unary
+          unary_connective: '~'
+          fol_infix_unary: term infix_inequality term
+          infix_inequality: '!='
+          term: variable | function_term
+          function_term: plain_term # | defined_term | system_term
+          plain_term: functor '(' arguments ')'
+          plain_term: constant
+          functor: atomic_word
+          constant: functor
+          arguments: term ',' arguments
+          arguments: term
+          defined_term: defined_atom | defined_atomic_term
+          defined_atom: number
+          number: integer # | rational | real
+          distinct_object: double_quote do_char(s?) double_quote
+          double_quote: /["]/
+          formula_data: '$fof' '(' fof_formula ')'
+          defined_atomic_term: defined_plain_term
+          defined_plain_term: defined_constant
+          defined_plain_term: defined_functor '(' arguments ')'
+          defined_constant: defined_functor
+          defined_functor: '$uminus' | '$sum' | '$difference' | '$product' | '$quotient' | '$quotient_e' | '$quotient_t' | '$quotient_f' | '$remainder_e' | '$remainder_t' | '$remainder_f' | '$floor' | '$ceiling' | '$truncate' | '$round' | '$to_int' | '$to_rat' | '$to_real'
+          system_term: system_constant
+          system_term: system_functor '(' arguments ')'
+          system_constant: system_functor
+          system_functor: atomic_system_word
+          atomic_system_word: dollar_dollar_word
+          dollar_dollar_word: '$$' lower_word
+          atomic_formula: plain_atomic_formula # | defined_atomic_formula | system_atomic_formula
+          plain_atomic_formula: plain_term
+          defined_atomic_formula: defined_plain_formula | defined_infix_formula
+          defined_plain_formula: defined_plain_term
+          defined_infix_formula: term defined_infix_pred term
+          defined_infix_pred: infix_equality
+          infix_equality: '='
+          system_atomic_formula: system_term
+          include: 'include' '(' file_name formula_selection ')' '.'
+          include: 'include' '(' file_name ')' '.'
+          file_name: single_quoted
+          formula_selection: ',' '[' name_list ']'
+          name_list: name ',' name_list
+          name_list: name
+  };
+
+#$::RD_TRACE = 1;
+#$::RD_HINT = 1;
+
+# my $skip_prolog_comment = qr/[ \t\n]*/;
+# $Parser::RecDescent::skip = $skip_prolog_comment;
+
+my $parser = new Parse::RecDescent ($TPTP_GRAMMAR_AUTOTREE)
+    or confess 'Bad grammar!';
+
+sub parse_tptp_formula {
+    my $text = shift;
+    warn 'trying to parse:', $LF, $text;
+    return $parser->tptp_input ($text);
+}
+
+sub parse_fof_formula {
+    my $text = shift;
+    warn 'trying to parse:', $LF, $text;
+    return $parser->fof_formula ($text);
+}
+
+sub make_formula {
+    my $formula_string = shift;
+    return parse_tptp_formula ($formula_string);
 }
 
 sub tptpify {
@@ -205,6 +371,26 @@ sub is_first_order {
     my $kind = $self->get_kind ();
 
     return $kind ne 'tff';
+}
+
+# Module implementation here
+
+sub parse_atomic_formula {
+    my $text = shift;
+    return $parser->atomic_formula ($text);
+}
+
+sub parse_tptp_file {
+    my $path = shift;
+    my $content = slurp ($path);
+    # warn 'Trying to parse:', $LF, $content;
+    my $formulas_ref = $parser->tptp_file ($content);
+    if (! defined $formulas_ref) {
+        confess 'Unable to parse:', $LF, $content;
+    }
+    my @formulas = @{$formulas_ref};
+    warn 'Parsed formulas:', $LF, Dumper (@formulas);
+    return @formulas;
 }
 
 1;
