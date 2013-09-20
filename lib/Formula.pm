@@ -252,13 +252,11 @@ my $parser = new Parse::RecDescent ($TPTP_GRAMMAR_AUTOTREE)
 
 sub parse_tptp_formula {
     my $text = shift;
-    warn 'trying to parse:', $LF, $text;
     return $parser->tptp_input ($text);
 }
 
 sub parse_fof_formula {
     my $text = shift;
-    warn 'trying to parse:', $LF, $text;
     return $parser->fof_formula ($text);
 }
 
