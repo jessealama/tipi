@@ -268,7 +268,15 @@ sub parse_tptp_file {
         confess $path, ' either does not exist or is unreadable.';
     }
     my $content = slurp ($path);
-    return $parser->tptp_file ($content);
+    my $parsed = $parser->tptp_file (\$content);
+    if ($parsed ne '') {
+        if (defined $parsed) {
+            confess $path, ' could be parsed as a TPTP file, but only a proper initial segment of it was parsed.  The unparsed remainder:', $LF, $content;
+        } else {
+            confess 'Could not parse (the whole of) ', $path, '.';
+        }
+    }
+    return $parsed;
 }
 
 sub make_formula {
