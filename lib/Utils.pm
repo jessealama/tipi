@@ -40,6 +40,7 @@ our @EXPORT_OK = qw(ensure_readable_file
 		    asterisk_list
 		    sublist
 		    list_member
+                    is_readable_file
                     files_in_directory);
 
 Readonly my $EMPTY_STRING => q{};
