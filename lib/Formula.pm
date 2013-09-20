@@ -22,10 +22,6 @@ Readonly my $TWO_SPACES => q{  };
 Readonly my $EMPTY_STRING => q{};
 Readonly my $LF => "\N{LF}";
 
-# Stylesheets
-Readonly my $XSL_HOME => "$RealBin/../xsl";
-Readonly my $TPTP_INFO_STYLESHEET => "${XSL_HOME}/tptp-info.xsl";
-
 has 'kind' => (
     isa => 'Str',
     is => 'ro',
