@@ -55,8 +55,6 @@ ok (-d $data_dir,
 my @problems = files_in_directory ($data_dir);
 foreach my $problem (@problems) {
     my $parsed_problem = parse_tptp_file ($problem);
-    ok ($parsed_problem,
+    ok (defined $parsed_problem,
         "${problem} can be parsed");
 }
-
-done_testing ();
