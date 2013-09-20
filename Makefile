@@ -52,7 +52,9 @@ check:
 
 clean:
 	rm -f tipi
+ifneq ("$(emacs-backups)","")
 	rm -f $(emacs-backups)
+endif
 	rm -f $(ccl-fasls)
 	rm -f $(fasls)
 	+for dir in $(subdirs); do make -C $$dir clean; done
