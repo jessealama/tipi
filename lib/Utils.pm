@@ -39,7 +39,8 @@ our @EXPORT_OK = qw(ensure_readable_file
 	            message_with_extra_linefeed
 		    asterisk_list
 		    sublist
-		    list_member);
+		    list_member
+                    files_in_directory);
 
 Readonly my $EMPTY_STRING => q{};
 Readonly my $BAD_COLOR => 'red';
@@ -557,6 +558,16 @@ sub is_file {
 sub is_readable_file {
     my $file = shift;
     return (-e $file && ! -d $file && -r $file);
+}
+
+sub files_in_directory {
+    my $dir = shift;
+    if (! -d $dir) {
+        confess $dir, ' is not a directory.';
+    }
+    my @files = `find ${dir} -maxdepth 1 -mindepth 1 -type f`;
+    chomp @files;
+    return @files;
 }
 
 1;
