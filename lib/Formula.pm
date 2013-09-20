@@ -261,6 +261,15 @@ sub parse_fof_formula {
     return $parser->fof_formula ($text);
 }
 
+sub parse_tptp_file {
+    my $path = shift;
+    unless (is_readable_file ($path)) {
+        confess $path, ' either does not exist or is unreadable.';
+    }
+    my $content = slurp ($path);
+    return $parser->tptp_file ($content);
+}
+
 sub make_formula {
     my $formula_string = shift;
     return parse_tptp_formula ($formula_string);
@@ -373,19 +382,6 @@ sub is_first_order {
 sub parse_atomic_formula {
     my $text = shift;
     return $parser->atomic_formula ($text);
-}
-
-sub parse_tptp_file {
-    my $path = shift;
-    my $content = slurp ($path);
-    # warn 'Trying to parse:', $LF, $content;
-    my $formulas_ref = $parser->tptp_file ($content);
-    if (! defined $formulas_ref) {
-        confess 'Unable to parse:', $LF, $content;
-    }
-    my @formulas = @{$formulas_ref};
-    warn 'Parsed formulas:', $LF, Dumper (@formulas);
-    return @formulas;
 }
 
 1;
