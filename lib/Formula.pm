@@ -13,9 +13,10 @@ use FindBin qw($RealBin);
 use Parse::RecDescent;
 use base qw(Exporter);
 use Utils qw(tptp_xmlize
-	     apply_stylesheet);
+	     apply_stylesheet
+             is_readable_file);
 
-our @EXPORT_OK = qw(parse_tptp_formula parse_fof_formula);
+our @EXPORT_OK = qw(parse_tptp_formula parse_fof_formula parse_tptp_file);
 
 # Strings
 Readonly my $TWO_SPACES => q{  };
