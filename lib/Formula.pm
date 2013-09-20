@@ -14,7 +14,8 @@ use Parse::RecDescent;
 use base qw(Exporter);
 use Utils qw(tptp_xmlize
 	     apply_stylesheet
-             is_readable_file);
+             is_readable_file
+             slurp);
 
 our @EXPORT_OK = qw(parse_tptp_formula parse_fof_formula parse_tptp_file);
 
