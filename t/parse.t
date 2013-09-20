@@ -3,11 +3,15 @@
 use strict;
 use warnings;
 use charnames qw(:full);
-use Test::More tests => 13;
-
-use_ok ('Formula', qw(parse_tptp_formula parse_fof_formula));
-use_ok ('Data::Dumper');
+use File::Spec::Functions qw(catfile catdir updir rel2abs);
+use FindBin qw($RealBin);
 use Readonly;
+use Test::More qw(no_plan);
+
+use_ok ('Formula', qw(parse_tptp_formula parse_fof_formula parse_tptp_file));
+use_ok ('Data::Dumper');
+use_ok ('Utils', qw(files_in_directory))
+    or BAIL_OUT ('Cannot load Utils module');
 
 Readonly my $LF => "\N{LF}";
 
@@ -35,4 +39,19 @@ ok (defined $parsed_test, 'parse is defined');
 ok ($parsed_test, 'parsed is not false');
 is ($formula_test, '', 'consumed everything');
 
-#warn Dumper ($parsed_test);
+# try parsing TPTP files
+ok (-d $RealBin,
+    '$RealBin is a directory')
+    or BAIL_OUT ('$RealBin is not a directory');
+my $data_dir = catdir ($RealBin, 'data');
+ok (-d $data_dir,
+    'data directory exists')
+    or BAIL_OUT ('data directory does not exist');
+my @problems = files_in_directory ($data_dir);
+foreach my $problem (@problems) {
+    my $parsed_problem = parse_tptp_file ($problem);
+    ok ($parsed_problem,
+        "${problem} can be parsed");
+}
+
+done_testing ();
