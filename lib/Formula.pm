@@ -230,14 +230,14 @@ Readonly my $TPTP_GRAMMAR_AUTOTREE =>
           number: integer # | rational | real
           distinct_object: double_quote do_char(s?) double_quote
           double_quote: /["]/
-          formula_data: '$fof' '(' fof_formula ')'
+          formula_data: '$fof' left_paren fof_formula right_paren
           defined_atomic_term: defined_plain_term
           defined_plain_term: defined_constant
-          defined_plain_term: defined_functor '(' arguments ')'
+          defined_plain_term: defined_functor left_paren arguments right_paren
           defined_constant: defined_functor
           defined_functor: '$uminus' | '$sum' | '$difference' | '$product' | '$quotient' | '$quotient_e' | '$quotient_t' | '$quotient_f' | '$remainder_e' | '$remainder_t' | '$remainder_f' | '$floor' | '$ceiling' | '$truncate' | '$round' | '$to_int' | '$to_rat' | '$to_real'
           system_term: system_constant
-          system_term: system_functor '(' arguments ')'
+          system_term: system_functor left_paren arguments right_paren
           system_constant: system_functor
           system_functor: atomic_system_word
           atomic_system_word: dollar_dollar_word
@@ -254,7 +254,7 @@ Readonly my $TPTP_GRAMMAR_AUTOTREE =>
           include: include_keyword left_paren file_name right_paren full_stop
           include_keyword: 'include'
           file_name: single_quoted
-          formula_selection: comma '[' name_list ']'
+          formula_selection: comma left_bracket name_list right_bracket
           name_list: name comma name_list
           name_list: name
   };
