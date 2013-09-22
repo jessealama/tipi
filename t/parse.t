@@ -52,17 +52,17 @@ TODO: {
     ok (is_implication ($parsed_test));
 };
 
-# # try parsing TPTP files
-# ok (-d $RealBin,
-#     '$RealBin is a directory')
-#     or BAIL_OUT ('$RealBin is not a directory');
-# my $data_dir = catdir ($RealBin, 'data');
-# ok (-d $data_dir,
-#     'data directory exists')
-#     or BAIL_OUT ('data directory does not exist');
-# my @problems = files_in_directory ($data_dir);
-# foreach my $problem (@problems) {
-#     my $parsed_problem = parse_tptp_file ($problem);
-#     ok (defined $parsed_problem,
-#         "${problem} can be parsed");
-# }
+# try parsing TPTP files
+ok (-d $RealBin,
+    '$RealBin is a directory')
+    or BAIL_OUT ('$RealBin is not a directory');
+my $data_dir = catdir ($RealBin, 'data');
+ok (-d $data_dir,
+    'data directory exists')
+    or BAIL_OUT ('data directory does not exist');
+my @problems = files_in_directory ($data_dir);
+foreach my $problem (@problems) {
+    my $parsed_problem = parse_tptp_file ($problem);
+    ok (defined $parsed_problem,
+        "${problem} can be parsed");
+}
