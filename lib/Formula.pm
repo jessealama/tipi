@@ -174,7 +174,7 @@ Readonly my $TPTP_GRAMMAR_AUTOTREE =>
           fof_sequent: left_paren fof_sequent right_paren
           fof_tuple: left_bracket fof_tuple_list right_bracket
           fof_tuple: left_bracket right_bracket
-          fof_tuple_list: fof_logic_formula ',' fof_tuple_list
+          fof_tuple_list: fof_logic_formula comma fof_tuple_list
           fof_tuple_list: fof_logic_formula
           gentzen_arrow: '-->'
           fof_logic_formula: fof_binary_formula | fof_unitary_formula
