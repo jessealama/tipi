@@ -201,9 +201,10 @@ Readonly my $TPTP_GRAMMAR_AUTOTREE =>
           nand_connective: '~&'
           fof_unitary_formula: left_paren comment(s?) fof_logic_formula comment(s?) right_paren
           fof_unitary_formula: atomic_formula | fof_quantified_formula | fof_unary_formula
-          fof_quantified_formula: fol_quantifer left_bracket fof_variable_list right_bracket colon fof_unitary_formula
+          fof_quantified_formula: fol_quantifer comment(s?) left_bracket comment(s?) fof_variable_list comment(s?) right_bracket comment(s?) colon comment(s?) fof_unitary_formula
           fol_quantifer: '!' | '?'
-          fof_variable_list: variable comma fof_variable_list | variable
+          fof_variable_list: variable comment(s?) comma comment(s?) fof_variable_list
+          fof_variable_list: variable
           variable: upper_word
           upper_word: /[A-Z][a-zA-Z0-9_]*/
           single_quoted: single_quote sq_char(s) single_quote
@@ -213,7 +214,8 @@ Readonly my $TPTP_GRAMMAR_AUTOTREE =>
           do_char: /[a-zA-Z0-9]/
           do_char: /[\]["]/
           single_quote: "'"
-          fof_unary_formula: unary_connective fof_unitary_formula | fol_infix_unary
+          fof_unary_formula: unary_connective comment(s?) fof_unitary_formula
+          fof_unary_formula: fol_infix_unary
           unary_connective: '~'
           fol_infix_unary: term infix_inequality term
           infix_inequality: '!='
