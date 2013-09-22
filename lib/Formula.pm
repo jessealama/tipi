@@ -171,7 +171,7 @@ Readonly my $TPTP_GRAMMAR_AUTOTREE =>
           formula_role: 'axiom' | 'hypothesis' | 'definition' | 'assumption' | 'lemma' | 'theorem' | 'conjecture' | 'negated_conjecture' | 'plain' | 'fi_domain' | 'fi_functors' | 'fi_predicates' | 'type' | 'unknown'
           fof_formula: fof_logic_formula | fof_sequent
           fof_sequent: fof_tuple gentzen_arrow fof_tuple
-          fof_sequent: '(' fof_sequent ')'
+          fof_sequent: left_paren fof_sequent right_paren
           fof_tuple: '[' fof_tuple_list ']'
           fof_tuple: '[' ']'
           fof_tuple_list: fof_logic_formula ',' fof_tuple_list
