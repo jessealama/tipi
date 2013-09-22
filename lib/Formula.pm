@@ -86,9 +86,9 @@ Readonly my $TPTP_GRAMMAR_AUTOTREE =>
           tptp_input: annotated_formula | include | comment | <error>
           comment: /[%].*/
           annotated_formula: fof_annotated
-          fof_annotated: fof_keyword left_paren name comma formula_role comma fof_formula right_paren full_stop
-          fof_annotated: fof_keyword left_paren name comma formula_role comma fof_formula comma source right_paren full_stop
-          fof_annotated: fof_keyword left_paren name comma formula_role comma fof_formula comma source comma optional_info right_paren full_stop
+          fof_annotated: fof_keyword comment(s?) left_paren comment(s?) name comment(s?) comma comment(s?) formula_role comment(s?) comma comment(s?) fof_formula comment(s?) right_paren comment(s?) full_stop
+          fof_annotated: fof_keyword comment(s?) left_paren comment(s?) name comment(s?) comma comment(s?) formula_role comment(s?) comma comment(s?) fof_formula comment(s?) comma comment(s?) source comment(s?) right_paren comment(s?) full_stop
+          fof_annotated: fof_keyword comment(s?) left_paren comment(s?) name comment(s?) comma comment(s?) formula_role comment(s?) comma comment(s?) fof_formula comment(s?) comma comment(s?) source comment(s?) comma comment(s?) optional_info comment(s?) right_paren comment(s?) full_stop
           fof_keyword: 'fof'
           left_paren: '('
           right_paren: ')'
