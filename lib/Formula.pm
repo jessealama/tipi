@@ -78,46 +78,56 @@ sub BUILD {
 Readonly my $TPTP_GRAMMAR_AUTOTREE =>
     q {<autotree>
           tptp_file: tptp_input(s?)
-          tptp_input: annotated_formula | include
+          tptp_input: annotated_formula | include | comment | whitespace
+          whitespace: /[ \t\n]*/m
+          comment: /[%].*/
           annotated_formula: fof_annotated
-          fof_annotated: 'fof' '(' name ',' formula_role ',' fof_formula ')' '.'
-          fof_annotated: 'fof' '(' name ',' formula_role ',' fof_formula ',' source ')' '.'
-          fof_annotated: 'fof' '(' name ',' formula_role ',' fof_formula ',' source ',' optional_info ')' '.'
+          fof_annotated: fof_keyword left_paren name comma formula_role comma fof_formula right_paren full_stop
+          fof_annotated: fof_keyword left_paren name comma formula_role comma fof_formula comma source right_paren full_stop
+          fof_annotated: fof_keyword left_paren name comma formula_role comma fof_formula comma source comma optional_info right_paren full_stop
+          fof_keyword: 'fof'
+          left_paren: '('
+          right_paren: ')'
+          full_stop: '.'
+          comma: ','
+          colon: ':'
+          left_bracket: '['
+          right_bracket: ']'
           source: dag_source | internal_source | external_source | 'unknown'
-          source: '[' sources ']'
-          sources: source ',' sources
+          source: left_bracket sources right_bracket
+          sources: source comma sources
           sources: source
           dag_source: name | inference_record
-          inference_record: 'inference' '(' inference_rule ',' useful_info ',' inference_parents  ')'
-          inference_parents: '[' parent_list ']'
-          parent_list: parent_info ',' parent_list
+          inference_record: 'inference' left_paren inference_rule comma useful_info comma inference_parents  right_paren
+          inference_parents: left_bracket parent_list right_bracket
+          parent_list: parent_info comma parent_list
           parent_list: parent_info
           parent_info: source parent_details
-          parent_details: ':' general_list
+          parent_details: colon general_list
           parent_details: ''
-          inference_parents: '[' ']'
+          inference_parents: left_bracket right_bracket
           inference_rule: atomic_word
           useful_info: general_list
-          general_list: '[' ']'
-          general_list: '[' general_terms ']'
-          general_terms: general_term ',' general_terms
+          general_list: left_bracket right_bracket
+          general_list: left_bracket general_terms right_bracket
+          general_terms: general_term comma general_terms
           general_terms: general_term
           general_term: general_data
-          general_term: general_data ':' general_term
+          general_term: general_data colon general_term
           general_term: general_list
           general_data: atomic_word | general_function | variable | number | distinct_object | formula_data
-          general_function: atomic_word '(' general_terms ')'
-          optional_info: ',' useful_info
+          general_function: atomic_word left_paren general_terms right_paren
+          optional_info: comma useful_info
           optional_info: ''
-          internal_source: 'introduced' '(' intro_type optional_info ')'
+          internal_source: 'introduced' left_paren intro_type optional_info right_paren
           intro_type: 'definition' | 'axiom_of_choice' | 'tautology' | 'assumption'
           external_source: file_source | theory | creator_source
-          file_source: 'file' '(' file_name file_info ')'
-          file_info: ',' name
+          file_source: 'file' left_paren file_name file_info right_paren
+          file_info: comma name
           file_info: ''
-          theory: 'theory' '(' theory_name optional_info ')'
+          theory: 'theory' left_paren theory_name optional_info right_paren
           theory_name: 'equality' | 'ac'
-          creator_source: 'creator' '(' creator_name optional_info ')'
+          creator_source: 'creator' left_paren creator_name optional_info right_paren
           creator_name: atomic_word
           name: atomic_word
           name: integer
@@ -140,7 +150,7 @@ Readonly my $TPTP_GRAMMAR_AUTOTREE =>
           signed_rational: sign unsigned_rational
           unsigned_rational: decimal slash positive_decimal
           slash: '/'
-          positive_decimal: non_zero_numeric numeric(s?)
+          positive_decimal: /[1-9][0-9]*/
           non_zero_numeric: /[1-9]/
           real: signed_real | unsigned_real
           signed_real: sign unsigned_real
@@ -189,15 +199,13 @@ Readonly my $TPTP_GRAMMAR_AUTOTREE =>
           fof_variable_list: variable ',' fof_variable_list | variable
           variable: upper_word
           upper_word: /[A-Z][a-zA-Z0-9_]*/
-          single_quoted: "'" sq_char(s) "'"
-          sq_char: /[a-z]/
-          sq_char: /[A-Z]/
-          sq_char: /[0-9]/
+          single_quoted: single_quote sq_char(s) single_quote
+          sq_char: /[a-zA-Z0-9.]+/
           sq_char: '/'
-          sq_char: '.'
-          sq_char: '\''
+          sq_char: /[\][']/
           do_char: /[a-zA-Z0-9]/
           do_char: /[\]["]/
+          single_quote: /[']/
           fof_unary_formula: unary_connective fof_unitary_formula | fol_infix_unary
           unary_connective: '~'
           fol_infix_unary: term infix_inequality term
