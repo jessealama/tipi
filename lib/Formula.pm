@@ -102,7 +102,8 @@ Readonly my $TPTP_GRAMMAR_AUTOTREE =>
           sources: source comma sources
           sources: source
           dag_source: name | inference_record
-          inference_record: 'inference' left_paren inference_rule comma useful_info comma inference_parents  right_paren
+          inference_record: inference_keyword left_paren inference_rule comma useful_info comma inference_parents  right_paren
+          inference_keyword: 'inference'
           inference_parents: left_bracket parent_list right_bracket
           parent_list: parent_info comma parent_list
           parent_list: parent_info
