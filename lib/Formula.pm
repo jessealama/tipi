@@ -259,8 +259,8 @@ Readonly my $TPTP_GRAMMAR_AUTOTREE =>
 # $::RD_HINT = 1;
 # $::RD_WARN = 1;
 
-#my $skip_whitespace = qr/[ \t\n]*/m;
-#$Parser::RecDescent::skip = $skip_whitespace;
+my $skip_whitespace = qr/[ \t\n]*/m;
+$Parser::RecDescent::skip = $skip_whitespace;
 
 my $parser = new Parse::RecDescent ($TPTP_GRAMMAR_AUTOTREE)
     or confess 'Bad grammar!';
