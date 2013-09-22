@@ -37,7 +37,7 @@ my $parsed_3 = parse_tptp_formula ($formula_3);
 my $parsed_4 = parse_tptp_formula ($formula_4);
 my $parsed_test = parse_fof_formula (\$formula_test);
 
-ok (defined $parsed_1, 'parse is defined');
+ok (defined $parsed_1, "can parse ${formula_1}");
 ok ($parsed_1, 'parsed is not false');
 ok (defined $parsed_2, 'parse is defined');
 ok ($parsed_2, 'parsed is not false');
