@@ -83,8 +83,7 @@ sub is_implication {
 Readonly my $TPTP_GRAMMAR_AUTOTREE =>
     q {<autotree>
           tptp_file: tptp_input(s?)
-          tptp_input: annotated_formula | include | comment | whitespace
-          whitespace: /[ \t\n]*/m
+          tptp_input: annotated_formula | include | comment | <error>
           comment: /[%].*/
           annotated_formula: fof_annotated
           fof_annotated: fof_keyword left_paren name comma formula_role comma fof_formula right_paren full_stop
