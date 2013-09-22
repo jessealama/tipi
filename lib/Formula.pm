@@ -251,11 +251,12 @@ Readonly my $TPTP_GRAMMAR_AUTOTREE =>
           name_list: name
   };
 
-#$::RD_TRACE = 1;
-#$::RD_HINT = 1;
+# $::RD_TRACE = 1;
+# $::RD_HINT = 1;
+# $::RD_WARN = 1;
 
-# my $skip_prolog_comment = qr/[ \t\n]*/;
-# $Parser::RecDescent::skip = $skip_prolog_comment;
+#my $skip_whitespace = qr/[ \t\n]*/m;
+#$Parser::RecDescent::skip = $skip_whitespace;
 
 my $parser = new Parse::RecDescent ($TPTP_GRAMMAR_AUTOTREE)
     or confess 'Bad grammar!';
