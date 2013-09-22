@@ -6,6 +6,7 @@ use charnames qw(:full);
 use File::Spec::Functions qw(catfile catdir updir rel2abs);
 use FindBin qw($RealBin);
 use Readonly;
+use File::Basename qw(basename);
 use Test::More qw(no_plan);
 
 my @needed_Formula_symbols = qw(parse_tptp_formula parse_fof_formula parse_tptp_file is_implication);
@@ -62,4 +63,23 @@ foreach my $problem (@problems) {
     my $parsed_problem = parse_tptp_file ($problem);
     ok (defined $parsed_problem,
         "${problem} can be parsed");
+}
+
+# big: try parsing axioms and problem files for the entire TPTP
+my $tptp_dir = $ENV{'TPTP'};
+ok (defined $tptp_dir, 'TPTP environment variable is set')
+    or BAIL_OUT ('TPTP environment variable is not set.');
+ok (-d $tptp_dir,
+    'TPTP environment variable points to a directory')
+    or BAIL_OUT ("The value of the TPTP environment variable, '${tptp_dir}', is not a directory.");
+my $axioms_dir = catdir ($tptp_dir, 'Axioms');
+ok (-d $axioms_dir,
+    'TPTP Axioms directory exists')
+    or BAIL_OUT ("The Axioms subdirectory of the TPTP directory does not exist at the expected location (${axioms_dir}).");
+my @axiom_files = files_in_directory ($axioms_dir);
+foreach my $file (@axiom_files) {
+    my $base = basename ($file);
+    my $result = parse_tptp_file ($file);
+    ok (defined $result,
+        "can parse ${base} axiom file");
 }
