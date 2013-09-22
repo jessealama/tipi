@@ -14,9 +14,14 @@ foreach my $symbol (@needed_Formula_symbols) {
     use_ok ('Formula', $symbol)
         or BAIL_OUT ("Cannot load symbol '${symbol}' from the Formula module");
 }
+
 use_ok ('Data::Dumper');
-use_ok ('Utils', qw(files_in_directory))
-    or BAIL_OUT ('Cannot load Utils module');
+
+my @needed_Utils_symbols = qw(files_in_directory);
+foreach my $symbol (@needed_Utils_symbols) {
+    use_ok ('Utils', $symbol)
+        or BAIL_OUT ("Cannot load symbol '${symbol}' from the Utils module");
+}
 
 Readonly my $LF => "\N{LF}";
 
