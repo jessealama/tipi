@@ -232,7 +232,7 @@ Readonly my $TPTP_GRAMMAR_AUTOTREE =>
           number: integer # | rational | real
           distinct_object: double_quote do_char(s?) double_quote
           double_quote: /["]/
-          formula_data: dollar_fof_keyword left_paren fof_formula right_paren
+          formula_data: dollar_fof_keyword comment(s?) left_paren comment(s?) fof_formula comment(s?) right_paren
           dollar_fof_keyword: '$fof'
           defined_atomic_term: defined_plain_term
           defined_plain_term: defined_constant
@@ -240,7 +240,7 @@ Readonly my $TPTP_GRAMMAR_AUTOTREE =>
           defined_constant: defined_functor
           defined_functor: '$uminus' | '$sum' | '$difference' | '$product' | '$quotient' | '$quotient_e' | '$quotient_t' | '$quotient_f' | '$remainder_e' | '$remainder_t' | '$remainder_f' | '$floor' | '$ceiling' | '$truncate' | '$round' | '$to_int' | '$to_rat' | '$to_real'
           system_term: system_constant
-          system_term: system_functor left_paren arguments right_paren
+          system_term: system_functor comment(s?) left_paren comment(s?) arguments comment(s?) right_paren
           system_constant: system_functor
           system_functor: atomic_system_word
           atomic_system_word: dollar_dollar_word
@@ -249,16 +249,16 @@ Readonly my $TPTP_GRAMMAR_AUTOTREE =>
           plain_atomic_formula: plain_term
           defined_atomic_formula: defined_plain_formula | defined_infix_formula
           defined_plain_formula: defined_plain_term
-          defined_infix_formula: term defined_infix_pred term
+          defined_infix_formula: term comment(s?) defined_infix_pred comment(s?) term
           defined_infix_pred: infix_equality
           infix_equality: '='
           system_atomic_formula: system_term
-          include: include_keyword left_paren file_name formula_selection right_paren full_stop
-          include: include_keyword left_paren file_name right_paren full_stop
+          include: include_keyword comment(s?) left_paren comment(s?) file_name comment(s?) formula_selection comment(s?) right_paren comment(s?) full_stop
+          include: include_keyword comment(s?) left_paren comment(s?) file_name comment(s?) right_paren comment(s?) full_stop
           include_keyword: 'include'
           file_name: single_quoted
-          formula_selection: comma left_bracket name_list right_bracket
-          name_list: name comma name_list
+          formula_selection: comma comment(s?) left_bracket comment(s?) name_list comment(s?) right_bracket
+          name_list: name comment(s?) comma comment(s?) name_list
           name_list: name
   };
 
