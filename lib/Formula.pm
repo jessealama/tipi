@@ -268,6 +268,7 @@ my $parser = new Parse::RecDescent ($TPTP_GRAMMAR_AUTOTREE)
 
 sub parse_tptp_formula {
     my $text = shift;
+    chomp $text;
     my $copy = "${text}";
     my $result = $parser->tptp_input (\$copy);
     if (defined $result) {
@@ -283,6 +284,7 @@ sub parse_tptp_formula {
 
 sub parse_fof_formula {
     my $text = shift;
+    chomp $text;
     my $copy = "${text}";
     my $result = $parser->fof_logic_formula (\$copy);
     if (defined $result) {
@@ -302,6 +304,7 @@ sub parse_tptp_file {
         confess $path, ' either does not exist or is unreadable.';
     }
     my $content = slurp ($path);
+    chomp $content;
     my $parsed = $parser->tptp_file (\$content);
     if ($content ne '') {
         if (defined $parsed) {
