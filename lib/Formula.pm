@@ -223,7 +223,7 @@ Readonly my $TPTP_GRAMMAR_AUTOTREE =>
           plain_term: constant
           functor: atomic_word
           constant: functor
-          arguments: term ',' arguments
+          arguments: term comma arguments
           arguments: term
           defined_term: defined_atom | defined_atomic_term
           defined_atom: number
