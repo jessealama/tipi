@@ -164,8 +164,8 @@ Readonly my $TPTP_GRAMMAR_AUTOTREE =>
           decimal_fraction: decimal dot_decimal
           dot_decimal: dot numeric(s)
           dot: '.'
-          decimal_exponent: '(' decimal ')' exponent integer
-          decimal_exponent: '(' decimal_fraction ')' exponent integer
+          decimal_exponent: left_paren decimal right_paren exponent integer
+          decimal_exponent: left_paren decimal_fraction right_paren exponent integer
           exponent: /[Ee]/
           positive_decimal: /[1-9]/ numeric(s?)
           formula_role: 'axiom' | 'hypothesis' | 'definition' | 'assumption' | 'lemma' | 'theorem' | 'conjecture' | 'negated_conjecture' | 'plain' | 'fi_domain' | 'fi_functors' | 'fi_predicates' | 'type' | 'unknown'
