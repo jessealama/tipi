@@ -169,7 +169,7 @@ Readonly my $TPTP_GRAMMAR_AUTOTREE =>
           exponent: /[Ee]/
           positive_decimal: /[1-9]/ numeric(s?)
           formula_role: 'axiom' | 'hypothesis' | 'definition' | 'assumption' | 'lemma' | 'theorem' | 'conjecture' | 'negated_conjecture' | 'plain' | 'fi_domain' | 'fi_functors' | 'fi_predicates' | 'type' | 'unknown'
-          fof_formula: fof_logic_formula # | fof_sequent
+          fof_formula: fof_logic_formula | fof_sequent
           fof_sequent: fof_tuple gentzen_arrow fof_tuple
           fof_sequent: '(' fof_sequent ')'
           fof_tuple: '[' fof_tuple_list ']'
