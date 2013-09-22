@@ -114,16 +114,16 @@ Readonly my $TPTP_GRAMMAR_AUTOTREE =>
           inference_parents: left_bracket right_bracket
           inference_rule: atomic_word
           useful_info: general_list
-          general_list: left_bracket right_bracket
-          general_list: left_bracket general_terms right_bracket
-          general_terms: general_term comma general_terms
+          general_list: left_bracket comment(s?) right_bracket
+          general_list: left_bracket comment(s?) general_terms comment(s?) right_bracket
+          general_terms: general_term comment(s?) comma comment(s?) general_terms
           general_terms: general_term
           general_term: general_data
-          general_term: general_data colon general_term
+          general_term: general_data comment(s?) colon comment(s?) general_term
           general_term: general_list
           general_data: atomic_word | general_function | variable | number | distinct_object | formula_data
-          general_function: atomic_word left_paren general_terms right_paren
-          optional_info: comma useful_info
+          general_function: atomic_word comment(s?) left_paren comment(s?) general_terms comment(s?) right_paren
+          optional_info: comma comment(s?) useful_info
           optional_info: ''
           internal_source: 'introduced' left_paren intro_type optional_info right_paren
           intro_type: 'definition' | 'axiom_of_choice' | 'tautology' | 'assumption'
