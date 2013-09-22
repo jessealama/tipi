@@ -43,7 +43,7 @@ ok (defined $parsed_3, 'parse is defined');
 ok (defined $parsed_4, 'parse is defined');
 ok (defined $parsed_test, 'parse is defined');
 
-# need to ensure that the parses are as we expect
+# need to ensure that the parses are as we expect, for example:
 TODO: {
     local $TODO = 'Need to generate distinct kinds of formulas.';
     ok (is_implication ($parsed_test));
