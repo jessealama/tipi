@@ -75,6 +75,11 @@ sub BUILD {
     return $self;
 }
 
+sub is_implication {
+    my $thing = shift;
+    return 0;
+}
+
 Readonly my $TPTP_GRAMMAR_AUTOTREE =>
     q {<autotree>
           tptp_file: tptp_input(s?)
