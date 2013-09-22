@@ -99,7 +99,7 @@ Readonly my $TPTP_GRAMMAR_AUTOTREE =>
           right_bracket: ']'
           source: dag_source | internal_source | external_source | 'unknown'
           source: left_bracket comment(s?) sources comment(s?) right_bracket
-          sources: source comma sources
+          sources: source comment(s?) comma comment(s?) sources
           sources: source
           dag_source: name | inference_record
           inference_record: inference_keyword comment(s?) left_paren comment(s?) inference_rule comment(s?) comma comment(s?) useful_info comment(s?) comma comment(s?) inference_parents comment(s?) right_paren
