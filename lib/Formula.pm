@@ -159,8 +159,8 @@ Readonly my $TPTP_GRAMMAR_AUTOTREE =>
           non_zero_numeric: /[1-9]/
           real: signed_real | unsigned_real
           signed_real: sign unsigned_real
-          unsigned_real: '(' decimal_fraction ')'
-          unsigned_real: '(' decimal_exponent ')'
+          unsigned_real: left_paren decimal_fraction right_paren
+          unsigned_real: left_paren  decimal_exponent right_paren
           decimal_fraction: decimal dot_decimal
           dot_decimal: dot numeric(s)
           dot: '.'
