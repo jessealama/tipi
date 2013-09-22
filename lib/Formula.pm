@@ -182,10 +182,8 @@ Readonly my $TPTP_GRAMMAR_AUTOTREE =>
           fof_binary_assoc: fof_or_formula | fof_and_formula
           vline: '|'
           ampersand: '&'
-          fof_or_formula: fof_unitary_formula comment(s?) vline comment(s?) fof_unitary_formula
-          fof_or_formula: fof_unitary_formula comment(s?) vline comment(s?) fof_or_formula
-          fof_and_formula: fof_unitary_formula comment(s?) ampersand comment(s?) fof_unitary_formula
-          fof_and_formula: fof_unitary_formula comment(s?) ampersand comment(s?) fof_and_formula
+          fof_or_formula: fof_unitary_formula comment(s?) vline comment(s?) (fof_or_formula | fof_unitary_formula)
+          fof_and_formula: fof_unitary_formula comment(s?) ampersand comment(s?) (fof_and_formula | fof_unitary_formula)
           fof_binary_nonassoc: fof_equivalence | fof_implication | fof_reverse_implication | fof_disequivalence | fof_nor | fof_nand
           fof_equivalence: fof_unitary_formula comment(s?) equivalence_connective comment(s?) fof_unitary_formula
           fof_implication: fof_unitary_formula comment(s?) implication_connective comment(s?) fof_unitary_formula
