@@ -141,8 +141,7 @@ Readonly my $TPTP_GRAMMAR_AUTOTREE =>
           creator_name: atomic_word
           name: atomic_word
           name: integer
-          atomic_word: lower_word
-          lower_word: /[a-z][a-zA-Z0-9_]*/
+          atomic_word: /[a-z][a-zA-Z0-9_]*/
           lower_alpha: /[a-z]/
           upper_alpha: /[A-Z]/
           numeric: /[0-9]/
@@ -244,7 +243,7 @@ Readonly my $TPTP_GRAMMAR_AUTOTREE =>
           system_constant: system_functor
           system_functor: atomic_system_word
           atomic_system_word: dollar_dollar_word
-          dollar_dollar_word: '$$' lower_word
+          dollar_dollar_word: /[$][$][a-z][a-zA-Z0-9_]*/
           atomic_formula: plain_atomic_formula # | defined_atomic_formula | system_atomic_formula
           plain_atomic_formula: plain_term
           defined_atomic_formula: defined_plain_formula | defined_infix_formula
