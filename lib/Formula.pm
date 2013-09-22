@@ -145,7 +145,6 @@ Readonly my $TPTP_GRAMMAR_AUTOTREE =>
           lower_alpha: /[a-z]/
           upper_alpha: /[A-Z]/
           numeric: /[0-9]/
-          alpha_numeric: /[a-zA-Z0-9_]/
           integer: signed_integer | unsigned_integer
           signed_integer: sign unsigned_integer
           sign: /[+-]/
