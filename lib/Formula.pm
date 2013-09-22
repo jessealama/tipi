@@ -205,11 +205,11 @@ Readonly my $TPTP_GRAMMAR_AUTOTREE =>
           upper_word: /[A-Z][a-zA-Z0-9_]*/
           single_quoted: single_quote sq_char(s) single_quote
           sq_char: /[a-zA-Z0-9.]+/
-          sq_char: '/'
-          sq_char: /[\][']/
+          sq_char: "/"
+          sq_char: '\\''
           do_char: /[a-zA-Z0-9]/
           do_char: /[\]["]/
-          single_quote: /[']/
+          single_quote: "'"
           fof_unary_formula: unary_connective fof_unitary_formula | fol_infix_unary
           unary_connective: '~'
           fol_infix_unary: term infix_inequality term
