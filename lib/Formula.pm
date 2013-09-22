@@ -219,7 +219,7 @@ Readonly my $TPTP_GRAMMAR_AUTOTREE =>
           infix_inequality: '!='
           term: variable | function_term
           function_term: plain_term # | defined_term | system_term
-          plain_term: functor '(' arguments ')'
+          plain_term: functor left_paren arguments right_paren
           plain_term: constant
           functor: atomic_word
           constant: functor
