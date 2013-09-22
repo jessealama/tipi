@@ -172,8 +172,8 @@ Readonly my $TPTP_GRAMMAR_AUTOTREE =>
           fof_formula: fof_logic_formula | fof_sequent
           fof_sequent: fof_tuple gentzen_arrow fof_tuple
           fof_sequent: left_paren fof_sequent right_paren
-          fof_tuple: '[' fof_tuple_list ']'
-          fof_tuple: '[' ']'
+          fof_tuple: left_bracket fof_tuple_list right_bracket
+          fof_tuple: left_bracket right_bracket
           fof_tuple_list: fof_logic_formula ',' fof_tuple_list
           fof_tuple_list: fof_logic_formula
           gentzen_arrow: '-->'
