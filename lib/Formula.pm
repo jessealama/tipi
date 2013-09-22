@@ -278,7 +278,7 @@ sub parse_tptp_file {
     }
     my $content = slurp ($path);
     my $parsed = $parser->tptp_file (\$content);
-    if ($parsed ne '') {
+    if ($content ne '') {
         if (defined $parsed) {
             confess $path, ' could be parsed as a TPTP file, but only a proper initial segment of it was parsed.  The unparsed remainder:', $LF, $content;
         } else {
