@@ -247,11 +247,12 @@ Readonly my $TPTP_GRAMMAR_AUTOTREE =>
           defined_infix_pred: infix_equality
           infix_equality: '='
           system_atomic_formula: system_term
-          include: 'include' '(' file_name formula_selection ')' '.'
-          include: 'include' '(' file_name ')' '.'
+          include: include_keyword left_paren file_name formula_selection right_paren full_stop
+          include: include_keyword left_paren file_name right_paren full_stop
+          include_keyword: 'include'
           file_name: single_quoted
-          formula_selection: ',' '[' name_list ']'
-          name_list: name ',' name_list
+          formula_selection: comma '[' name_list ']'
+          name_list: name comma name_list
           name_list: name
   };
 
