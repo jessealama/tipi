@@ -136,7 +136,7 @@ Readonly my $TPTP_GRAMMAR_AUTOTREE =>
           theory: theory_keyword left_paren theory_name optional_info right_paren
           theory_keyword: 'theory'
           theory_name: 'equality' | 'ac'
-          creator_source: creator_keyword left_paren creator_name optional_info right_paren
+          creator_source: creator_keyword comment(s?) left_paren comment(s?) creator_name comment(s?) optional_info comment(s?) right_paren
           creator_keyword: 'creator'
           creator_name: atomic_word
           name: atomic_word
