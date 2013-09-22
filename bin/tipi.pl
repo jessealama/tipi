@@ -38,6 +38,7 @@ use CountermodelCommand;
 use VegasCommand;
 use SelfcheckCommand;
 use UsedPremisesCommand;
+use ParseCommand;
 
 Readonly my $VERSION => qv('1.0');
 
@@ -61,6 +62,7 @@ Readonly my %COMMANDS => (
     'vegas' => VegasCommand->new (),
     'selfcheck' => SelfcheckCommand->new (),
     'used-premises' => UsedPremisesCommand->new (),
+    'parse' => ParseCommand->new (),
 );
 
 my $opt_man       = 0;
