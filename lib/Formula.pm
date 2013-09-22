@@ -280,7 +280,7 @@ sub parse_tptp_file {
     my $parsed = $parser->tptp_file (\$content);
     if ($content ne '') {
         if (defined $parsed) {
-            confess $path, ' could be parsed as a TPTP file, but only a proper initial segment of it was parsed.  The unparsed remainder:', $LF, $content;
+            confess $path, ' could be parsed as a TPTP file, but only a proper initial segment of it was parsed.  The unparsed remainder (length ', length $content, '):', $LF, $content;
         } else {
             confess 'Could not parse (the whole of) ', $path, '.';
         }
