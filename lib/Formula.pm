@@ -125,7 +125,7 @@ Readonly my $TPTP_GRAMMAR_AUTOTREE =>
           general_function: atomic_word comment(s?) left_paren comment(s?) general_terms comment(s?) right_paren
           optional_info: comma comment(s?) useful_info
           optional_info: ''
-          internal_source: introduced_keyword left_paren intro_type optional_info right_paren
+          internal_source: introduced_keyword comment(s?) left_paren comment(s?) intro_type comment(s?) optional_info comment(s?) right_paren
           intro_type: 'definition' | 'axiom_of_choice' | 'tautology' | 'assumption'
           introduced_keyword: 'introduced'
           external_source: file_source | theory | creator_source
