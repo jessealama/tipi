@@ -17,7 +17,7 @@ use Utils qw(tptp_xmlize
              is_readable_file
              slurp);
 
-our @EXPORT_OK = qw(parse_tptp_formula parse_fof_formula parse_tptp_file);
+our @EXPORT_OK = qw(parse_tptp_formula parse_fof_formula parse_tptp_file is_implication);
 
 # Strings
 Readonly my $TWO_SPACES => q{  };
