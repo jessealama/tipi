@@ -97,7 +97,8 @@ Readonly my $TPTP_GRAMMAR_AUTOTREE =>
           colon: ':'
           left_bracket: '['
           right_bracket: ']'
-          source: dag_source | internal_source | external_source | 'unknown'
+          source: dag_source | internal_source | external_source | unknown_keyword
+          unknown_keyword: 'unknown'
           source: left_bracket comment(s?) sources comment(s?) right_bracket
           sources: source comment(s?) comma comment(s?) sources
           sources: source
