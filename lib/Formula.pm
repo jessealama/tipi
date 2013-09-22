@@ -201,9 +201,9 @@ Readonly my $TPTP_GRAMMAR_AUTOTREE =>
           nand_connective: '~&'
           fof_unitary_formula: left_paren comment(s?) fof_logic_formula comment(s?) right_paren
           fof_unitary_formula: atomic_formula | fof_quantified_formula | fof_unary_formula
-          fof_quantified_formula: fol_quantifer '[' fof_variable_list ']' ':' fof_unitary_formula
+          fof_quantified_formula: fol_quantifer left_bracket fof_variable_list right_bracket colon fof_unitary_formula
           fol_quantifer: '!' | '?'
-          fof_variable_list: variable ',' fof_variable_list | variable
+          fof_variable_list: variable comma fof_variable_list | variable
           variable: upper_word
           upper_word: /[A-Z][a-zA-Z0-9_]*/
           single_quoted: single_quote sq_char(s) single_quote
