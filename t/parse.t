@@ -8,7 +8,7 @@ use FindBin qw($RealBin);
 use Readonly;
 use Test::More qw(no_plan);
 
-my @needed_Formula_symbols = qw(parse_tptp_formula parse_fof_formula parse_tptp_file);
+my @needed_Formula_symbols = qw(parse_tptp_formula parse_fof_formula parse_tptp_file is_implication);
 
 foreach my $symbol (@needed_Formula_symbols) {
     use_ok ('Formula', $symbol)
