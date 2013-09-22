@@ -105,13 +105,13 @@ Readonly my $TPTP_GRAMMAR_AUTOTREE =>
           dag_source: name | inference_record
           inference_record: inference_keyword comment(s?) left_paren comment(s?) inference_rule comment(s?) comma comment(s?) useful_info comment(s?) comma comment(s?) inference_parents comment(s?) right_paren
           inference_keyword: 'inference'
-          inference_parents: left_bracket parent_list right_bracket
-          parent_list: parent_info comma parent_list
+          inference_parents: left_bracket comment(s?) parent_list comment(s?) right_bracket
+          parent_list: parent_info comment(s?) comma comment(s?) parent_list
           parent_list: parent_info
-          parent_info: source parent_details
-          parent_details: colon general_list
+          parent_info: source comment(s?) parent_details
+          parent_details: colon comment(s?) general_list
           parent_details: ''
-          inference_parents: left_bracket right_bracket
+          inference_parents: left_bracket comment(s?) right_bracket
           inference_rule: atomic_word
           useful_info: general_list
           general_list: left_bracket comment(s?) right_bracket
@@ -129,11 +129,11 @@ Readonly my $TPTP_GRAMMAR_AUTOTREE =>
           intro_type: 'definition' | 'axiom_of_choice' | 'tautology' | 'assumption'
           introduced_keyword: 'introduced'
           external_source: file_source | theory | creator_source
-          file_source: file_keyword left_paren file_name file_info right_paren
+          file_source: file_keyword comment(s?) left_paren comment(s?) file_name comment(s?) file_info comment(s?) right_paren
           file_keyword: 'file'
-          file_info: comma name
+          file_info: comma comment(s?) name
           file_info: ''
-          theory: theory_keyword left_paren theory_name optional_info right_paren
+          theory: theory_keyword comment(s?) left_paren comment(s?) theory_name comment(s?) optional_info comment(s?) right_paren
           theory_keyword: 'theory'
           theory_name: 'equality' | 'ac'
           creator_source: creator_keyword comment(s?) left_paren comment(s?) creator_name comment(s?) optional_info comment(s?) right_paren
@@ -170,11 +170,11 @@ Readonly my $TPTP_GRAMMAR_AUTOTREE =>
           positive_decimal: /[1-9]/ numeric(s?)
           formula_role: 'axiom' | 'hypothesis' | 'definition' | 'assumption' | 'lemma' | 'theorem' | 'conjecture' | 'negated_conjecture' | 'plain' | 'fi_domain' | 'fi_functors' | 'fi_predicates' | 'type' | 'unknown'
           fof_formula: fof_logic_formula | fof_sequent
-          fof_sequent: fof_tuple gentzen_arrow fof_tuple
-          fof_sequent: left_paren fof_sequent right_paren
-          fof_tuple: left_bracket fof_tuple_list right_bracket
-          fof_tuple: left_bracket right_bracket
-          fof_tuple_list: fof_logic_formula comma fof_tuple_list
+          fof_sequent: fof_tuple comment(s?) gentzen_arrow comment(s?) fof_tuple
+          fof_sequent: left_paren comment(s?) fof_sequent comment(s?) right_paren
+          fof_tuple: left_bracket comment(s?) fof_tuple_list comment(s?) right_bracket
+          fof_tuple: left_bracket comment(s?) right_bracket
+          fof_tuple_list: fof_logic_formula comment(s?) comma comment(s?) fof_tuple_list
           fof_tuple_list: fof_logic_formula
           gentzen_arrow: '-->'
           fof_logic_formula: fof_binary_formula | fof_unitary_formula
@@ -182,24 +182,24 @@ Readonly my $TPTP_GRAMMAR_AUTOTREE =>
           fof_binary_assoc: fof_or_formula | fof_and_formula
           vline: '|'
           ampersand: '&'
-          fof_or_formula: fof_unitary_formula vline fof_unitary_formula
-          fof_or_formula: fof_unitary_formula vline fof_or_formula
-          fof_and_formula: fof_unitary_formula ampersand fof_unitary_formula
-          fof_and_formula: fof_unitary_formula ampersand fof_and_formula
+          fof_or_formula: fof_unitary_formula comment(s?) vline comment(s?) fof_unitary_formula
+          fof_or_formula: fof_unitary_formula comment(s?) vline comment(s?) fof_or_formula
+          fof_and_formula: fof_unitary_formula comment(s?) ampersand comment(s?) fof_unitary_formula
+          fof_and_formula: fof_unitary_formula comment(s?) ampersand comment(s?) fof_and_formula
           fof_binary_nonassoc: fof_equivalence | fof_implication | fof_reverse_implication | fof_disequivalence | fof_nor | fof_nand
-          fof_equivalence: fof_unitary_formula equivalence_connective fof_unitary_formula
-          fof_implication: fof_unitary_formula implication_connective fof_unitary_formula
-          fof_reverse_implication: fof_unitary_formula reverse_implication_connective fof_unitary_formula
-          fof_disequivalence: fof_unitary_formula disequivalence_connective fof_unitary_formula
-          fof_nor: fof_unitary_formula nor_connective fof_unitary_formula
-          fof_nand: fof_unitary_formula nand_connective fof_unitary_formula
+          fof_equivalence: fof_unitary_formula comment(s?) equivalence_connective comment(s?) fof_unitary_formula
+          fof_implication: fof_unitary_formula comment(s?) implication_connective comment(s?) fof_unitary_formula
+          fof_reverse_implication: fof_unitary_formula comment(s?) reverse_implication_connective comment(s?) fof_unitary_formula
+          fof_disequivalence: fof_unitary_formula comment(s?) disequivalence_connective comment(s?) fof_unitary_formula
+          fof_nor: fof_unitary_formula comment(s?) nor_connective comment(s?) fof_unitary_formula
+          fof_nand: fof_unitary_formula comment(s?) nand_connective comment(s?) fof_unitary_formula
           equivalence_connective: '<=>'
           disequivalence_connective: '<~>'
           implication_connective: '=>'
           reverse_implication_connective: '<='
           nor_connective: '~|'
           nand_connective: '~&'
-          fof_unitary_formula: left_paren fof_logic_formula right_paren
+          fof_unitary_formula: left_paren comment(s?) fof_logic_formula comment(s?) right_paren
           fof_unitary_formula: atomic_formula | fof_quantified_formula | fof_unary_formula
           fof_quantified_formula: fol_quantifer '[' fof_variable_list ']' ':' fof_unitary_formula
           fol_quantifer: '!' | '?'
