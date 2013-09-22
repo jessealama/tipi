@@ -268,12 +268,32 @@ my $parser = new Parse::RecDescent ($TPTP_GRAMMAR_AUTOTREE)
 
 sub parse_tptp_formula {
     my $text = shift;
-    return $parser->tptp_input ($text);
+    my $copy = "${text}";
+    my $result = $parser->tptp_input (\$copy);
+    if (defined $result) {
+        if ($copy eq '') {
+            return $result;
+        } else {
+            confess 'Able to parse only a proper initial segment of', $LF, $text, 'There are ', length $copy, ' characters remaining to be parsed:', $LF, $copy;
+        }
+    } else {
+        confess 'Unable to parse', $LF, $text;
+    }
 }
 
 sub parse_fof_formula {
     my $text = shift;
-    return $parser->fof_formula ($text);
+    my $copy = "${text}";
+    my $result = $parser->fof_logic_formula (\$copy);
+    if (defined $result) {
+        if ($copy eq '') {
+            return $result;
+        } else {
+            confess 'Able to parse only a proper initial segment of', $LF, $text, 'There are ', length $copy, ' characters remaining to be parsed:', $LF, $copy;
+        }
+    } else {
+        confess 'Unable to parse', $LF, $text;
+    }
 }
 
 sub parse_tptp_file {
