@@ -133,7 +133,8 @@ Readonly my $TPTP_GRAMMAR_AUTOTREE =>
           file_keyword: 'file'
           file_info: comma name
           file_info: ''
-          theory: 'theory' left_paren theory_name optional_info right_paren
+          theory: theory_keyword left_paren theory_name optional_info right_paren
+          theory_keyword: 'theory'
           theory_name: 'equality' | 'ac'
           creator_source: 'creator' left_paren creator_name optional_info right_paren
           creator_name: atomic_word
