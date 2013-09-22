@@ -22,7 +22,6 @@ use SZS qw(szs_implies
 	   successful_statuses
 	   unsuccessful_statuses
 	   aggregate_statuses);
-use Parse qw(parse_tptp_file);
 
 Readonly my $TPTP4X => 'tptp4X';
 Readonly my $EMPTY_STRING => q{};
