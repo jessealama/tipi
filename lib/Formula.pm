@@ -217,25 +217,26 @@ Readonly my $TPTP_GRAMMAR_AUTOTREE =>
           fof_unary_formula: unary_connective comment(s?) fof_unitary_formula
           fof_unary_formula: fol_infix_unary
           unary_connective: '~'
-          fol_infix_unary: term infix_inequality term
+          fol_infix_unary: term comment(s?) infix_inequality comment(s?) term
           infix_inequality: '!='
           term: variable | function_term
           function_term: plain_term # | defined_term | system_term
-          plain_term: functor left_paren arguments right_paren
+          plain_term: functor comment(s?) left_paren comment(s?) arguments comment(s?) right_paren
           plain_term: constant
           functor: atomic_word
           constant: functor
-          arguments: term comma arguments
+          arguments: term comment(s?) comma comment(s?) arguments
           arguments: term
           defined_term: defined_atom | defined_atomic_term
           defined_atom: number
           number: integer # | rational | real
           distinct_object: double_quote do_char(s?) double_quote
           double_quote: /["]/
-          formula_data: '$fof' left_paren fof_formula right_paren
+          formula_data: dollar_fof_keyword left_paren fof_formula right_paren
+          dollar_fof_keyword: '$fof'
           defined_atomic_term: defined_plain_term
           defined_plain_term: defined_constant
-          defined_plain_term: defined_functor left_paren arguments right_paren
+          defined_plain_term: defined_functor comment(s?) left_paren comment(s?) arguments comment(s?) right_paren
           defined_constant: defined_functor
           defined_functor: '$uminus' | '$sum' | '$difference' | '$product' | '$quotient' | '$quotient_e' | '$quotient_t' | '$quotient_f' | '$remainder_e' | '$remainder_t' | '$remainder_f' | '$floor' | '$ceiling' | '$truncate' | '$round' | '$to_int' | '$to_rat' | '$to_real'
           system_term: system_constant
