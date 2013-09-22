@@ -129,7 +129,8 @@ Readonly my $TPTP_GRAMMAR_AUTOTREE =>
           intro_type: 'definition' | 'axiom_of_choice' | 'tautology' | 'assumption'
           introduced_keyword: 'introduced'
           external_source: file_source | theory | creator_source
-          file_source: 'file' left_paren file_name file_info right_paren
+          file_source: file_keyword left_paren file_name file_info right_paren
+          file_keyword: 'file'
           file_info: comma name
           file_info: ''
           theory: 'theory' left_paren theory_name optional_info right_paren
