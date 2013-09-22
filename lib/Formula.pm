@@ -199,7 +199,7 @@ Readonly my $TPTP_GRAMMAR_AUTOTREE =>
           reverse_implication_connective: '<='
           nor_connective: '~|'
           nand_connective: '~&'
-          fof_unitary_formula: '(' fof_logic_formula ')'
+          fof_unitary_formula: left_paren fof_logic_formula right_paren
           fof_unitary_formula: atomic_formula | fof_quantified_formula | fof_unary_formula
           fof_quantified_formula: fol_quantifer '[' fof_variable_list ']' ':' fof_unitary_formula
           fol_quantifer: '!' | '?'
