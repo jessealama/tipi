@@ -85,11 +85,15 @@ Readonly my $TPTP_GRAMMAR_AUTOTREE =>
           tptp_file: tptp_input(s?)
           tptp_input: annotated_formula | include | comment | <error>
           comment: /[%].*/
-          annotated_formula: fof_annotated
+          annotated_formula: fof_annotated | cnf_annotated
           fof_annotated: fof_keyword comment(s?) left_paren comment(s?) name comment(s?) comma comment(s?) formula_role comment(s?) comma comment(s?) fof_formula comment(s?) right_paren comment(s?) full_stop
           fof_annotated: fof_keyword comment(s?) left_paren comment(s?) name comment(s?) comma comment(s?) formula_role comment(s?) comma comment(s?) fof_formula comment(s?) comma comment(s?) source comment(s?) right_paren comment(s?) full_stop
           fof_annotated: fof_keyword comment(s?) left_paren comment(s?) name comment(s?) comma comment(s?) formula_role comment(s?) comma comment(s?) fof_formula comment(s?) comma comment(s?) source comment(s?) comma comment(s?) optional_info comment(s?) right_paren comment(s?) full_stop
           fof_keyword: 'fof'
+          cnf_annotated: cnf_keyword comment(s?) left_paren comment(s?) name comment(s?) comma comment(s?) formula_role comment(s?) comma comment(s?) cnf_formula comment(s?) right_paren comment(s?) full_stop
+          cnf_annotated: cnf_keyword comment(s?) left_paren comment(s?) name comment(s?) comma comment(s?) formula_role comment(s?) comma comment(s?) cnf_formula comment(s?) comma comment(s?) source comment(s?) right_paren comment(s?) full_stop
+          cnf_annotated: cnf_keyword comment(s?) left_paren comment(s?) name comment(s?) comma comment(s?) formula_role comment(s?) comma comment(s?) cnf_formula comment(s?) comma comment(s?) source comment(s?) comma comment(s?) optional_info comment(s?) right_paren comment(s?) full_stop
+          cnf_keyword: 'cnf'
           left_paren: '('
           right_paren: ')'
           full_stop: '.'
@@ -170,6 +174,12 @@ Readonly my $TPTP_GRAMMAR_AUTOTREE =>
           positive_decimal: /[1-9]/ numeric(s?)
           formula_role: 'axiom' | 'hypothesis' | 'definition' | 'assumption' | 'lemma' | 'theorem' | 'conjecture' | 'negated_conjecture' | 'plain' | 'fi_domain' | 'fi_functors' | 'fi_predicates' | 'type' | 'unknown'
           fof_formula: fof_logic_formula | fof_sequent
+          cnf_formula: left_paren comment(s?) disjunction comment(s?) right_paren
+          cnf_formula: disjunction
+          disjunction: literal comment(s?) vline comment(s?) disjunction
+          disjunction: literal
+          literal: negation_connective comment(s?) atomic_formula | fol_infix_unary | atomic_formula
+          negation_connective: '~'
           fof_sequent: fof_tuple comment(s?) gentzen_arrow comment(s?) fof_tuple
           fof_sequent: left_paren comment(s?) fof_sequent comment(s?) right_paren
           fof_tuple: left_bracket comment(s?) fof_tuple_list comment(s?) right_bracket
@@ -215,8 +225,9 @@ Readonly my $TPTP_GRAMMAR_AUTOTREE =>
           fof_unary_formula: unary_connective comment(s?) fof_unitary_formula
           fof_unary_formula: fol_infix_unary
           unary_connective: '~'
-          fol_infix_unary: term comment(s?) infix_inequality comment(s?) term
+          fol_infix_unary: term comment(s?) (infix_inequality | infix_equality) comment(s?) term
           infix_inequality: '!='
+          infix_equality: '='
           term: variable | function_term
           function_term: plain_term # | defined_term | system_term
           plain_term: functor comment(s?) left_paren comment(s?) arguments comment(s?) right_paren
