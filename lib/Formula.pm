@@ -221,7 +221,7 @@ Readonly my $TPTP_GRAMMAR_AUTOTREE =>
           thf_or_formula: thf_unitary_formula vline thf_unitary_formula
           thf_and_formula: thf_unitary_formula ampersand thf_and_formula
           thf_and_formula: thf_unitary_formula ampersand thf_unitary_formula
-          thf_apply_formula: thf_unitary_formula apply_symbol thf_and_formula
+          thf_apply_formula: thf_unitary_formula apply_symbol thf_apply_formula
           thf_apply_formula: thf_unitary_formula apply_symbol thf_unitary_formula
           thf_unitary_type: thf_unitary_formula
           fof_binary_assoc: fof_or_formula | fof_and_formula
