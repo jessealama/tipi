@@ -205,21 +205,32 @@ Readonly my $TPTP_GRAMMAR_AUTOTREE =>
           thf_subtype: constant subtype_sign constant
           subtype_sign: '<<'
           fof_binary_formula: fof_binary_nonassoc | fof_binary_assoc
-          thf_binary_formula: thf_binary_pair | thf_binary_tuple
+          thf_binary_formula: thf_binary_pair | thf_binary_tuple | thf_binary_type
           thf_binary_pair: thf_unitary_formula thf_pair_connective thf_unitary_formula
           thf_pair_connective: infix_equality | infix_inequality | binary_connective
           binary_connective: '<=>' | '=>' | '<=' | '<~>' | '~|' | '~&'
           thf_binary_tuple: thf_or_formula | thf_and_formula | thf_apply_formula
+          thf_binary_type: thf_mapping_type | thf_xprod_type | thf_union_type
+          thf_mapping_type: thf_unitary_type arrow thf_mapping_type
+          thf_mapping_type: thf_unitary_type arrow thf_unitary_type
+          thf_xprod_type: thf_unitary_type star thf_xprod_type
+          thf_xprod_type: thf_unitary_type star thf_unitary_type
+          thf_union_type: thf_unitary_type plus thf_union_type
+          thf_union_type: thf_unitary_type plus thf_unitary_type
           thf_or_formula: thf_unitary_formula vline thf_or_formula
           thf_or_formula: thf_unitary_formula vline thf_unitary_formula
           thf_and_formula: thf_unitary_formula ampersand thf_and_formula
           thf_and_formula: thf_unitary_formula ampersand thf_unitary_formula
           thf_apply_formula: thf_unitary_formula apply_symbol thf_and_formula
           thf_apply_formula: thf_unitary_formula apply_symbol thf_unitary_formula
+          thf_unitary_type: thf_unitary_formula
           fof_binary_assoc: fof_or_formula | fof_and_formula
           vline: '|'
           ampersand: '&'
           apply_symbol: '@'
+          star: '*'
+          plus: '+'
+          arrow: '>'
           thf_unitary_formula: left_paren thf_logic_formula right_paren
           thf_unitary_formula: thf_quantified_formula | thf_unary_formula | thf_conditional | thf_let | thf_atom
           thf_unary_formula: thf_unary_connective left_paren thf_logic_formula right_paren
