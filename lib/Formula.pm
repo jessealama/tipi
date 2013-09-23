@@ -246,7 +246,7 @@ Readonly my $TPTP_GRAMMAR_AUTOTREE =>
           thf_quantified_formula: thf_quantifier left_bracket thf_variable_list right_bracket colon thf_unitary_formula
           thf_quantifier: fol_quantifer | '^' | '!>' | '?*' | '@+' | '@~'
           thf_variable_list: thf_variable comma thf_variable_list
-          thf_variable_list thf_variable
+          thf_variable_list: thf_variable
           thf_variable: thf_typed_variable | variable
           thf_typed_variable: variable colon thf_top_level_type
           thf_top_level_type: thf_logic_formula
