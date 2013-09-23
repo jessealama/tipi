@@ -30,8 +30,6 @@ my $opt_help = 0;
 my $opt_man = 0;
 my $opt_verbose = 0;
 my $opt_debug = 0;
-my $opt_by_occurrence = 1;
-my $opt_by_name = 0;
 
 sub BUILD {
     my $self = shift;
