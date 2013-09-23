@@ -60,5 +60,4 @@ endif
 	+for dir in $(subdirs); do make -C $$dir clean; done
 
 test:
-	# no tests defined yet
 	for dir in $(subdirs); do make -C $$dir test; done
