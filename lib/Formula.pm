@@ -85,7 +85,7 @@ Readonly my $TPTP_GRAMMAR_AUTOTREE =>
           tptp_file: tptp_input(s?)
           tptp_input: annotated_formula | include | comment | <error>
           comment: /[%].*/
-          annotated_formula: fof_annotated | cnf_annotated
+          annotated_formula: fof_annotated | cnf_annotated | thf_annotated
           fof_annotated: fof_keyword comment(s?) left_paren comment(s?) name comment(s?) comma comment(s?) formula_role comment(s?) comma comment(s?) fof_formula comment(s?) right_paren comment(s?) full_stop
           fof_annotated: fof_keyword comment(s?) left_paren comment(s?) name comment(s?) comma comment(s?) formula_role comment(s?) comma comment(s?) fof_formula comment(s?) comma comment(s?) source comment(s?) right_paren comment(s?) full_stop
           fof_annotated: fof_keyword comment(s?) left_paren comment(s?) name comment(s?) comma comment(s?) formula_role comment(s?) comma comment(s?) fof_formula comment(s?) comma comment(s?) source comment(s?) comma comment(s?) optional_info comment(s?) right_paren comment(s?) full_stop
@@ -94,13 +94,17 @@ Readonly my $TPTP_GRAMMAR_AUTOTREE =>
           cnf_annotated: cnf_keyword comment(s?) left_paren comment(s?) name comment(s?) comma comment(s?) formula_role comment(s?) comma comment(s?) cnf_formula comment(s?) comma comment(s?) source comment(s?) right_paren comment(s?) full_stop
           cnf_annotated: cnf_keyword comment(s?) left_paren comment(s?) name comment(s?) comma comment(s?) formula_role comment(s?) comma comment(s?) cnf_formula comment(s?) comma comment(s?) source comment(s?) comma comment(s?) optional_info comment(s?) right_paren comment(s?) full_stop
           cnf_keyword: 'cnf'
-          left_paren: '('
-          right_paren: ')'
-          full_stop: '.'
-          comma: ','
-          colon: ':'
-          left_bracket: '['
-          right_bracket: ']'
+          thf_annotated: thf_keyword comment(s?) left_paren comment(s?) name comment(s?) comma comment(s?) formula_role comment(s?) comma comment(s?) thf_formula comment(s?) right_paren comment(s?) full_stop
+          thf_annotated: thf_keyword comment(s?) left_paren comment(s?) name comment(s?) comma comment(s?) formula_role comment(s?) comma comment(s?) thf_formula comment(s?) comma comment(s?) source comment(s?) right_paren comment(s?) full_stop
+          thf_annotated: thf_keyword comment(s?) left_paren comment(s?) name comment(s?) comma comment(s?) formula_role comment(s?) comma comment(s?) thf_formula comment(s?) comma comment(s?) source comment(s?) comma comment(s?) optional_info comment(s?) right_paren comment(s?) full_stop
+          thf_keyword: 'thf'
+          left_paren: /[(]/
+          right_paren: /[)]/
+          full_stop: /[.]/
+          comma: /[,]/
+          colon: /[:]/
+          left_bracket: /[[]/
+          right_bracket: /[]]/
           source: dag_source | internal_source | external_source | unknown_keyword
           unknown_keyword: 'unknown'
           source: left_bracket comment(s?) sources comment(s?) right_bracket
@@ -174,6 +178,7 @@ Readonly my $TPTP_GRAMMAR_AUTOTREE =>
           positive_decimal: /[1-9]/ numeric(s?)
           formula_role: 'axiom' | 'hypothesis' | 'definition' | 'assumption' | 'lemma' | 'theorem' | 'conjecture' | 'negated_conjecture' | 'plain' | 'fi_domain' | 'fi_functors' | 'fi_predicates' | 'type' | 'unknown'
           fof_formula: fof_logic_formula | fof_sequent
+          thf_formula: thf_logic_formula | thf_sequent
           cnf_formula: left_paren comment(s?) disjunction comment(s?) right_paren
           cnf_formula: disjunction
           disjunction: literal comment(s?) vline comment(s?) disjunction
@@ -181,17 +186,59 @@ Readonly my $TPTP_GRAMMAR_AUTOTREE =>
           literal: negation_connective comment(s?) atomic_formula | fol_infix_unary | atomic_formula
           negation_connective: '~'
           fof_sequent: fof_tuple comment(s?) gentzen_arrow comment(s?) fof_tuple
+          thf_sequent: thf_tuple comment(s?) gentzen_arrow comment(s?) thf_tuple
           fof_sequent: left_paren comment(s?) fof_sequent comment(s?) right_paren
           fof_tuple: left_bracket comment(s?) fof_tuple_list comment(s?) right_bracket
           fof_tuple: left_bracket comment(s?) right_bracket
           fof_tuple_list: fof_logic_formula comment(s?) comma comment(s?) fof_tuple_list
           fof_tuple_list: fof_logic_formula
+          thf_tuple: left_bracket comment(s?) thf_tuple_list comment(s?) right_bracket
+          thf_tuple: left_bracket comment(s?) right_bracket
+          thf_tuple_list: thf_logic_formula comment(s?) comma comment(s?) thf_tuple_list
+          thf_tuple_list: thf_logic_formula
           gentzen_arrow: '-->'
           fof_logic_formula: fof_binary_formula | fof_unitary_formula
+          thf_logic_formula: thf_type_formula | thf_subtype | thf_binary_formula | thf_unitary_formula
+          thf_type_formula: thf_typeable_formula colon thf_top_level_type
+          thf_typeable_formula: thf_atom
+          thf_typeable_formula: left_paren thf_logic_formula right_paren
+          thf_subtype: constant subtype_sign constant
+          subtype_sign: '<<'
           fof_binary_formula: fof_binary_nonassoc | fof_binary_assoc
+          thf_binary_formula: thf_binary_pair | thf_binary_tuple
+          thf_binary_pair: thf_unitary_formula thf_pair_connective thf_unitary_formula
+          thf_pair_connective: infix_equality | infix_inequality | binary_connective
+          binary_connective: '<=>' | '=>' | '<=' | '<~>' | '~|' | '~&'
+          thf_binary_tuple: thf_or_formula | thf_and_formula | thf_apply_formula
+          thf_or_formula: thf_unitary_formula vline thf_or_formula
+          thf_or_formula: thf_unitary_formula vline thf_unitary_formula
+          thf_and_formula: thf_unitary_formula ampersand thf_and_formula
+          thf_and_formula: thf_unitary_formula ampersand thf_unitary_formula
+          thf_apply_formula: thf_unitary_formula apply_symbol thf_and_formula
+          thf_apply_formula: thf_unitary_formula apply_symbol thf_unitary_formula
           fof_binary_assoc: fof_or_formula | fof_and_formula
           vline: '|'
           ampersand: '&'
+          apply_symbol: '@'
+          thf_unitary_formula: left_paren thf_logic_formula right_paren
+          thf_unitary_formula: thf_quantified_formula | thf_unary_formula | thf_conditional | thf_let | thf_atom
+          thf_unary_formula: thf_unary_connective left_paren thf_logic_formula right_paren
+          thf_unary_connective: unary_connective | '!!' | '??'
+          thf_atom: term | thf_conn_term
+          thf_conn_term: thf_pair_connective | assoc_connective | thf_unary_connective
+          assoc_connective: '|' | '&'
+          thf_conditional: '$ite_f' left_paren thf_logic_formula comma thf_logic_formula comma thf_logic_formula right_paren
+          thf_let: '$let_tf' left_paren thf_let_term_defn comma thf_formula right_paren
+          thf_let: '$let_ff' left_paren thf_let_formula_defn comma thf_formula right_paren
+          thf_let_term_defn: thf_quantified_formula
+          thf_let_formula_defn: thf_quantified_formula
+          thf_quantified_formula: thf_quantifier left_bracket thf_variable_list right_bracket colon thf_unitary_formula
+          thf_quantifier: fol_quantifer | '^' | '!>' | '?*' | '@+' | '@~'
+          thf_variable_list: thf_variable comma thf_variable_list
+          thf_variable_list thf_variable
+          thf_variable: thf_typed_variable | variable
+          thf_typed_variable: variable colon thf_top_level_type
+          thf_top_level_type: thf_logic_formula
           fof_or_formula: fof_unitary_formula comment(s?) vline comment(s?) (fof_or_formula | fof_unitary_formula)
           fof_and_formula: fof_unitary_formula comment(s?) ampersand comment(s?) (fof_and_formula | fof_unitary_formula)
           fof_binary_nonassoc: fof_equivalence | fof_implication | fof_reverse_implication | fof_disequivalence | fof_nor | fof_nand
@@ -208,7 +255,7 @@ Readonly my $TPTP_GRAMMAR_AUTOTREE =>
           nor_connective: '~|'
           nand_connective: '~&'
           fof_unitary_formula: left_paren comment(s?) fof_logic_formula comment(s?) right_paren
-          fof_unitary_formula: atomic_formula | fof_quantified_formula | fof_unary_formula
+          fof_unitary_formula: fof_unary_formula | fof_quantified_formula | atomic_formula
           fof_quantified_formula: fol_quantifer comment(s?) left_bracket comment(s?) fof_variable_list comment(s?) right_bracket comment(s?) colon comment(s?) fof_unitary_formula
           fol_quantifer: /[!?]/
           fof_variable_list: variable comment(s?) comma comment(s?) fof_variable_list
@@ -225,11 +272,12 @@ Readonly my $TPTP_GRAMMAR_AUTOTREE =>
           fof_unary_formula: unary_connective comment(s?) fof_unitary_formula
           fof_unary_formula: fol_infix_unary
           unary_connective: '~'
-          fol_infix_unary: term comment(s?) (infix_inequality | infix_equality) comment(s?) term
+          fol_infix_unary: term comment(s?) infix_inequality comment(s?) term
+          fol_infix_unary: term comment(s?) infix_equality comment(s?) term
           infix_inequality: '!='
           infix_equality: '='
           term: variable | function_term
-          function_term: plain_term # | defined_term | system_term
+          function_term: plain_term | defined_term | system_term
           plain_term: functor comment(s?) left_paren comment(s?) arguments comment(s?) right_paren
           plain_term: constant
           functor: atomic_word
@@ -246,7 +294,8 @@ Readonly my $TPTP_GRAMMAR_AUTOTREE =>
           defined_atomic_term: defined_plain_term
           defined_plain_term: defined_constant
           defined_plain_term: defined_functor comment(s?) left_paren comment(s?) arguments comment(s?) right_paren
-          defined_constant: defined_functor
+          defined_constant: defined_functor | defined_type
+          defined_type: '$oType' | '$o' | '$iType' | '$i' | '$tType' | '$real' | '$rat' | '$int'
           defined_functor: '$uminus' | '$sum' | '$difference' | '$product' | '$quotient' | '$quotient_e' | '$quotient_t' | '$quotient_f' | '$remainder_e' | '$remainder_t' | '$remainder_f' | '$floor' | '$ceiling' | '$truncate' | '$round' | '$to_int' | '$to_rat' | '$to_real'
           system_term: system_constant
           system_term: system_functor comment(s?) left_paren comment(s?) arguments comment(s?) right_paren
