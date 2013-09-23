@@ -200,7 +200,7 @@ Readonly my $TPTP_GRAMMAR_AUTOTREE =>
           fof_unitary_formula: left_paren comment(s?) fof_logic_formula comment(s?) right_paren
           fof_unitary_formula: atomic_formula | fof_quantified_formula | fof_unary_formula
           fof_quantified_formula: fol_quantifer comment(s?) left_bracket comment(s?) fof_variable_list comment(s?) right_bracket comment(s?) colon comment(s?) fof_unitary_formula
-          fol_quantifer: '!' | '?'
+          fol_quantifer: [!?]
           fof_variable_list: variable comment(s?) comma comment(s?) fof_variable_list
           fof_variable_list: variable
           variable: upper_word
