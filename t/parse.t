@@ -26,12 +26,15 @@ foreach my $symbol (@needed_Utils_symbols) {
 
 Readonly my $LF => "\N{LF}";
 
+my $formula_0 = '( f(X,X,Y) = X )';
 my $formula_1 = "include('hyperbolic.p').";
 my $formula_2 = "include('hyperbolic.p',[a4,a5]).";
 my $formula_3 = "include('../hyperbolic.p',${LF}[a5,${LF}a6,${LF}7,${LF}30]).";
 my $formula_test = "p => q";
 my $formula_4 = "fof(48,conjecture,${LF}    (! [A,B,C,D,E] :${LF}     ((between(A,B,C) & between(A,D,E))${LF}          => (? [F] : (between(B,F,E) & between(C,F,D)))))).";
 
+my $parsed_0 = parse_fof_formula ($formula_0);
+ok (defined $parsed_0, "can parse '${formula_0}'");
 my $parsed_1 = parse_tptp_formula ($formula_1);
 my $parsed_2 = parse_tptp_formula ($formula_2);
 my $parsed_3 = parse_tptp_formula ($formula_3);
