@@ -373,6 +373,22 @@ sub parse_fof_formula {
     }
 }
 
+sub parse_thf_logic_formula {
+    my $text = shift;
+    chomp $text;
+    my $copy = "${text}";
+    my $result = $parser->thf_logic_formula (\$copy);
+    if (defined $result) {
+        if ($copy eq '') {
+            return $result;
+        } else {
+            confess 'Able to parse only a proper initial segment of', $LF, $text, 'There are ', length $copy, ' characters remaining to be parsed:', $LF, $copy;
+        }
+    } else {
+        confess 'Unable to parse', $LF, $text;
+    }
+}
+
 sub parse_tptp_file {
     my $path = shift;
     unless (is_readable_file ($path)) {
