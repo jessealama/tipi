@@ -1623,3 +1623,17 @@
 
 (defmethod definition-p ((x tptp-formula))
   (string= (role x) "definition"))
+
+(defgeneric save-to-file (tptp-thing destination &key if-exists)
+  (:documentation "Save TPTP-THING to DESTINATION.  IF-EXISTS should be a keyword that has the same meaning as the IF-EXISTS keyword in WITH-OPEN-FILE."))
+
+(defmethod save-to-file (db (path string) &key (if-exists :error))
+  (save-to-file db (pathname path) :if-exists if-exists))
+
+(defmethod save-to-file ((db tptp-db) (path pathname) &key (if-exists :error))
+  (with-open-file (file path
+                        :direction :output
+                        :if-exists if-exists
+                        :if-does-not-exist :create)
+    (format file "~{~a~^~%~}" (formulas db)))
+  t)
