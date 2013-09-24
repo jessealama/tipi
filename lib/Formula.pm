@@ -90,6 +90,20 @@ sub is_implication {
     return 0;
 }
 
+sub remove_optional_info {
+    my $self = shift;
+    my $name = $self->get_name;
+    my $status = $self->get_status;
+    my $formula = $self->get_formula;
+    my $source = $self->get_source;
+    return Formula->new (
+        name => $name,
+        status => $status,
+        formula => $formula,
+        source => $source,
+    );
+}
+
 Readonly my $TPTP_GRAMMAR_AUTOTREE =>
     q {<autotree>
           tptp_file: tptp_input(s?)
