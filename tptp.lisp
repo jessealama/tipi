@@ -1225,7 +1225,8 @@
   (reduce-trivial-equivalences (parse-tptp db)))
 
 (defmethod reduce-trivial-equivalences ((db tptp-db))
-  (reduce-trivial-equivalences (formulas db)))
+  (make-instance 'tptp-db
+                 :formulas (reduce-trivial-equivalences (formulas db))))
 
 (defmethod reduce-equivalences ((l list) (background-premises list) &key predicate)
   (format t "Reducing a proof having ~a steps using ~d extra premises ~%" (length l) (length background-premises))
