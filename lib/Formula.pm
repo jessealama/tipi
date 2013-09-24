@@ -48,6 +48,16 @@ has 'formula' => (
     reader => 'get_formula',
 );
 
+has 'source' => (
+    is => 'ro',
+    reader => 'get_source',
+);
+
+has 'optional-info' => (
+    is => 'ro',
+    reader => 'get_optional_info',
+);
+
 sub BUILD {
     my $self = shift;
     # Ensure that everything is defined
