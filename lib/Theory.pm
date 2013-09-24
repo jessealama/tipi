@@ -901,6 +901,19 @@ sub proves {
 
 }
 
+sub remove_optional_info {
+    my $self = shift;
+    my @formulas = $self->get_formulas (1);
+    my @simplified_formulas = ();
+    my $tmp = File::Temp->new;
+    foreach my $formula (@formulas) {
+        my $formula_no_optional_info = $formula->remove_optional_info ();
+        say {$tmp} $formula_no_optional_info->toString;
+    }
+    my $tmp_path = $tmp->filename;
+    return Theory->new (path => $tmp_path);
+}
+
 sub has_axiom {
     my $self = shift;
     my $maybe_axiom = shift;
