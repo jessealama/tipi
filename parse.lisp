@@ -186,7 +186,7 @@
 			 (cond ((null after-after-<)
 				(lexer-error after-<))
 			       ((char= after-after-< #\>)
-				(return-from lexer (values (intern "<~>" :tipi) "<=>")))
+				(return-from lexer (values (intern "<~>" :tipi) "<~>")))
 			       (t
                                 (lexer-error after-<)))))
 		      (t
