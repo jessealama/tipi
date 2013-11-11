@@ -1230,6 +1230,20 @@ class ATOMIC-FORMULA.  This function expresses that disjointedness."
 		 :lhs (kowalski (lhs x))
 		 :rhs (kowalski (rhs x))))
 
+(defmethod kowalski ((x implication))
+  (let ((a (antecedent x))
+        (c (consequent x)))
+    (cond ((constant-true-p a)
+           (kowalski c))
+          ((constant-false-p a)
+           contradiction)
+          ((constant-true-p c)
+           top)
+          ((constant-false-p c)
+           (kowalski (negate a)))
+          (t
+           (call-next-method)))))
+
 (defmethod kowalski ((x atomic-formula))
   x)
 
