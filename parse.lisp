@@ -181,6 +181,14 @@
 				(return-from lexer (values (intern "<=>" :tipi) "<=>")))
 			       (t
 				(return-from lexer (values (intern "<=" :tipi) "<="))))))
+		      ((char= after-< #\~)
+		       (let ((after-after-< (read-char stream nil nil)))
+			 (cond ((null after-after-<)
+				(lexer-error after-<))
+			       ((char= after-after-< #\>)
+				(return-from lexer (values (intern "<~>" :tipi) "<=>")))
+			       (t
+                                (lexer-error after-<)))))
 		      (t
 		       (lexer-error #\<)))))
 
