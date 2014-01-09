@@ -408,8 +408,13 @@
   (make-instance 'tptp-db
 		 :formulas (remove formula-name
 				   (formulas formulas)
-				   :test #'string=
+				   :test (lambda (x y) (string= (stringify x)
+                                                                (stringify y)))
 				   :key #'name)))
+
+(defmethod remove-formula (formulas (formula-name number))
+  "Remove any formula in FORMULAS whose name is FORMULA-NAME."
+  (remove-formula formulas (stringify formula-name)))
 
 ;; (defmethod remove-formula ((problem derivability-problem) (formula tptp-formula))
 ;;   (let ((name-to-remove (name formula))
