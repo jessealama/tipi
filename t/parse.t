@@ -37,57 +37,57 @@ my $formula_thf = '(! [X: $i] : p(X))';
 
 my $parsed_thf = parse_thf_logic_formula ($formula_thf)
     or BAIL_OUT ("cannot parse THF logic formula '${formula_thf}'");
-# my $parsed_0 = parse_fof_formula ($formula_0);
-# ok (defined $parsed_0, "can parse '${formula_0}'");
-# my $parsed_1 = parse_tptp_formula ($formula_1);
-# my $parsed_2 = parse_tptp_formula ($formula_2);
-# my $parsed_3 = parse_tptp_formula ($formula_3);
-# my $parsed_4 = parse_tptp_formula ($formula_4);
-# my $parsed_test = parse_fof_formula ($formula_test);
+my $parsed_0 = parse_fof_formula ($formula_0);
+ok (defined $parsed_0, "can parse '${formula_0}'");
+my $parsed_1 = parse_tptp_formula ($formula_1);
+my $parsed_2 = parse_tptp_formula ($formula_2);
+my $parsed_3 = parse_tptp_formula ($formula_3);
+my $parsed_4 = parse_tptp_formula ($formula_4);
+my $parsed_test = parse_fof_formula ($formula_test);
 
-# ok (defined $parsed_1, "can parse ${formula_1}");
-# ok (defined $parsed_2, 'parse is defined');
-# ok (defined $parsed_3, 'parse is defined');
-# ok (defined $parsed_4, 'parse is defined');
-# ok (defined $parsed_test, 'parse is defined');
+ok (defined $parsed_1, "can parse ${formula_1}");
+ok (defined $parsed_2, 'parse is defined');
+ok (defined $parsed_3, 'parse is defined');
+ok (defined $parsed_4, 'parse is defined');
+ok (defined $parsed_test, 'parse is defined');
 
-# # need to ensure that the parses are as we expect, for example:
-# TODO: {
-#     local $TODO = 'Need to generate distinct kinds of formulas.';
-#     ok (is_implication ($parsed_test));
-# };
+# need to ensure that the parses are as we expect, for example:
+TODO: {
+    local $TODO = 'Need to generate distinct kinds of formulas.';
+    ok (is_implication ($parsed_test));
+};
 
-# # try parsing TPTP files
-# ok (-d $RealBin,
-#     '$RealBin is a directory')
-#     or BAIL_OUT ('$RealBin is not a directory');
-# my $data_dir = catdir ($RealBin, 'data');
-# ok (-d $data_dir,
-#     'data directory exists')
-#     or BAIL_OUT ('data directory does not exist');
-# my @problems = files_in_directory ($data_dir);
-# foreach my $problem (@problems) {
-#     my $parsed_problem = parse_tptp_file ($problem);
-#     ok (defined $parsed_problem,
-#         "${problem} can be parsed");
-# }
+# try parsing TPTP files
+ok (-d $RealBin,
+    '$RealBin is a directory')
+    or BAIL_OUT ('$RealBin is not a directory');
+my $data_dir = catdir ($RealBin, 'data');
+ok (-d $data_dir,
+    'data directory exists')
+    or BAIL_OUT ('data directory does not exist');
+my @problems = files_in_directory ($data_dir);
+foreach my $problem (@problems) {
+    my $parsed_problem = parse_tptp_file ($problem);
+    ok (defined $parsed_problem,
+        "${problem} can be parsed");
+}
 
-# # big: try parsing axioms and problem files for the entire TPTP
-# my $tptp_dir = $ENV{'TPTP'};
-# ok (defined $tptp_dir, 'TPTP environment variable is set')
-#     or BAIL_OUT ('TPTP environment variable is not set.');
-# ok (-d $tptp_dir,
-#     'TPTP environment variable points to a directory')
-#     or BAIL_OUT ("The value of the TPTP environment variable, '${tptp_dir}', is not a directory.");
-# my $axioms_dir = catdir ($tptp_dir, 'Axioms');
-# ok (-d $axioms_dir,
-#     'TPTP Axioms directory exists')
-#     or BAIL_OUT ("The Axioms subdirectory of the TPTP directory does not exist at the expected location (${axioms_dir}).");
-# my @axiom_files = files_in_directory ($axioms_dir);
-# @axiom_files = shuffle @axiom_files;
-# foreach my $file (@axiom_files) {
-#     my $base = basename ($file);
-#     my $result = parse_tptp_file ($file);
-#     ok (defined $result,
-#         "can parse ${base} axiom file");
-# }
+# big: try parsing axioms and problem files for the entire TPTP
+my $tptp_dir = $ENV{'TPTP'};
+ok (defined $tptp_dir, 'TPTP environment variable is set')
+    or BAIL_OUT ('TPTP environment variable is not set.');
+ok (-d $tptp_dir,
+    'TPTP environment variable points to a directory')
+    or BAIL_OUT ("The value of the TPTP environment variable, '${tptp_dir}', is not a directory.");
+my $axioms_dir = catdir ($tptp_dir, 'Axioms');
+ok (-d $axioms_dir,
+    'TPTP Axioms directory exists')
+    or BAIL_OUT ("The Axioms subdirectory of the TPTP directory does not exist at the expected location (${axioms_dir}).");
+my @axiom_files = files_in_directory ($axioms_dir);
+@axiom_files = shuffle @axiom_files;
+foreach my $file (@axiom_files) {
+    my $base = basename ($file);
+    my $result = parse_tptp_file ($file);
+    ok (defined $result,
+        "can parse ${base} axiom file");
+}
