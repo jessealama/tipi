@@ -2,10 +2,7 @@
 
 use strict;
 use warnings;
-
-require v5.10.0; # for the 'say' feature
 use feature 'say';
-
 use Getopt::Long qw(:config gnu_compat pass_through);
 use Pod::Usage;
 use Readonly;
@@ -39,6 +36,7 @@ use VegasCommand;
 use SelfcheckCommand;
 use UsedPremisesCommand;
 use ParseCommand;
+use EquivalentCommand;
 
 Readonly my $VERSION => qv('1.0');
 
@@ -63,6 +61,7 @@ Readonly my %COMMANDS => (
     'selfcheck' => SelfcheckCommand->new (),
     'used-premises' => UsedPremisesCommand->new (),
     'parse' => ParseCommand->new (),
+    'equivalent' => EquivalentCommand->new (),
 );
 
 my $opt_man       = 0;
