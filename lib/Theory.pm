@@ -226,15 +226,58 @@ sub get_formulas {
     my $self = shift;
     my $expand_includes = shift;
 
-    if (! defined $expand_includes) {
-        $expand_includes = 0;
-    }
-
     my $path = $self->get_path ();
 
-    my @formulas = parse_tptp_file ($path);
+    my @tptp4x_call = ('tptp4X', '-N', '-V', '-c', '-umachine');
 
-    return @formulas;
+    if (defined $expand_includes && $expand_includes) {
+	push (@tptp4x_call, '-x');
+    }
+
+    push (@tptp4x_call, $path);
+
+    my $tptp4x_err = $EMPTY_STRING;
+    my $tptp4x_out = $EMPTY_STRING;
+
+    my $tptp4x_harness;
+
+    if (defined $expand_includes && $expand_includes) {
+	$tptp4x_harness = harness (\@tptp4x_call,
+				   '>', \$tptp4x_out,
+				   '2>', \$tptp4x_err);
+    } else {
+	my @grep_call = ('grep', '--invert-match', '^include(');
+	$tptp4x_harness = harness (\@tptp4x_call,
+				   '|',
+				   \@grep_call,
+				   '>', \$tptp4x_out,
+				   '2>', \$tptp4x_err);
+
+    }
+
+    $tptp4x_harness->start ();
+    $tptp4x_harness->finish ();
+
+    my $tptp4x_exit_code = $tptp4x_harness->result (0);
+
+    if ($tptp4x_exit_code != 0) {
+	if ($tptp4x_err eq $EMPTY_STRING) {
+	    croak 'tptp4X did not exit cleanly working on ', $path, '; there was no error output.';
+	} else {
+	    croak 'tptp4X did not exit cleanly working on ', $path, '; the error output was:', "\n", $tptp4x_err;
+	}
+    }
+
+    my @formula_strings = split ("\n", $tptp4x_out);
+
+    my @formulas = map { Formula::make_formula ($_) } @formula_strings;
+
+    if (wantarray) {
+	return @formulas;
+    } else {
+	return \@formulas;
+    }
+
 }
 
 sub get_conjecture {
