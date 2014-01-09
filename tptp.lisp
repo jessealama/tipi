@@ -1629,6 +1629,12 @@
 (defmethod definition-p ((x tptp-formula))
   (string= (role x) "definition"))
 
+(defgeneric hypothesis-p (x)
+  (:documentation "Is X a hypothesis?"))
+
+(defmethod hypothesis-p ((x tptp-formula))
+  (string= (role x) "hypothesis"))
+
 (defgeneric save-to-file (tptp-thing destination &key if-exists)
   (:documentation "Save TPTP-THING to DESTINATION.  IF-EXISTS should be a keyword that has the same meaning as the IF-EXISTS keyword in WITH-OPEN-FILE."))
 
