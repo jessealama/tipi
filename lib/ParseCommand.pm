@@ -1,7 +1,5 @@
 package ParseCommand;
 
-require v5.10;
-
 use Moose;
 use Carp qw(croak carp);
 use Pod::Find qw(pod_where);
