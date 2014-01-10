@@ -23,6 +23,7 @@ use TPTP qw(ensure_tptp4x_available
 	    ensure_sensible_tptp_theory
 	    supported_provers
 	    known_prover);
+use Formula qw(make_formula);
 use Utils qw(error_message
 	     ensure_readable_file
 	     warning_message
