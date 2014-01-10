@@ -24,6 +24,10 @@ Readonly my $TWO_SPACES => q{  };
 Readonly my $EMPTY_STRING => q{};
 Readonly my $LF => "\N{LF}";
 
+# Stylesheets
+Readonly my $XSL_HOME => "$RealBin/../xsl";
+Readonly my $TPTP_INFO_STYLESHEET => "${XSL_HOME}/tptp-info.xsl";
+
 has 'kind' => (
     isa => 'Str',
     is => 'ro',
@@ -433,7 +437,61 @@ sub parse_tptp_file {
 
 sub make_formula {
     my $formula_string = shift;
-    return parse_tptp_formula ($formula_string);
+    # return parse_tptp_formula ($formula_string);
+    (my $tmp_fh, my $tmp_path) = tempfile ();
+
+    print {$tmp_fh} $formula_string
+        or confess 'Error: unable to print \'', $formula_string, '\' to a temporary filehandle: ', $!;
+    close $tmp_fh
+        or confess 'Error: unable to close a temporary output filehandle: ', $!;
+
+    tptp_xmlize ($tmp_path, $tmp_path);
+
+    my $kind = apply_stylesheet ($TPTP_INFO_STYLESHEET,
+                                 $tmp_path,
+                                 undef,
+                                 {
+                                     'field' => 'syntax',
+                                 });
+
+    my $name = apply_stylesheet ($TPTP_INFO_STYLESHEET,
+                                 $tmp_path,
+                                 undef,
+                                 {
+                                     'field' => 'name',
+                                 });
+
+    # carp 'name = ', $name;
+
+    my $status = apply_stylesheet ($TPTP_INFO_STYLESHEET,
+                                   $tmp_path,
+                                   undef,
+                                   {
+                                     'field' => 'status',
+                                 });
+
+    my $content = apply_stylesheet ($TPTP_INFO_STYLESHEET,
+                                    $tmp_path,
+                                    undef,
+                                    {
+                                        'field' => 'formula',
+                                    });
+
+    # carp 'content = ', $content;
+
+    if ($kind eq 'formula') {
+        $kind = 'fof';
+    } elsif ($kind eq 'clause') {
+        $kind = 'cnf';
+    } else {
+        confess 'Error: unknown formula kind \'', $kind, '\'.';
+    }
+
+    return Formula->new (kind => $kind,
+                         name => $name,
+                         status => $status,
+                         formula => $content);
+
 }
 
 sub tptpify {
