@@ -218,7 +218,7 @@ sub execute {
 	my $axiom_1_formula = $axiom_1->get_formula ();
         my @temp_axioms = @axioms_2;
         my $new_name = 'temp';
-        my $new_axiom = "fof(${new_name},conjecture,${axiom_1_formula})";
+        my $new_axiom = make_formula ("fof(${new_name},conjecture,${axiom_1_formula}).");
         push (@temp_axioms, $new_axiom);
         my $proves = $theory_2->proves ($new_axiom,
                                         \@opt_provers,
@@ -238,7 +238,7 @@ sub execute {
 	my $axiom_2_formula = $axiom_2->get_formula ();
         my @temp_axioms = @axioms_2;
         my $new_name = 'temp';
-        my $new_axiom = "fof(${new_name},conjecture,${axiom_2_formula})";
+        my $new_axiom = make_formula ("fof(${new_name},conjecture,${axiom_2_formula}).");
         push (@temp_axioms, $new_axiom);
         my $proves = $theory_1->proves ($new_axiom,
                                         \@opt_provers,
