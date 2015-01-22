@@ -567,6 +567,7 @@ sub execute {
 	    }
 	} else {
 	    say colored ($WEAKLY_UNSUCCESSFUL, $UNKNOWN_COLOR), $SPACE, '(unable to reach a decision)';
+            say 'Trial:', $LF, join ($LF, @subset);
 	    $one_unknown_candidate = 1;
 	}
 
