@@ -232,7 +232,7 @@ sub execute {
         }
     }
 
-    say $theory_1_path;
+    say $theory_2_path;
     foreach my $axiom_2 (@sorted_axioms_2) {
 	my $axiom_2_name = $axiom_2->get_name ();
 	my $axiom_2_formula = $axiom_2->get_formula ();
