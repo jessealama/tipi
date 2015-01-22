@@ -138,8 +138,7 @@ sub execute {
 				   'tptp2X',
 				   'GetSymbols');
     my @provers = supported_provers ();
-    my @auxiliary_programs = ('epclextract',
-			      'interpformat',
+    my @auxiliary_programs = ('interpformat',
 			      'prooftrans');
 
     foreach my $program (@infrastructure_programs, @provers, @auxiliary_programs) {
