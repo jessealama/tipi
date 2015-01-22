@@ -141,7 +141,7 @@ sub prove {
     my $harness = undef;
 
     if ($prover eq 'eprover') {
-	my @eprover_call = ('eprover',
+	my @eprover_call = ('eproof',
                             '--auto',
                             '--tstp-format',
 			    "--cpu-limit=${timeout}",
