@@ -141,13 +141,21 @@ sub prove {
     my $harness = undef;
 
     if ($prover eq 'eprover') {
-	my @eprover_call = ('eproof',
-                            '--auto',
-                            '--tstp-format',
+	my @eprover_call = ('eprover',
+			    '-l4',
+			    '-xAuto',
+			    '-tAuto',
+			    '-R',
+			    '--tptp3-in',
 			    "--cpu-limit=${timeout}",
 			    '--memory-limit=1024',
 			    $theory_path);
+	my @epclextract_call
+	    = ('epclextract',
+	       '--forward-comments');
+
 	$harness = harness (\@eprover_call,
+			    '|',  \@epclextract_call,
 			    '>',  \$output,
 			    '2>', \$error,
 			    $timer);
