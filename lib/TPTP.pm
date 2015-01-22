@@ -51,7 +51,8 @@ Readonly my @PROVERS => ('eprover',
 			 'vampire',
 			 'paradox',
 			 'prover9',
-			 'mace4');
+			 'mace4',
+                         'satallax',);
 
 sub ensure_tptp4x_available {
     return can_run ($TPTP4X);
