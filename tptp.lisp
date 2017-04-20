@@ -1584,6 +1584,9 @@
 					 dep-table)))
 		   (formulas db))))
 
+(defmethod formulas-independent-of ((db pathname) formula)
+  (formulas-independent-of (parse-tptp db) formula))
+
 (defmethod universally-close :around ((x tptp-formula))
   (let ((new-formula (call-next-method)))
     (when (slot-boundp x 'source)
